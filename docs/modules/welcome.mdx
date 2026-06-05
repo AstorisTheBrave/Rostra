@@ -1,0 +1,35 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Greets new members and says goodbye to leavers, and can automatically hand out roles when someone joins.
+Messages support placeholders so each one is personalized.
+
+## technical map
+
+**file paths**
+- command + wiring: `src/modules/welcome/index.ts`
+- join/leave handlers: `src/modules/welcome/events.ts`
+- config + templating: `src/modules/welcome/service.ts` (+ `service.test.ts`)
+- model: `prisma/schema.prisma` → `WelcomeConfig`
+
+**command** — `/welcome` (Manage Server): `channel <welcome|goodbye> <channel>`,
+`message <welcome|goodbye|dm> <text>`, `toggle <welcome|goodbye|dm> <bool>`, `test`, `status`, and group
+`autorole add|remove <role>`.
+
+**placeholders** — `{user}` (mention), `{username}`, `{server}`, `{membercount}` via `formatMessage`.
+
+**exports (service.ts)** — `getConfig/upsertConfig/invalidate`, `formatMessage(template, ctx)`.
+
+**events** — `guildMemberAdd` (autorole + welcome channel post + optional welcome DM),
+`guildMemberRemove` (goodbye channel post).
+
+## gotchas
+
+- Autorole assignment and member lists need the **Guild Members** intent (enabled).
+- Welcome/goodbye posts use Components V2 containers, not plain content.
+- Requires `prisma migrate` for the `WelcomeConfig` table.

@@ -103,3 +103,25 @@ model GuildCaseCounter {
   guildId String @id
   count   Int    @default(0)
 }
+
+// ── Security / Antinuke ──────────────────────────────────────────────────────
+
+/// Per-guild antinuke configuration. Absent row = antinuke not set up (disabled).
+model AntinukeConfig {
+  guildId         String   @id
+  enabled         Boolean  @default(false)
+  punishment      String   @default("ban") // ban | kick | strip
+  logChannelId    String?
+  notifyOwner     Boolean  @default(true)
+  antiBan         Boolean  @default(true)
+  antiKick        Boolean  @default(true)
+  antiBotAdd      Boolean  @default(true)
+  antiChannel     Boolean  @default(true)
+  antiRole        Boolean  @default(true)
+  antiWebhook     Boolean  @default(true)
+  antiGuildUpdate Boolean  @default(true)
+  extraOwners     String[] @default([])
+  whitelist       String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

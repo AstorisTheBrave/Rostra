@@ -1,0 +1,36 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Run prize giveaways: staff start one with a duration and prize, members click a button to enter, and the
+bot automatically picks winners when time runs out (and can reroll).
+
+## technical map
+
+**file paths**
+- command + enter button + scheduler: `src/modules/giveaways/index.ts`
+- persistence + winner draw: `src/modules/giveaways/service.ts` (+ `service.test.ts`)
+- model: `prisma/schema.prisma` → `Giveaway`
+
+**command** — `/giveaway` (Manage Server for start/end/reroll; list open): `start <duration> <prize>
+[winners]`, `end <id>`, `reroll <id>`, `list`.
+
+**button (ComponentHandler `prefix: "giveaway"`)** — `giveaway:enter:<id>` adds the clicker as an entry.
+
+**exports (service.ts)** — `createGiveaway`, `setMessageId`, `getGiveaway`, `addEntry` (idempotent),
+`endGiveaway` (draws winners), `getActive`, and pure `pickWinners(entries, count)`.
+
+## gotchas
+
+- **Scheduling is per-shard via `setTimeout`, not BullMQ.** A giveaway is guild-bound, so the shard that
+  owns the guild schedules it. On `ready`, each shard reschedules active giveaways for guilds it can see
+  (`client.guilds.cache.has`). This avoids a BullMQ worker on the wrong shard picking the job.
+- `setTimeout` is capped at ~24.8 days; longer giveaways re-arm on each fire (and on restart).
+- Entries are stored as a `String[]` on the row (fine for typical sizes; move to a join table if a single
+  giveaway needs hundreds of thousands of entries).
+- `pickWinners` shuffles a de-duplicated pool (Fisher–Yates) and slices — unit-tested.
+- Requires `prisma migrate` for the `Giveaway` table.

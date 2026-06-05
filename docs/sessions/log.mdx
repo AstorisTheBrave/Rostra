@@ -210,6 +210,22 @@ fallback; role rewards granted on level-up (back-fills ≤ level). 54/54 tests; 
 **files touched**: `src/modules/leveling/{index,events,service}.ts` (+ test), `prisma/schema.prisma`,
 `docs/modules/leveling.mdx`.
 
-**next**: **giveaways** — `/giveaway start|end|reroll|list` with an enter button; ends via a **BullMQ
-delayed job** (or in-memory fallback) — first module to use the job queue (`jobs/queue.ts` `registerJob`
-+ `enqueue`). Then joinToCreate (voice), serverstats/birthday/reactionroles, misc, trivia, games, ai, music.
+**next**: giveaways (DONE — see next entry).
+
+### 2026-06-05 (later — giveaways module)
+
+**changed**: `/giveaway start|end|reroll|list` + `giveaway:enter:<id>` button. `Giveaway` model;
+`pickWinners` (Fisher–Yates, tested). **Auto-end via per-shard `setTimeout`, not BullMQ** (giveaways are
+guild-bound; the owning shard schedules, and reschedules active ones on `ready` for guilds it can see) —
+avoids cross-shard worker mis-routing. 56/56 tests; clean; 13 commands, components `giveaway, ticket`.
+
+**files touched**: `src/modules/giveaways/{index,service}.ts` (+ test), `prisma/schema.prisma`,
+`docs/modules/giveaways.mdx`.
+
+**decisions made**: Chose per-shard timers over BullMQ for guild-bound scheduling. Entries as `String[]`
+on the row. `setTimeout` capped at ~24.8d, re-arms on fire/restart.
+
+**next**: **joinToCreate** (voice: a "join to create" hub channel → creates a temp voice channel owned by
+the joiner, deleted when empty; voiceStateUpdate). Then serverstats/birthday/reactionroles, misc, trivia,
+games, ai, music. (BullMQ `jobs/queue.ts` still unused by a feature — a future cron-style module like
+birthday can use it.)

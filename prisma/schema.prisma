@@ -319,3 +319,18 @@ model J2CChannel {
 
   @@index([guildId])
 }
+
+// ── Reaction Roles (button self-roles) ───────────────────────────────────────
+
+model ReactionRolePanel {
+  id        String   @id @default(cuid())
+  guildId   String
+  channelId String?
+  messageId String?
+  title     String
+  mode      String   @default("multiple") // multiple | single
+  roles     Json     @default("[]") // [{ roleId, label, emoji? }]
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+}

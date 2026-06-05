@@ -1,0 +1,35 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+The translation system. Every word the bot shows a user comes from a named key (like `common:ping.pong`)
+instead of being typed inline. Right now there's only English, but this design means the whole bot can be
+translated later without touching any feature code.
+
+## technical map
+
+**file paths**
+- primary: `src/i18n/index.ts`
+- strings: `src/i18n/locales/en/common.json`
+- test: `src/i18n/index.test.ts`
+
+**exports**
+- `t(key, vars?, locale='en'): string` — resolve `namespace:key`, interpolate `{var}` placeholders;
+  returns the key itself if missing (so gaps are visible, not crashes).
+- `registerLocale(locale, namespace, strings)` — modules register their own string bundles at boot.
+
+**depends on**
+- `src/i18n/locales/en/common.json` (core strings)
+
+**imported by**
+- (later) every command/interaction handler; each feature module calls `registerLocale` for its namespace
+
+## gotchas
+
+- Keys are `namespace:dotted.path`. The core namespace is `common`; each module uses its own namespace.
+- Unknown keys return the key string — useful for spotting untranslated text in output.
+- New modules must `registerLocale('en', '<module>', {...})` during load before their commands run.

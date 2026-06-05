@@ -1,0 +1,39 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+The running history of structural changes to Rostra, one entry per working session. Read the latest entry
+to see where things stand and what was decided.
+
+## log
+
+### 2026-06-05
+
+**changed**: Project created. Phase 1 audit of 15 archived bots completed. Architecture designed and
+approved (single modular TS package; Postgres+Prisma+Redis; native ShardingManager with hybrid switch;
+slash-only + Components V2; no dashboard; no premium; undercover mode). Private repo created. **Plan 1a
+(Foundation) implemented and merged to `main`**: config loader, Pino logger, Prisma core schema +
+`getPrisma`, Redis/Keyv cache, Components V2 kit, i18n, sharding IPC abstraction. 14/14 tests pass;
+typecheck + Biome clean. top.gg + multi-node Lavalink folded into the spec; 10 Lavalink nodes stored in
+local `.env`. Documentary docs system set up.
+
+**files touched**: `package.json`, `tsconfig.json`, `tsup.config.ts`, `biome.json`, `.env.example`,
+`prisma/schema.prisma`, `src/config.ts`, `src/services/{logger,database,cache}.ts`,
+`src/utils/components.ts`, `src/i18n/index.ts` + `locales/en/common.json`, `src/cluster/ipc.ts`,
+`src/types/global.d.ts` (+ matching `*.test.ts`).
+
+**docs updated**: created `docs/overview.mdx`, `stack.mdx`, `style.mdx`, `architecture/index.mdx`,
+`modules/{config,services,components,i18n,ipc}.mdx`, `infrastructure/{env,deployment}.mdx`, this log;
+specs/plans under `docs/superpowers/`.
+
+**decisions made**: Postgres over Turso (write-heavy at 1M DAU). Slash-only. Components V2 only. No
+premium (all free). Undercover mode is a hard invariant (no AI-provider references). Stats autopost from
+the manager process, not per-shard. Bot name = "Rostra".
+
+**next**: Plan 1b (Runtime) — BotClient + loaders, command/interaction/job pipeline, Fastify health +
+top.gg webhook, top.gg autoposter + `services/topgg.ts`, `cluster.ts`/`bot.ts` entries, graceful
+shutdown, Dockerfile/compose/README, CI. Then feature modules (moderation first).

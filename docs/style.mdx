@@ -1,0 +1,50 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+The conventions everyone follows in this codebase — naming, structure, and the hard "never do X" rules.
+If you'd explain it to a new teammate on day one, it's here.
+
+## technical map
+
+**hard invariants (also in `CLAUDE.md` as CIT invariants — checked on every change)**
+- **Undercover mode:** zero references to Anthropic, Claude, OpenAI, Groq, or any AI provider/model —
+  in code, comments, user strings, status, errors, package.json, README, or commits. AI replies as
+  "Rostra" only.
+- No `process.env` access outside `src/config.ts`.
+- No `new PrismaClient()` outside `src/services/database.ts`; use `getPrisma()`.
+- **Components V2 only** (`MessageFlags.IsComponentsV2`); never `EmbedBuilder`/legacy embeds.
+- Slash-only commands; no message-prefix engine.
+- Each feature is a self-contained `src/modules/<name>/`; modules never import each other's internals —
+  only shared `services/`, `utils/`, `types/`, `i18n/`.
+- No `any` (use `unknown` + narrow); ESM imports only.
+- Every user-facing string goes through the i18n `t()` helper.
+
+**naming**
+- Files: lowerCamelCase for modules/utils (`reactionRoleService.ts`); singletons named by accessor
+  (`getPrisma`, `getCache`, `getLogger`, `config`).
+- Imports use the `@/` alias for `src` (e.g. `@/services/logger.ts`) with explicit `.ts` extension.
+- i18n keys: `namespace:dotted.key` (e.g. `common:ping.pong`).
+- Interaction customIds: `module:action:scope:arg`.
+
+**formatting & lint**
+- Biome, tabs, line width 100. Run `npm run lint:fix`. `noExplicitAny` and `useNodejsImportProtocol`
+  are errors. `noAssignInExpressions` is on — no `x ??= y` used as a value.
+
+**commits**
+- Conventional commits (`feat:`, `chore:`, `docs:`, `fix:`). **No AI co-author trailers** (undercover).
+
+**tests**
+- `*.test.ts` beside source, `node:test` + `node:assert/strict`, run with `tsx`.
+- Pure tests need no env; anything importing `config`/logger/db/cache needs `--env-file=.env`
+  (use `npm run test:env`).
+
+## gotchas
+
+- Empty strings from `.env` are treated as absent by the config loader so Zod defaults apply.
+- The eager `config` export validates env at import time — a missing required var crashes any module
+  that transitively imports it (intended fail-fast).

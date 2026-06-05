@@ -1,0 +1,40 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+The three shared "always-on" helpers every part of Rostra uses: a logger (records what's happening), a
+database connection (saves and reads data), and a cache (remembers hot data quickly). Each is a single
+shared instance so the whole bot reuses one connection instead of making new ones everywhere.
+
+## technical map
+
+**file paths**
+- `src/services/logger.ts` — Pino logging
+- `src/services/database.ts` — Prisma/Postgres access
+- `src/services/cache.ts` — Redis/Keyv cache
+- tests: `src/services/logger.test.ts`, `database.test.ts`, `cache.test.ts`
+
+**exports**
+- `getLogger(scope): Logger` — cached child logger tagged with `scope`; `logger` is the root.
+- `getPrisma(): PrismaClient` — cached singleton DB client; `disconnectPrisma()` for shutdown.
+- `getCache(): Keyv` — cache (Redis-backed if `REDIS_URL`, else in-memory).
+- `getRedis(): Redis | undefined` — raw ioredis client for sorted-set ops (leaderboards); undefined w/o Redis.
+- `cacheGet/cacheSet/cacheDel/withCache` — typed convenience helpers; `disconnectCache()` for shutdown.
+
+**depends on**
+- `src/config.ts` — log level, `DATABASE_URL`, `REDIS_URL`, env mode
+- `@prisma/client` (generated from `prisma/schema.prisma`), `pino`, `ioredis`, `keyv`, `@keyv/redis`
+
+**imported by**
+- (later) the BotClient, command pipeline, jobs, and every feature module
+
+## gotchas
+
+- Construct the Prisma client **only** here (`getPrisma()`) — invariant.
+- Logger redacts token/password/auth fields and must never log provider names.
+- Without `REDIS_URL` the cache is per-process memory (not shared across shards) — fine for dev, not prod.
+- `getPrisma()` does not connect on construction; first query connects.

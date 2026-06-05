@@ -1,0 +1,53 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: in-flux
+---
+
+## what this is
+
+How Rostra's pieces fit together: how it scales across shards, how a slash command flows from a user to
+a database and back, and how the optional services (Redis, top.gg, Lavalink) plug in. The full design
+lives in `docs/superpowers/specs/2026-06-05-unified-bot-core-platform-design.md`.
+
+## technical map
+
+**process topology (target — runtime layer, not yet built)**
+```
+cluster.ts (manager)
+  ├─ ShardingManager (auto shards, respawn)
+  ├─ Fastify: /health, /health/shards, /metrics, /votes/topgg
+  ├─ top.gg autoposter (aggregates guild count across shards via IPC, then posts)
+  └─ N × bot.ts (one BotClient per shard)
+        ├─ loaders: commands, events, interactions, jobs (auto-discover src/modules/*)
+        ├─ services: getPrisma(), getCache(), getLogger(), createIpc(client)
+        └─ BullMQ workers (in-process; splittable later)
+```
+
+**sharding / IPC** — `src/cluster/ipc.ts` defines an `Ipc` interface (`broadcast`, `fetchValues`).
+Today it's `NativeIpc` (discord.js `broadcastEval`). Switching to `discord-hybrid-sharding` later is a
+`SHARDING_MODE=hybrid` config change + a `HybridIpc` class — modules never touch the sharding lib.
+
+**command flow (target)**
+1. User runs `/mod ban …` → `interactionCreate` on a shard.
+2. Pipeline: resolve command → permission guard → cooldown (Redis bucket) → Zod-validate options →
+   `execute(ctx)` inside an error boundary.
+3. Handler uses `getPrisma()` for data, `getCache()`/`getRedis()` for hot data, and replies via
+   `src/utils/components.ts` (Components V2).
+4. Errors → ephemeral V2 error message + structured Pino log with a trace id.
+
+**command namespacing** — ~16–18 top-level commands (`/mod`, `/economy`, `/ticket`, …) each holding
+subcommand groups/subcommands, to stay under Discord's 100-global-command cap. Map is in the spec §8.
+
+**data** — one Postgres schema (`prisma/schema.prisma`) merges all 15 bots' storage. Redis holds
+leaderboards (sorted sets), hot config cache, rate limits, and job queues.
+
+**depends on**
+- `src/config.ts` — every subsystem reads typed config from here
+- `src/services/*` — shared singletons used everywhere
+
+## gotchas
+
+- top.gg stats must be posted from the **manager** process (aggregate across shards), not per shard —
+  per-shard counts are partial.
+- Build order matters: foundation → runtime → feature modules (see `docs/sessions/log.mdx` and the spec).

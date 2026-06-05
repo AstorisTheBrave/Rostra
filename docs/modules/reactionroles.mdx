@@ -1,0 +1,34 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Self-assignable roles: staff build a panel of role buttons and post it; members click a button to give
+themselves (or remove) a role — no moderator needed. Supports "single" mode (one role from the panel) or
+"multiple".
+
+## technical map
+
+**file paths**
+- command + button handler: `src/modules/reactionroles/index.ts`
+- panel persistence + JSON parsing: `src/modules/reactionroles/service.ts` (+ `service.test.ts`)
+- model: `prisma/schema.prisma` → `ReactionRolePanel` (roles stored as a JSON array)
+
+**command** — `/reactionrole` (Manage Roles): `create <title> [mode]`, `addrole <panel> <role> <label>
+[emoji]`, `removerole <panel> <role>`, `post <panel>`, `list`, `delete <panel>`.
+
+**button (ComponentHandler `prefix: "rr"`)** — `rr:<panelId>:<roleId>` toggles the role on the clicker;
+in `single` mode it removes the panel's other roles first.
+
+**exports (service.ts)** — `createPanel/getPanel/listPanels/deletePanel`, `addRole/removeRole`,
+`setMessage`, and pure `parseRoles(panel)` (validates the JSON column).
+
+## gotchas
+
+- Up to 25 role buttons per panel (5 rows × 5) — the post builder caps at 5 rows.
+- The handler only assigns roles the bot can manage (`role.editable`); higher roles are refused.
+- Role list lives in the `roles` JSON column; `parseRoles` defends against malformed data (tested).
+- Requires `prisma migrate` for `ReactionRolePanel`.

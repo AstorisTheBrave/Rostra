@@ -1,0 +1,33 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Members register their birthday and the bot wishes them happy birthday in a chosen channel each year,
+optionally giving them a temporary birthday role for the day.
+
+## technical map
+
+**file paths**
+- command: `src/modules/birthday/index.ts`
+- daily scheduler: `src/modules/birthday/events.ts`
+- storage + helpers: `src/modules/birthday/service.ts` (+ `service.test.ts`)
+- models: `prisma/schema.prisma` → `BirthdayConfig`, `Birthday`
+
+**command** — `/birthday`: `set <day> <month> [year]`, `remove`, `view [user]`, `next`, and (Manage
+Server) `channel`, `role`, `message`.
+
+**exports (service.ts)** — `getConfig/upsertConfig`, `setBirthday/removeBirthday/getBirthday`,
+`birthdaysOn(month, day)`, `listForGuild`, pure `isValidDate` + `msUntilNextRun(hourUtc, now?)`.
+
+## gotchas
+
+- **Scheduling is per-shard** (like giveaways): on `ready`, each shard arms a timer for 09:00 UTC; each
+  run handles only birthdays for guilds that shard owns (`client.guilds.cache.get`).
+- The birthday role is granted then removed ~23h later via `setTimeout`; a bot restart within that window
+  can leave the role on (cosmetic; a future daily cleanup sweep could fix it).
+- Years are optional and only used for display/age, not matching.
+- Requires `prisma migrate` for `BirthdayConfig`, `Birthday`.

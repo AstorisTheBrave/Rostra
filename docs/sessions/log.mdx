@@ -237,6 +237,25 @@ tests; clean; 13 commands.
 **files touched**: `src/modules/joinToCreate/{index,events,service}.ts` (+ test), `prisma/schema.prisma`,
 `docs/modules/joinToCreate.mdx`.
 
-**next**: **reactionroles** (self-assign roles via buttons/select — more component handlers) +
-**birthday** (cron via BullMQ `jobs/queue.ts` — finally exercises the queue) as a batch, then misc
-(afk/snipe/autoresponder/tags), trivia, games, ai, music.
+**next**: reactionroles + birthday (BOTH DONE — see entries below).
+
+### 2026-06-05 (later — reactionroles + birthday modules)
+
+**reactionroles**: `/reactionrole create|addrole|removerole|post|list|delete` (Manage Roles) + button
+handler `rr:<panelId>:<roleId>` toggling roles (single/multiple mode). `ReactionRolePanel` (roles in JSON,
+`parseRoles` validates + tested). Up to 25 buttons/panel. Components now `giveaway, rr, ticket`.
+
+**birthday**: `/birthday set|remove|view|next` + (Manage Server) `channel|role|message`. Per-shard daily
+09:00 UTC scheduler announces today's birthdays for owned guilds + grants a temp role (~23h). Models
+`BirthdayConfig`, `Birthday`. Pure `isValidDate`/`msUntilNextRun` tested.
+
+**totals**: 62/62 tests; clean; **15 top-level commands**, 3 component prefixes. Per-shard scheduling
+reaffirmed as the pattern for guild-bound time tasks (BullMQ reserved for non-guild work).
+
+**files touched**: `src/modules/reactionroles/{index,service}.ts`, `src/modules/birthday/{index,events,
+service}.ts` (+ tests), `prisma/schema.prisma`, `docs/modules/{reactionroles,birthday}.mdx`.
+
+**next**: **misc batch** — afk, snipe, autoresponder, tags (small standalone features, several may share
+one `/util`-style command or be their own). Then **trivia** (self-contained game w/ OTDB API), **games**
+(tictactoe/wordle/etc — button games), **ai** (Groq/OpenAI behind neutral `AI_*` env, undercover persona),
+**music** (Lavalink, 10 nodes in `.env`). ~6 feature areas remain.

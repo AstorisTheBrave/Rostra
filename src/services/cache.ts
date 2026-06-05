@@ -1,8 +1,8 @@
+import { config } from "@/config.ts";
+import { getLogger } from "@/services/logger.ts";
 import KeyvRedis from "@keyv/redis";
 import Redis from "ioredis";
 import Keyv from "keyv";
-import { config } from "@/config.ts";
-import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("cache");
 
@@ -12,9 +12,11 @@ let redis: Redis | undefined;
 function init(): Keyv {
 	if (keyv) return keyv;
 	if (config.redis.url) {
+		// Keyv uses its own connection via URL; a separate ioredis client is kept
+		// for raw sorted-set ops (leaderboards) that Keyv does not expose.
+		keyv = new Keyv({ store: new KeyvRedis(config.redis.url), namespace: "rostra" });
 		redis = new Redis(config.redis.url, { maxRetriesPerRequest: null, lazyConnect: false });
 		redis.on("error", (err) => log.error({ err }, "redis error"));
-		keyv = new Keyv({ store: new KeyvRedis(redis), namespace: "rostra" });
 		log.info("cache backed by redis");
 	} else {
 		keyv = new Keyv({ namespace: "rostra" });

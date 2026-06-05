@@ -1,5 +1,5 @@
-import { type Logger, pino } from "pino";
 import { config } from "@/config.ts";
+import { type Logger, pino } from "pino";
 
 const redactPaths = [
 	"token",

@@ -1,5 +1,5 @@
-import type { Client } from "discord.js";
 import { config } from "@/config.ts";
+import type { Client } from "discord.js";
 
 export interface Ipc {
 	readonly mode: "native" | "hybrid";

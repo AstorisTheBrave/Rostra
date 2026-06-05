@@ -11,10 +11,9 @@ export function registerLocale(
 	namespace: string,
 	strings: Record<string, string>,
 ): void {
-	(locales[locale] ??= {})[namespace] = {
-		...(locales[locale]?.[namespace] ?? {}),
-		...strings,
-	};
+	const bundle = locales[locale] ?? {};
+	bundle[namespace] = { ...(bundle[namespace] ?? {}), ...strings };
+	locales[locale] = bundle;
 }
 
 function interpolate(template: string, vars?: Vars): string {

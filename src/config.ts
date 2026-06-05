@@ -67,9 +67,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 	for (const [k, v] of Object.entries(source)) cleaned[k] = v === "" ? undefined : v;
 	const parsed = schema.safeParse(cleaned);
 	if (!parsed.success) {
-		const issues = parsed.error.issues
-			.map((i) => `${i.path.join(".")}: ${i.message}`)
-			.join("; ");
+		const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
 		throw new Error(`Invalid environment configuration: ${issues}`);
 	}
 	const e = parsed.data;
@@ -98,6 +96,5 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 	});
 }
 
-let cached: Config | undefined;
-/** Cached, validated, frozen config. The ONLY place env is read. */
-export const config: Config = (cached ??= loadConfig());
+/** Cached, validated, frozen config (computed once at import). The ONLY place env is read. */
+export const config: Config = loadConfig();

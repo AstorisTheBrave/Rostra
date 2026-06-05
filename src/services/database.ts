@@ -1,6 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import { config } from "@/config.ts";
 import { getLogger } from "@/services/logger.ts";
+import { PrismaClient } from "@prisma/client";
 
 const log = getLogger("database");
 let client: PrismaClient | undefined;

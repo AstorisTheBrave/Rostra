@@ -1,5 +1,6 @@
 import {
 	ContainerBuilder,
+	type InteractionEditReplyOptions,
 	type InteractionReplyOptions,
 	MessageFlags,
 	type RepliableInteraction,
@@ -46,17 +47,16 @@ export function errorContainer(message: string): ContainerBuilder {
 
 type TopLevel = ContainerBuilder | TextDisplayBuilder | SeparatorBuilder;
 
+export type V2Response = { flags: number; components: TopLevel[] };
+
 /** Wraps components into a V2 reply payload — always sets IsComponentsV2. */
 export function buildResponse(
 	components: TopLevel[],
 	opts: { ephemeral?: boolean } = {},
-): InteractionReplyOptions & { flags: number; components: TopLevel[] } {
+): V2Response {
 	let flags = MessageFlags.IsComponentsV2 as number;
 	if (opts.ephemeral) flags |= MessageFlags.Ephemeral;
-	return { flags, components } as InteractionReplyOptions & {
-		flags: number;
-		components: TopLevel[];
-	};
+	return { flags, components };
 }
 
 async function send(
@@ -65,8 +65,11 @@ async function send(
 	ephemeral: boolean,
 ): Promise<void> {
 	const payload = buildResponse(components, { ephemeral });
-	if (i.deferred || i.replied) await i.editReply(payload);
-	else await i.reply(payload);
+	if (i.deferred || i.replied) {
+		await i.editReply(payload as unknown as InteractionEditReplyOptions);
+	} else {
+		await i.reply(payload as unknown as InteractionReplyOptions);
+	}
 }
 
 export const reply = {

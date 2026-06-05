@@ -125,3 +125,31 @@ model AntinukeConfig {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+// ── Automod ──────────────────────────────────────────────────────────────────
+
+/// Per-guild auto-moderation configuration.
+model AutomodConfig {
+  guildId         String   @id
+  enabled         Boolean  @default(false)
+  logChannelId    String?
+  antiInvite      Boolean  @default(false)
+  antiLink        Boolean  @default(false)
+  antiSpam        Boolean  @default(false)
+  antiMassMention Boolean  @default(false)
+  antiProfanity   Boolean  @default(false)
+  antiCaps        Boolean  @default(false)
+  action          String   @default("delete") // delete | warn | timeout
+  timeoutMs       Int      @default(300000)
+  spamCount       Int      @default(5)
+  spamWindowMs    Int      @default(5000)
+  mentionLimit    Int      @default(5)
+  capsPercent     Int      @default(70)
+  capsMinLength   Int      @default(10)
+  exemptRoles     String[] @default([])
+  exemptChannels  String[] @default([])
+  customWords     String[] @default([])
+  allowedLinks    String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

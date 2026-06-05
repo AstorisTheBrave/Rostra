@@ -308,3 +308,21 @@ self-deferring handlers (/ask, ticket close) aren't double-acked. Optional `defe
 
 **files touched**: `src/utils/safeAck.ts` (+ test), `src/pipeline/runCommand.ts`,
 `src/interactions/router.ts`, `src/types/module.ts`.
+
+### 2026-06-05 (later — safeAck heartbeat + V2 follow-up fallback)
+
+**changed**: Added an opt-in `heartbeat` to `withSafeAck` — for long-running handlers it edits the
+deferred reply every ~8s ("⏳ Rostra is still working on it… (Ns)"), and a graceful note as the ~15-min
+interaction token nears expiry; stops the instant the handler finishes. Heartbeat uses Components V2 to
+stay flag-consistent with the final reply. Added `heartbeat?` to `SlashCommand`/`ComponentHandler`
+(passed through pipeline + router); enabled on `/ask`. **De-risked the deferred→V2 path**: the components
+kit's `send()` now falls back to a fresh `followUp` if an `editReply` with the IsComponentsV2 flag is ever
+rejected (Discord can refuse toggling that flag on edit), so auto-deferred commands never fail to render.
+72/72 tests (2 new heartbeat tests); typecheck + lint + embed + undercover clean; 19 commands.
+
+**files touched**: `src/utils/safeAck.ts` (+ test), `src/utils/components.ts`, `src/types/module.ts`,
+`src/pipeline/runCommand.ts`, `src/interactions/router.ts`, `src/modules/ai/index.ts`.
+
+**verify-on-live note**: confirm `deferReply()` → `editReply({ flags: IsComponentsV2, components })` renders
+in one message on a real interaction; if Discord rejects it, the followUp fallback fires (one extra message)
+— functional either way, worth a quick eyeball during smoke-testing.

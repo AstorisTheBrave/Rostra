@@ -1,0 +1,7 @@
+{
+	"error.generic": "Something went wrong. Please try again.",
+	"error.missingPermissions": "You don't have permission to do that.",
+	"error.botMissingPermissions": "I'm missing the permissions needed for that.",
+	"error.cooldown": "Slow down — try again in {seconds}s.",
+	"ping.pong": "Pong! {ms}ms"
+}

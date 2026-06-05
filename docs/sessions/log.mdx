@@ -255,7 +255,27 @@ reaffirmed as the pattern for guild-bound time tasks (BullMQ reserved for non-gu
 **files touched**: `src/modules/reactionroles/{index,service}.ts`, `src/modules/birthday/{index,events,
 service}.ts` (+ tests), `prisma/schema.prisma`, `docs/modules/{reactionroles,birthday}.mdx`.
 
-**next**: **misc batch** — afk, snipe, autoresponder, tags (small standalone features, several may share
-one `/util`-style command or be their own). Then **trivia** (self-contained game w/ OTDB API), **games**
-(tictactoe/wordle/etc — button games), **ai** (Groq/OpenAI behind neutral `AI_*` env, undercover persona),
-**music** (Lavalink, 10 nodes in `.env`). ~6 feature areas remain.
+**next**: extras (DONE — see next entry).
+
+### 2026-06-05 (later — extras module)
+
+**changed**: `extras` module exporting THREE commands: `/afk [reason]`, `/snipe`, `/autoresponder
+add|remove|list`. messageCreate handles AFK clear/mention + autoresponder; messageDelete stores snipe;
+ready loads AFK. Models `AfkStatus` (in-memory authoritative + DB-backed), `AutoResponder` (cached). Snipe
+is in-memory only. Pure `matchResponder` tested. 64/64 tests; clean; **18 top-level commands**.
+
+**files touched**: `src/modules/extras/{index,events,service}.ts` (+ test), `prisma/schema.prisma`,
+`docs/modules/extras.mdx`.
+
+**decisions made**: One module can export multiple top-level commands. Conversational replies (afk/AR) use
+plain `content` (allowed; embed-ban is about `EmbedBuilder`, not plain text). AFK kept in-memory for
+fast per-message checks, DB for restart recovery.
+
+**Remaining (4 specialized modules, larger — good for a fresh context):**
+- **trivia** — self-contained quiz game; Open Trivia DB API (`node-fetch`), question/answer buttons,
+  per-user scores + leaderboard.
+- **games** — button mini-games (tictactoe, connect4, rps, wordle…); mostly stateless component flows.
+- **ai** — chat via neutral `AI_*` env (provider hidden); **undercover-critical**: persona "Rostra" only,
+  no provider names anywhere. Needs an AI client wrapper around `AI_BASE_URL`/`AI_API_KEY` (OpenAI-compatible).
+- **music** — Lavalink (10 nodes already in `.env` as `LAVALINK_NODES`); pick `lavalink-client`/shoukaku;
+  `/music play|queue|skip|…`; needs a running node to smoke-test (user has them).

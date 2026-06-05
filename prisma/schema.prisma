@@ -279,3 +279,22 @@ model LevelReward {
   @@id([guildId, level])
   @@index([guildId])
 }
+
+// ── Giveaways ────────────────────────────────────────────────────────────────
+
+model Giveaway {
+  id        String   @id @default(cuid())
+  guildId   String
+  channelId String
+  messageId String?
+  prize     String
+  winners   Int      @default(1)
+  hostId    String
+  endsAt    DateTime
+  ended     Boolean  @default(false)
+  entries   String[] @default([])
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+  @@index([ended])
+}

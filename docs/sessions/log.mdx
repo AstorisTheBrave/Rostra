@@ -296,3 +296,15 @@ vendors (listing would itself violate undercover). `sanitizeReply` handles gener
 
 **Remaining (3 modules): trivia, games, music** — larger/specialized; best with fresh context. music needs
 a running Lavalink node to smoke-test (nodes are in `.env`).
+
+### 2026-06-05 (later — safeAck core utility)
+
+**changed**: Added `src/utils/safeAck.ts` (`withSafeAck`) — auto-defers any interaction whose handler
+hasn't replied within ~2.3s (margin under Discord's 3000ms deadline), showing the native "thinking…" state
+so slow handlers never fail with "Unknown interaction". Wired centrally into `pipeline/runCommand.ts`
+(commands) and `interactions/router.ts` (components/modals). Checks `replied||deferred` first so
+self-deferring handlers (/ask, ticket close) aren't double-acked. Optional `deferEphemeral` added to
+`SlashCommand`/`ComponentHandler`. 70/70 tests (3 new); typecheck + lint + undercover clean; 19 commands.
+
+**files touched**: `src/utils/safeAck.ts` (+ test), `src/pipeline/runCommand.ts`,
+`src/interactions/router.ts`, `src/types/module.ts`.

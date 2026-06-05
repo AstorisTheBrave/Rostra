@@ -117,6 +117,26 @@ threshold/panic system (deferred). Single trusted whitelist + extraOwners (vs pe
 v1 does not auto-revert deleted resources. Antinuke config in its own table, not the generic
 `GuildModuleConfig`, for typed per-field access in hot event paths.
 
-**next**: **automod** module — use the `bad-words` npm package (already a dependency) for the profanity
-engine, plus anti-invite / anti-link / anti-spam / mass-mention, with per-guild config. Then logging,
-welcome, tickets, etc. per build order. Run `prisma migrate` at deploy for the new tables.
+**next**: automod (DONE — see next entry).
+
+### 2026-06-05 (later — automod module)
+
+**changed**: Built automod. `/automod` (Manage Server) config: enable/disable/status, action
+(delete|warn|timeout), per-filter toggle, limits, logchannel, exempt role/channel groups, custom-word
+groups. messageCreate guard runs `checkMessage` (invite, link w/ allow-list, mass-mention, caps,
+profanity via `bad-words`, spam sliding-window) and `enforce` (delete + optional timeout + log). New
+`AutomodConfig` model; config + per-guild `bad-words` Filter cached. Pure detectors in `checks.ts` with
+tests. 44/44 tests pass; typecheck + lint + embed guard clean; loader registers `automod, help, mod,
+ping, security, util`.
+
+**files touched**: `src/modules/automod/{index,service,checks}.ts` (+ `checks.test.ts`),
+`prisma/schema.prisma`, `docs/modules/automod.mdx`.
+
+**decisions made**: Used the `bad-words` dependency (per project requirement) as the profanity engine,
+wrapped with a per-guild cached Filter + custom words. Spam tracking is in-memory per-process (correct
+since a guild's traffic lands on one shard). Fixed check order; first hit wins; exempt roles/channels
+short-circuit.
+
+**next**: **logging** (configurable audit logging of message/member/role/channel events to a log
+channel) — pairs with moderation/automod. Then welcome/autorole, tickets, applications, economy,
+leveling, giveaways, etc. per build order. Run `prisma migrate` at deploy for all new tables.

@@ -153,3 +153,22 @@ model AutomodConfig {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+// ── Logging ──────────────────────────────────────────────────────────────────
+
+/// Per-guild audit logging configuration.
+model LoggingConfig {
+  guildId         String   @id
+  logChannelId    String?
+  messageDelete   Boolean  @default(true)
+  messageEdit     Boolean  @default(true)
+  memberJoin      Boolean  @default(true)
+  memberLeave     Boolean  @default(true)
+  memberBan       Boolean  @default(true)
+  memberUnban     Boolean  @default(true)
+  roleChanges     Boolean  @default(true)
+  channelChanges  Boolean  @default(true)
+  ignoredChannels String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

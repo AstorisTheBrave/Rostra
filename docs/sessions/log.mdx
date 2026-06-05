@@ -279,3 +279,20 @@ fast per-message checks, DB for restart recovery.
   no provider names anywhere. Needs an AI client wrapper around `AI_BASE_URL`/`AI_API_KEY` (OpenAI-compatible).
 - **music** — Lavalink (10 nodes already in `.env` as `LAVALINK_NODES`); pick `lavalink-client`/shoukaku;
   `/music play|queue|skip|…`; needs a running node to smoke-test (user has them).
+
+### 2026-06-05 (later — ai module)
+
+**changed**: `/ask <question>` assistant. `ask()` POSTs to `${AI_BASE_URL}/chat/completions`
+(OpenAI-compatible) with a generic persona + the question; `sanitizeReply` strips leak phrases.
+**Undercover verified**: repo-wide `grep -riE "openai|anthropic|claude|groq|gpt|gemini|llama|mistral" src`
+returns clean — no provider name anywhere (persona is generic, no denylist of names in source). Deferred
+reply + 5s cooldown; graceful "unavailable" when `AI_*` unset. 67/67 tests; clean; **19 commands**.
+
+**files touched**: `src/modules/ai/{index,service}.ts` (+ test), `docs/modules/ai.mdx`.
+
+**decisions made**: No provider SDK (plain `fetch` to OpenAI-compatible endpoint) to avoid any package/name
+leak. Persona instructs generically ("never name the technology powering you") rather than listing
+vendors (listing would itself violate undercover). `sanitizeReply` handles generic leak phrases only.
+
+**Remaining (3 modules): trivia, games, music** — larger/specialized; best with fresh context. music needs
+a running Lavalink node to smoke-test (nodes are in `.env`).

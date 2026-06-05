@@ -58,6 +58,28 @@ moved `tsx` to runtime deps.
 `src/modules/core/index.ts`, `src/scripts/deploy-commands.ts`, `src/{cluster,bot}.ts`, `Dockerfile`,
 `docker-compose.yml`, `README.md`, `.github/workflows/ci.yml`, `package.json` (+ tests).
 
-**next**: First feature module — **moderation** (own spec → plan → build): `/mod ban|kick|timeout|
-warn|purge|case…`, Prisma models (Case, Warning, ModNote), ported from TitanBot (best base) + i-karen.
-The `core` module is the reference pattern for module structure.
+**next**: First feature module — moderation (DONE, see next entry).
+
+### 2026-06-05 (later — moderation module)
+
+**changed**: Built the first feature module. `/mod` with 15 subcommands (ban, unban, kick, timeout,
+untimeout, warn, warnings, removewarn, cases, note, purge, slowmode, lock, unlock, nick). New Prisma
+models `ModerationCase` (warnings/notes share it via `type`) + `GuildCaseCounter` (per-guild sequential
+case numbers via a transactional counter). Service ports TitanBot's hierarchy/bot-hierarchy guards and
+`kickable`/`moderatable` checks into TS, persisting cases relationally (vs TitanBot's KV). Duration
+parser (`10m`/`1h30m`/`2d`) with tests. All replies Components V2; all strings `moderation:*` i18n keys;
+per-subcommand permission checks. 37/37 tests pass, typecheck + lint + embed guard clean; loader shows
+`help, mod, ping`.
+
+**files touched**: `src/modules/moderation/{index,service,duration}.ts` (+ `duration.test.ts`),
+`prisma/schema.prisma`, `docs/modules/moderation.mdx`.
+
+**decisions made**: Unify warnings/notes/infractions in one `ModerationCase` table keyed by `type`.
+Per-guild case numbers from a `GuildCaseCounter` row incremented in the same transaction as the insert.
+Soft-delete cases (`active=false`), never hard-delete. `/mod` uses one top-level command + subcommands
+(stays well under the 100-command cap) with `ModerateMembers` default visibility + per-subcommand perm
+checks.
+
+**next**: **security/antinuke** module (port i-karen's sentinel/audit-resolver patterns) OR **logging**
+(audit-log events) — per build order in `memory.md`. Run `prisma migrate` at deploy to create the new
+moderation tables.

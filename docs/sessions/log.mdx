@@ -182,6 +182,23 @@ prefix `ticket`): `ticket:open` (creates private channel w/ overwrites + control
 **decisions made**: One open ticket per user/guild. Buttons via customId `prefix:action`. Close deletes
 channel after a delay; no HTML transcript yet (future). Tickets is the reference for component modules.
 
-**next**: **applications** (staff/role application forms via modals — exercises the modal interaction
-path) OR **economy** (balance/daily/work/shop/gamble — first economy with currency). Then leveling,
-giveaways, joinToCreate, serverstats/birthday/reactionroles, misc, trivia, games, ai, music.
+**next**: economy (DONE — see next entry).
+
+### 2026-06-05 (later — economy module)
+
+**changed**: `/economy` with 11 subcommands (balance, daily, work, beg, crime, rob, pay, deposit,
+withdraw, gamble, leaderboard). `EconomyUser` model (composite id). `updateBalance` clamps + mirrors net
+worth to a Redis sorted set `lb:eco:<guild>`; `leaderboard` reads Redis with DB fallback. Cooldowns via
+timestamp columns; pure `formatCoins`/`cooldownRemaining` tested. 51/51 tests; clean; 11 commands loaded.
+**First module to use `getRedis()` sorted sets.**
+
+**files touched**: `src/modules/economy/{index,service}.ts` (+ test), `prisma/schema.prisma`,
+`docs/modules/economy.mdx`.
+
+**decisions made**: Int balances clamped to 1e9 (avoid 32-bit overflow). Redis leaderboard with DB
+fallback. Daily streak continues if claimed within 48h.
+
+**next**: **leveling** — XP per message (messageCreate, anti-spam cooldown), level curve, rank card
+(text/Components V2), `/level rank|leaderboard|set|rewards`, role rewards on level-up. Reuses the Redis
+sorted-set leaderboard pattern. Then giveaways, joinToCreate, serverstats/birthday/reactionroles, misc,
+trivia, games, ai, music.

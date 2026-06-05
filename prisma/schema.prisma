@@ -76,3 +76,30 @@ model OwnerAudit {
 
   @@index([ownerId])
 }
+
+// ── Moderation ──────────────────────────────────────────────────────────────
+
+/// A single moderation action. Warnings (type="warn") and notes (type="note")
+/// share this table with infractions (ban/kick/timeout/untimeout/unban).
+model ModerationCase {
+  id          String   @id @default(cuid())
+  guildId     String
+  caseNumber  Int
+  type        String // ban | kick | timeout | untimeout | unban | warn | note
+  targetId    String
+  moderatorId String
+  reason      String?
+  durationMs  Int?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([guildId, caseNumber])
+  @@index([guildId, targetId])
+  @@index([guildId, type])
+}
+
+/// Per-guild monotonically increasing case counter.
+model GuildCaseCounter {
+  guildId String @id
+  count   Int    @default(0)
+}

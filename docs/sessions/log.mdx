@@ -34,6 +34,30 @@ specs/plans under `docs/superpowers/`.
 premium (all free). Undercover mode is a hard invariant (no AI-provider references). Stats autopost from
 the manager process, not per-shard. Bot name = "Rostra".
 
-**next**: Plan 1b (Runtime) — BotClient + loaders, command/interaction/job pipeline, Fastify health +
-top.gg webhook, top.gg autoposter + `services/topgg.ts`, `cluster.ts`/`bot.ts` entries, graceful
-shutdown, Dockerfile/compose/README, CI. Then feature modules (moderation first).
+**next**: Plan 1b (Runtime) — DONE (see next entry). Then feature modules (moderation first).
+
+### 2026-06-05 (later — Plan 1b Runtime)
+
+**changed**: Implemented the full runtime layer. Module contract (`SlashCommand`/`ComponentHandler`/
+`RegisteredEvent`/`JobDefinition`/`BotModule`), `BotClient` with auto-loaders, `defineEvent` typed
+factory, command pipeline (permissions → cooldown → error boundary), interaction router, BullMQ job
+queue (in-memory fallback), top.gg service + Fastify health/metrics + `/votes/topgg` webhook + stats
+autoposter, `cluster.ts` (ShardingManager) + `bot.ts` shard entry, graceful shutdown, deploy-commands,
+sample `core` module (`/ping`, `/help`), Dockerfile + docker-compose + README + CI. **Live login verified**
+(connected as Felisha#3245). 33/33 tests pass, typecheck + lint clean, embed guard clean.
+
+**decisions made**: Run via **tsx in dev AND prod** (dropped tsup) — bundling collapses `import.meta.url`
+which breaks filesystem module discovery; running TS directly keeps drop-in modules working. Renamed env
+`SHARD_COUNT`→`TOTAL_SHARDS` to avoid colliding with discord.js's reserved sharding env var. top.gg stats
+posted from the manager process (aggregate across shards). Removed unused `tsup`/`topgg-autoposter` deps;
+moved `tsx` to runtime deps.
+
+**files touched**: `src/types/module.ts`, `src/client/{BotClient,defineEvent}.ts`,
+`src/client/loaders/*`, `src/pipeline/*`, `src/interactions/router.ts`, `src/jobs/queue.ts`,
+`src/services/topgg.ts`, `src/web/{server,autopost}.ts`, `src/lifecycle/shutdown.ts`,
+`src/modules/core/index.ts`, `src/scripts/deploy-commands.ts`, `src/{cluster,bot}.ts`, `Dockerfile`,
+`docker-compose.yml`, `README.md`, `.github/workflows/ci.yml`, `package.json` (+ tests).
+
+**next**: First feature module — **moderation** (own spec → plan → build): `/mod ban|kick|timeout|
+warn|purge|case…`, Prisma models (Case, Warning, ModNote), ported from TitanBot (best base) + i-karen.
+The `core` module is the reference pattern for module structure.

@@ -43,9 +43,11 @@ export class BotClient extends Client {
 		const { registerInteractions } = await import("@/client/loaders/interactions.ts");
 		const { registerJobs } = await import("@/client/loaders/jobs.ts");
 
+		const { interactionRouter } = await import("@/interactions/router.ts");
+
 		const modules = await loadModules();
 		registerCommands(this, modules);
-		registerEvents(this, modules);
+		registerEvents(this, modules, [interactionRouter]);
 		registerInteractions(this, modules);
 		await registerJobs(modules);
 		log.info({ modules: modules.length, commands: this.commands.size }, "client initialized");

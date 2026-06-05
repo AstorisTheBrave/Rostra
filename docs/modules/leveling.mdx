@@ -1,0 +1,36 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Members earn XP for chatting and level up over time; staff can reward levels with roles and announce
+level-ups. Includes a rank display and an XP leaderboard.
+
+## technical map
+
+**file paths**
+- command: `src/modules/leveling/index.ts`
+- XP-on-message handler: `src/modules/leveling/events.ts`
+- curve, accounts, rewards, leaderboard: `src/modules/leveling/service.ts` (+ `service.test.ts`)
+- models: `prisma/schema.prisma` → `LevelConfig`, `LevelUser`, `LevelReward`
+
+**command** — `/level`: `rank [user]`, `leaderboard`, `enable`, `disable`, `announcechannel`,
+`set <user> <level>`, group `reward add|remove|list`. Config/set/reward-mutations require Manage Server;
+rank/leaderboard/reward-list are open.
+
+**exports (service.ts)** — `totalXpForLevel`, `levelFromXp`, `levelProgress` (pure curve),
+`getConfig/upsertConfig`, `getUser`, `addXp`, `setLevel`, `getRewards/setReward/removeReward`,
+`leaderboard`.
+
+**curve** — `totalXpForLevel(n) = 50·n·(n+1)` (L1=100, L2=300, L3=600…).
+
+## gotchas
+
+- XP is granted on `messageCreate` with a per-user cooldown (`cooldownMs`, default 60s) tracked
+  in-memory; a guild's messages land on one shard so this is correct.
+- XP is mirrored to a Redis sorted set `lb:level:<guild>`; the leaderboard reads it with a DB fallback.
+- On level-up, all role rewards at or below the new level are granted (so manual `set` also back-fills).
+- Requires `prisma migrate` for `LevelConfig`, `LevelUser`, `LevelReward`.

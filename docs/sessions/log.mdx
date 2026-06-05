@@ -198,7 +198,18 @@ timestamp columns; pure `formatCoins`/`cooldownRemaining` tested. 51/51 tests; c
 **decisions made**: Int balances clamped to 1e9 (avoid 32-bit overflow). Redis leaderboard with DB
 fallback. Daily streak continues if claimed within 48h.
 
-**next**: **leveling** — XP per message (messageCreate, anti-spam cooldown), level curve, rank card
-(text/Components V2), `/level rank|leaderboard|set|rewards`, role rewards on level-up. Reuses the Redis
-sorted-set leaderboard pattern. Then giveaways, joinToCreate, serverstats/birthday/reactionroles, misc,
-trivia, games, ai, music.
+**next**: leveling (DONE — see next entry).
+
+### 2026-06-05 (later — leveling module)
+
+**changed**: `/level` (rank, leaderboard, enable, disable, announcechannel, set, reward add/remove/list).
+XP on messageCreate w/ per-user in-memory cooldown; `LevelConfig`/`LevelUser`/`LevelReward` models; pure
+curve `totalXpForLevel`/`levelFromXp`/`levelProgress` tested; Redis sorted set `lb:level:<guild>` + DB
+fallback; role rewards granted on level-up (back-fills ≤ level). 54/54 tests; clean; 12 commands loaded.
+
+**files touched**: `src/modules/leveling/{index,events,service}.ts` (+ test), `prisma/schema.prisma`,
+`docs/modules/leveling.mdx`.
+
+**next**: **giveaways** — `/giveaway start|end|reroll|list` with an enter button; ends via a **BullMQ
+delayed job** (or in-memory fallback) — first module to use the job queue (`jobs/queue.ts` `registerJob`
++ `enqueue`). Then joinToCreate (voice), serverstats/birthday/reactionroles, misc, trivia, games, ai, music.

@@ -40,13 +40,18 @@ Feature modules (moderation, security, automod, economy, leveling, tickets, musi
 | Build | tsup (ESM bundle) |
 | Lint/format | Biome (tabs) |
 | Profanity | `bad-words` (automod module) |
+| Music | Lavalink (multi-node + failover) via a client lib (`lavalink-client`/shoukaku) — music module |
+| Bot list | `@top-gg/sdk` (`Api`, `Webhook`) + `topgg-autoposter` |
 
 ## 4. Process Topology
 
 ```
 cluster.ts  (manager process)
   ├─ ShardingManager (totalShards: 'auto', respawn: true)
-  ├─ Fastify health server (single port; aggregates shard stats via IPC broadcastEval)
+  ├─ Fastify health server (single port)
+  │     ├─ /health, /health/shards, /metrics (aggregates shard stats via IPC)
+  │     └─ /votes/topgg  (top.gg vote webhook, auth-verified → IPC to owning shard)
+  ├─ top.gg stats autoposter (aggregates guild count across shards via IPC, posts)
   └─ spawns N × bot.ts (one BotClient per shard process)
         ├─ BotClient (extends discord.js Client)
         ├─ loaders: commands, events, interactions, jobs
@@ -88,7 +93,7 @@ package.json, .env.example, README.md
 ## 6. Core Components
 
 ### 6.1 `config.ts`
-Single Zod schema for all env vars (collected from the catalogue). Parses `process.env` once at import, validates, freezes, exports typed `config`. Throws a clear aggregated error on missing/invalid vars at boot. Sections: discord (token, clientId, ownerIds, devGuildId), database (`DATABASE_URL`, pool size), redis (`REDIS_URL?`), web (`PORT`, `HOST`), sharding (`SHARD_COUNT?`, `SHARDING_MODE`), logging (`LOG_LEVEL`, `NODE_ENV`), ai (`AI_API_KEY?`, `AI_BASE_URL?`, `AI_MODEL?` — neutral names), music/lavalink (`LAVALINK_*`), feature webhooks. No raw `process.env` elsewhere.
+Single Zod schema for all env vars (collected from the catalogue). Parses `process.env` once at import, validates, freezes, exports typed `config`. Throws a clear aggregated error on missing/invalid vars at boot. Sections: discord (token, clientId, ownerIds, devGuildId), database (`DATABASE_URL`, pool size), redis (`REDIS_URL?`), web (`PORT`, `HOST`), sharding (`SHARD_COUNT?`, `SHARDING_MODE`), logging (`LOG_LEVEL`, `NODE_ENV`), ai (`AI_API_KEY?`, `AI_BASE_URL?`, `AI_MODEL?` — neutral names), music (`LAVALINK_NODES` JSON array, `LAVALINK_RECONNECT_TRIES?`, `LAVALINK_RESUME?`, `LAVALINK_REST_TIMEOUT?`), topgg (`TOPGG_TOKEN?`, `TOPGG_WEBHOOK_AUTH?`, `TOPGG_BOT_ID?`), feature webhooks. All optional integrations no-op when unset. No raw `process.env` elsewhere.
 
 ### 6.2 `services/database.ts`
 `getPrisma()` → lazy singleton `PrismaClient` per process, cached at module scope. Configured with `connection_limit` from config (≈5/shard). Logs queries in dev. Exposes `disconnectPrisma()` for graceful shutdown.
@@ -169,6 +174,19 @@ Flat standalone reserved for high-frequency only (e.g. `/ping`, `/help`).
 - **Graceful shutdown:** SIGTERM/SIGINT → stop accepting interactions, drain BullMQ, `disconnectPrisma()`, `disconnectCache()`, `client.destroy()`, flush logs, exit.
 - **Validation:** Zod schemas for every command's options and every external payload.
 
+## 9a. External Integrations
+
+### top.gg (bot listing)
+- **Stats autoposting** runs in the **manager process** (`cluster.ts`), not per-shard: a scheduled task aggregates `serverCount` across all shards via `ipc.fetchValues('guilds.cache.size')`, sums it, then `new Api(config.topgg.token).postStats({ serverCount, shardCount })`. (Per-shard `topgg-autoposter` would post partial counts — avoided.) Posts every 30 min; skipped if `TOPGG_TOKEN` unset.
+- **Vote webhook** mounted on the Fastify health server at `POST /votes/topgg`. Uses `@top-gg/sdk` `Webhook(config.topgg.webhookAuth)` verification (rejects bad/missing auth). On a valid `vote` ({ user, bot, type, isWeekend, query }), the manager forwards via IPC to the shard owning that user's mutual guilds (or broadcasts) → a `voteService` records the vote in Postgres (`UserVote` model: userId, votedAt, isWeekend, source) and emits an internal `vote` event modules can subscribe to (e.g. economy reward, perk role). Weekend votes flagged for double rewards.
+- **`hasVoted(userId)`** helper in a shared `services/topgg.ts` (lazy `Api` singleton, cached result with short Redis TTL) so any module can gate perks on a recent vote and prompt non-voters with a V2 vote button.
+- Config is optional — all of the above no-ops cleanly when top.gg env is absent.
+
+### Lavalink (music) — multi-node + failover
+- Music module connects to **multiple Lavalink nodes with automatic failover**. Nodes are configured as a JSON array in env: `LAVALINK_NODES` = `[{ "id","host","port","password","secure" }, ...]` (parsed + Zod-validated in `config.ts` into `config.lavalink.nodes`).
+- The music client (`lavalink-client` or shoukaku, decided in the music module spec) is initialized with all nodes; on node disconnect/error it migrates active players to the next healthy node (`moveOnDisconnect`/resume). Node health + reconnect/retry settings are env-tunable (`LAVALINK_RECONNECT_TRIES`, `LAVALINK_RESUME`, `LAVALINK_REST_TIMEOUT`).
+- Core platform only reserves the validated `config.lavalink` shape + the `cluster/ipc.ts` voice-state plumbing; actual player logic is the music module spec.
+
 ## 10. Ops
 
 - `Dockerfile` (multi-stage, Node 20 alpine, tsup build) + `docker-compose.yml` (bot, postgres, pgbouncer, redis, lavalink optional). No provider names anywhere.
@@ -192,6 +210,7 @@ Feature module implementations; Lavalink/music internals; AI persona/provider wi
 
 ## 14. Open Items
 
-- Bot persona name/identity for AI module + status strings — to be supplied by user (must be undercover-clean).
-- Lavalink connection details — user to provide for the music module spec.
-- GitHub private repo creation via `gh` — on user confirmation.
+- Bot name: ✅ **Rostra**. Repo: https://github.com/AstorisTheBrave/Rostra (private). AI module persona speaks as "Rostra"; exact status/activity strings TBD at deploy (undercover-clean).
+- Lavalink: ✅ multiple nodes with fallback — `LAVALINK_NODES` JSON array (§9a). Concrete node values supplied at deploy.
+- GitHub private repo: ✅ approved — created via `gh`.
+- top.gg: ✅ integrated (§9a) — autopost from manager, vote webhook on Fastify, `hasVoted` helper.

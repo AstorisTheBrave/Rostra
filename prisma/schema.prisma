@@ -246,3 +246,36 @@ model EconomyUser {
   @@id([guildId, userId])
   @@index([guildId])
 }
+
+// ── Leveling ─────────────────────────────────────────────────────────────────
+
+model LevelConfig {
+  guildId           String   @id
+  enabled           Boolean  @default(false)
+  announceChannelId String?
+  xpMin             Int      @default(10)
+  xpMax             Int      @default(20)
+  cooldownMs        Int      @default(60000)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model LevelUser {
+  guildId   String
+  userId    String
+  xp        Int      @default(0)
+  level     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([guildId, userId])
+  @@index([guildId])
+}
+
+model LevelReward {
+  guildId String
+  level   Int
+  roleId  String
+
+  @@id([guildId, level])
+  @@index([guildId])
+}

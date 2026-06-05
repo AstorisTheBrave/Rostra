@@ -190,3 +190,40 @@ model WelcomeConfig {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
+
+// ── Tickets ──────────────────────────────────────────────────────────────────
+
+/// Per-guild ticket system configuration.
+model TicketConfig {
+  guildId        String   @id
+  enabled        Boolean  @default(false)
+  categoryId     String?
+  logChannelId   String?
+  supportRoleIds String[] @default([])
+  panelTitle     String   @default("Need help?")
+  panelMessage   String   @default("Click the button below to open a ticket.")
+  openMessage    String   @default("Thanks for opening a ticket. Support will be with you shortly.")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+/// An open or closed support ticket.
+model Ticket {
+  id        String   @id @default(cuid())
+  guildId   String
+  channelId String   @unique
+  userId    String
+  number    Int
+  claimedBy String?
+  open      Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, number])
+  @@index([guildId, userId])
+}
+
+/// Per-guild ticket number counter.
+model GuildTicketCounter {
+  guildId String @id
+  count   Int    @default(0)
+}

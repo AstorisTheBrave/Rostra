@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import type { ChatInputCommandInteraction } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import { getLogger } from "@/services/logger.ts";
 import { reply } from "@/utils/components.ts";
+import type { ChatInputCommandInteraction } from "discord.js";
 import { consume } from "./cooldown.ts";
 import { checkPermissions, permissionMessageKey } from "./permissions.ts";
 

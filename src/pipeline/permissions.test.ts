@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { type ChatInputCommandInteraction, PermissionFlagsBits, PermissionsBitField } from "discord.js";
 import type { SlashCommand } from "@/types/module.ts";
+import {
+	type ChatInputCommandInteraction,
+	PermissionFlagsBits,
+	PermissionsBitField,
+} from "discord.js";
 import { checkPermissions } from "./permissions.ts";
 
 const baseCommand: SlashCommand = {
@@ -39,10 +43,10 @@ test("denies guild-only command used outside a guild", () => {
 });
 
 test("denies when the member lacks a required permission", () => {
-	const res = checkPermissions(
-		fakeInteraction({ memberPermissions: new PermissionsBitField() }),
-		{ ...baseCommand, userPermissions: [PermissionFlagsBits.BanMembers] },
-	);
+	const res = checkPermissions(fakeInteraction({ memberPermissions: new PermissionsBitField() }), {
+		...baseCommand,
+		userPermissions: [PermissionFlagsBits.BanMembers],
+	});
 	assert.equal(res.reason, "userPerms");
 });
 

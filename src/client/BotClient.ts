@@ -1,7 +1,7 @@
-import { Client, Collection, GatewayIntentBits, Partials } from "discord.js";
-import { createIpc, type Ipc } from "@/cluster/ipc.ts";
+import { type Ipc, createIpc } from "@/cluster/ipc.ts";
 import { getLogger } from "@/services/logger.ts";
 import type { ComponentHandler, SlashCommand } from "@/types/module.ts";
+import { Client, Collection, GatewayIntentBits, Partials } from "discord.js";
 
 const log = getLogger("client");
 

@@ -1,0 +1,62 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://rostra:rostra@pgbouncer:6432/rostra?connection_limit=5&pool_timeout=15
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - pgbouncer
+      - redis
+    ports:
+      - "3000:3000"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rostra
+      POSTGRES_PASSWORD: rostra
+      POSTGRES_DB: rostra
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rostra"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_USER: rostra
+      DB_PASSWORD: rostra
+      DB_NAME: rostra
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "1000"
+      DEFAULT_POOL_SIZE: "20"
+    depends_on:
+      - postgres
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redisdata:/data
+
+  # Optional self-hosted Lavalink node (music). Public nodes can be used via LAVALINK_NODES instead.
+  # lavalink:
+  #   image: ghcr.io/lavalink-devs/lavalink:4
+  #   restart: unless-stopped
+  #   environment:
+  #     SERVER_PORT: "2333"
+  #   ports:
+  #     - "2333:2333"
+
+volumes:
+  pgdata:
+  redisdata:

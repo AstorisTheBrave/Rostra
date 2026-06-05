@@ -1,5 +1,5 @@
-import { SlashCommandBuilder } from "discord.js";
 import type { BotModule } from "@/types/module.ts";
+import { SlashCommandBuilder } from "discord.js";
 
 const sample: BotModule = {
 	name: "sample",

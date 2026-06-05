@@ -1,6 +1,6 @@
-import { Api } from "@top-gg/sdk";
 import { config } from "@/config.ts";
 import { getLogger } from "@/services/logger.ts";
+import { Api } from "@top-gg/sdk";
 
 const log = getLogger("autopost");
 

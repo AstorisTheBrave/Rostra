@@ -1,7 +1,7 @@
-import type { ClientEvents } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { getLogger } from "@/services/logger.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
+import type { ClientEvents } from "discord.js";
 
 const log = getLogger("event");
 

@@ -1,8 +1,8 @@
-import { Api } from "@top-gg/sdk";
 import { config } from "@/config.ts";
 import { cacheGet, cacheSet } from "@/services/cache.ts";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
+import { Api } from "@top-gg/sdk";
 
 const log = getLogger("topgg");
 

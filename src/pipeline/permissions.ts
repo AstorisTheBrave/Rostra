@@ -1,6 +1,6 @@
-import type { ChatInputCommandInteraction } from "discord.js";
 import { config } from "@/config.ts";
 import type { SlashCommand } from "@/types/module.ts";
+import type { ChatInputCommandInteraction } from "discord.js";
 
 export type PermissionReason = "owner" | "guild" | "userPerms" | "botPerms";
 

@@ -1,0 +1,42 @@
+{
+  "name": "rostra",
+  "version": "0.1.0",
+  "description": "All-in-one Discord bot",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "tsx watch src/cluster.ts",
+    "build": "tsup",
+    "start": "node dist/cluster.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test:env": "node --import tsx --env-file=.env --test \"src/**/*.test.ts\"",
+    "deploy:commands": "tsx src/scripts/deploy-commands.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@keyv/redis": "^4.2.0",
+    "@prisma/client": "^6.1.0",
+    "@top-gg/sdk": "^3.1.6",
+    "bad-words": "^4.0.0",
+    "discord.js": "^14.16.3",
+    "fastify": "^5.1.0",
+    "ioredis": "^5.4.1",
+    "keyv": "^5.2.1",
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.10.2",
+    "prisma": "^6.1.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

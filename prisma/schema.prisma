@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Guild {
+  id        String   @id
+  prefix    String?
+  locale    String   @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  modules   GuildModuleConfig[]
+  members   GuildMember[]
+}
+
+model GuildModuleConfig {
+  id       String  @id @default(cuid())
+  guildId  String
+  module   String
+  enabled  Boolean @default(true)
+  settings Json    @default("{}")
+  guild    Guild   @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, module])
+  @@index([guildId])
+}
+
+model User {
+  id        String        @id
+  createdAt DateTime      @default(now())
+  members   GuildMember[]
+  votes     UserVote[]
+}
+
+model GuildMember {
+  id      String @id @default(cuid())
+  guildId String
+  userId  String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, userId])
+  @@index([guildId])
+  @@index([userId])
+}
+
+model Blacklist {
+  id        String   @id @default(cuid())
+  targetId  String   @unique
+  scope     String // "user" | "guild"
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model UserVote {
+  id        String   @id @default(cuid())
+  userId    String
+  votedAt   DateTime @default(now())
+  isWeekend Boolean  @default(false)
+  source    String   @default("topgg")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model OwnerAudit {
+  id        String   @id @default(cuid())
+  ownerId   String
+  action    String
+  detail    Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+}

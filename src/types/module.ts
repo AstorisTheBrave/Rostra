@@ -22,6 +22,8 @@ export interface SlashCommand {
 	cooldownMs?: number;
 	userPermissions?: PermissionResolvable[];
 	botPermissions?: PermissionResolvable[];
+	/** When the safe-ack helper auto-defers a slow command, defer ephemerally. */
+	deferEphemeral?: boolean;
 	execute(ctx: CommandContext): Awaitable<void>;
 	autocomplete?(interaction: AutocompleteInteraction, client: BotClient): Awaitable<void>;
 }
@@ -29,6 +31,8 @@ export interface SlashCommand {
 export interface ComponentHandler {
 	/** Matches the first segment of a customId "prefix:action:...". */
 	prefix: string;
+	/** When the safe-ack helper auto-defers a slow handler, defer ephemerally. */
+	deferEphemeral?: boolean;
 	execute(
 		interaction: MessageComponentInteraction | ModalSubmitInteraction,
 		args: string[],

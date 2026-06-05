@@ -3,6 +3,7 @@ import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import { getLogger } from "@/services/logger.ts";
 import { reply } from "@/utils/components.ts";
+import { withSafeAck } from "@/utils/safeAck.ts";
 import type { ChatInputCommandInteraction } from "discord.js";
 import { consume } from "./cooldown.ts";
 import { checkPermissions, permissionMessageKey } from "./permissions.ts";
@@ -36,7 +37,9 @@ export async function runCommand(
 				return;
 			}
 		}
-		await command.execute({ interaction, client });
+		await withSafeAck(interaction, async () => command.execute({ interaction, client }), {
+			ephemeral: command.deferEphemeral,
+		});
 	} catch (err) {
 		log.error({ err, traceId, command: interaction.commandName }, "command execution failed");
 		try {

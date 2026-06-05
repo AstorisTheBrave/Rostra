@@ -1,6 +1,7 @@
 import { defineEvent } from "@/client/defineEvent.ts";
 import { runCommand } from "@/pipeline/runCommand.ts";
 import { getLogger } from "@/services/logger.ts";
+import { withSafeAck } from "@/utils/safeAck.ts";
 
 const log = getLogger("router");
 
@@ -32,7 +33,9 @@ export const interactionRouter = defineEvent("interactionCreate", {
 			const handler = client.components.find((h) => h.prefix === prefix);
 			if (!handler) return;
 			try {
-				await handler.execute(interaction, args, client);
+				await withSafeAck(interaction, async () => handler.execute(interaction, args, client), {
+					ephemeral: handler.deferEphemeral,
+				});
 			} catch (err) {
 				log.error({ err, customId: interaction.customId }, "component handler failed");
 			}

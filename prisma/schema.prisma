@@ -227,3 +227,22 @@ model GuildTicketCounter {
   guildId String @id
   count   Int    @default(0)
 }
+
+// ── Economy ──────────────────────────────────────────────────────────────────
+
+/// A member's per-guild economy account.
+model EconomyUser {
+  guildId   String
+  userId    String
+  wallet    Int       @default(0)
+  bank      Int       @default(0)
+  streak    Int       @default(0)
+  lastDaily DateTime?
+  lastWork  DateTime?
+  lastCrime DateTime?
+  lastRob   DateTime?
+  updatedAt DateTime  @updatedAt
+
+  @@id([guildId, userId])
+  @@index([guildId])
+}

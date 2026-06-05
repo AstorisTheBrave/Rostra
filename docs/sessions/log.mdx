@@ -165,7 +165,23 @@ guildMemberRemove (goodbye) handlers. `WelcomeConfig` model; `formatMessage` pla
 **files touched**: `src/modules/welcome/{index,events,service}.ts` (+ test), `prisma/schema.prisma`,
 `docs/modules/welcome.mdx`.
 
-**next**: **tickets** — first module with component interactions (buttons/modals): a panel with an "open
-ticket" button → creates a private channel; claim/close buttons; transcript on close. Uses the
-`ComponentHandler` contract + customId routing (`module:action:...`). Then applications, economy, leveling,
-giveaways, joinToCreate, etc.
+**next**: tickets (DONE — see next entry).
+
+### 2026-06-05 (later — tickets module)
+
+**changed**: First component-interaction module. `/ticket` (Manage Server): enable/disable/status, panel,
+category, logchannel, close, claim, add, supportrole add/remove group. Button handlers (`ComponentHandler`
+prefix `ticket`): `ticket:open` (creates private channel w/ overwrites + control buttons), `ticket:claim`,
+`ticket:close` (logs + deletes after 5s). Models `TicketConfig`, `Ticket`, `GuildTicketCounter`
+(sequential numbers). 48/48 tests pass; clean; loader has 9 commands + component prefix `ticket`.
+**The interaction router → ComponentHandler path is now exercised end-to-end.**
+
+**files touched**: `src/modules/tickets/{index,service}.ts`, `prisma/schema.prisma`,
+`docs/modules/tickets.mdx`.
+
+**decisions made**: One open ticket per user/guild. Buttons via customId `prefix:action`. Close deletes
+channel after a delay; no HTML transcript yet (future). Tickets is the reference for component modules.
+
+**next**: **applications** (staff/role application forms via modals — exercises the modal interaction
+path) OR **economy** (balance/daily/work/shop/gamble — first economy with currency). Then leveling,
+giveaways, joinToCreate, serverstats/birthday/reactionroles, misc, trivia, games, ai, music.

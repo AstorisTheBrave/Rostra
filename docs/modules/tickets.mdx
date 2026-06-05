@@ -1,0 +1,41 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+A support ticket system: members click a button to open a private channel only they and support staff can
+see; staff can claim it and close it (which logs a summary and deletes the channel). This is the first
+module that uses interactive **buttons**.
+
+## technical map
+
+**file paths**
+- command + button handlers: `src/modules/tickets/index.ts`
+- channel creation + persistence: `src/modules/tickets/service.ts`
+- models: `prisma/schema.prisma` → `TicketConfig`, `Ticket`, `GuildTicketCounter`
+
+**command** — `/ticket` (Manage Server): `enable`, `disable`, `status`, `panel`, `category`,
+`logchannel`, `close`, `claim`, `add <user>`, group `supportrole add|remove`.
+
+**buttons (ComponentHandler `prefix: "ticket"`)** — customIds `ticket:open`, `ticket:claim`,
+`ticket:close`. The interaction router splits the customId and dispatches the segment after the prefix as
+`args` (e.g. `["open"]`).
+
+**exports (service.ts)**
+- `getConfig/upsertConfig/invalidate`, `isSupport(member, config)`
+- `createTicket(guild, config, user)` — sequential number + private channel + `Ticket` row
+- `claimTicket(channelId, moderatorId)`, `closeTicket(channel)`
+
+## gotchas
+
+- This module is the reference for **component interactions**: export `components: ComponentHandler[]`,
+  build buttons with `customId` `prefix:action`, and the router handles dispatch.
+- One open ticket per user per guild is enforced (`Ticket` query before create).
+- Ticket channels get explicit permission overwrites: deny `@everyone`, allow opener + support roles +
+  the bot. The bot needs Manage Channels.
+- Close logs to the configured channel then deletes the channel after a 5s delay. No HTML transcript yet
+  (future enhancement; `discord-html-transcripts` was used by the legacy bots).
+- Requires `prisma migrate` for `TicketConfig`, `Ticket`, `GuildTicketCounter`.

@@ -91,7 +91,14 @@ async function send(
 ): Promise<void> {
 	const payload = buildResponse(components, { ephemeral });
 	if (i.deferred || i.replied) {
-		await i.editReply(payload as unknown as InteractionEditReplyOptions);
+		try {
+			await i.editReply(payload as unknown as InteractionEditReplyOptions);
+		} catch {
+			// A deferred placeholder may reject a Components-V2 edit (the IsComponentsV2 flag
+			// can't always be toggled on edit). Fall back to a fresh follow-up where the flag
+			// is set on a new message, which Discord always accepts.
+			await i.followUp(payload as unknown as InteractionReplyOptions);
+		}
 	} else {
 		await i.reply(payload as unknown as InteractionReplyOptions);
 	}

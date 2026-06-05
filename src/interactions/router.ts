@@ -35,6 +35,7 @@ export const interactionRouter = defineEvent("interactionCreate", {
 			try {
 				await withSafeAck(interaction, async () => handler.execute(interaction, args, client), {
 					ephemeral: handler.deferEphemeral,
+					heartbeat: handler.heartbeat,
 				});
 			} catch (err) {
 				log.error({ err, customId: interaction.customId }, "component handler failed");

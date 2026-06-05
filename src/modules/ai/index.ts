@@ -13,6 +13,7 @@ const askCommand: SlashCommand = {
 			o.setName("question").setDescription("Your question").setRequired(true),
 		) as SlashCommandBuilder,
 	cooldownMs: 5000,
+	heartbeat: true,
 	execute: async ({ interaction }) => {
 		if (!config.ai.apiKey || !config.ai.baseUrl) {
 			return void reply.error(interaction, t("ai:unconfigured"));

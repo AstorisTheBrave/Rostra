@@ -39,6 +39,7 @@ export async function runCommand(
 		}
 		await withSafeAck(interaction, async () => command.execute({ interaction, client }), {
 			ephemeral: command.deferEphemeral,
+			heartbeat: command.heartbeat,
 		});
 	} catch (err) {
 		log.error({ err, traceId, command: interaction.commandName }, "command execution failed");

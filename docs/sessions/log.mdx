@@ -137,6 +137,21 @@ wrapped with a per-guild cached Filter + custom words. Spam tracking is in-memor
 since a guild's traffic lands on one shard). Fixed check order; first hit wins; exempt roles/channels
 short-circuit.
 
-**next**: **logging** (configurable audit logging of message/member/role/channel events to a log
-channel) — pairs with moderation/automod. Then welcome/autorole, tickets, applications, economy,
-leveling, giveaways, etc. per build order. Run `prisma migrate` at deploy for all new tables.
+**next**: logging (DONE — see next entry).
+
+### 2026-06-05 (later — logging module)
+
+**changed**: Built audit logging. `/logging` (Manage Server): channel, toggle <type>, status, ignore
+add/remove group. 10 event handlers (message delete/edit, member join/leave/ban/unban, role create/delete,
+channel create/delete) → `sendLog` posts a Components V2 entry to the configured channel when the type is
+enabled. New `LoggingConfig` model; cached. `truncate` helper tested. 46/46 tests pass; typecheck + lint
++ embed guard clean; loader registers `automod, help, logging, mod, ping, security, util`.
+
+**files touched**: `src/modules/logging/{index,events,service}.ts` (+ `service.test.ts`),
+`prisma/schema.prisma`, `docs/modules/logging.mdx`.
+
+**decisions made**: `sendLog` takes a builder thunk (container only built when the event is enabled).
+Message events skip bots + ignored channels; partials show "—" for missing content.
+
+**next**: **welcome/autorole** module — welcome/goodbye messages to a channel + auto-role on join
+(per-guild config). Then tickets, applications, economy, leveling, giveaways, etc. per build order.

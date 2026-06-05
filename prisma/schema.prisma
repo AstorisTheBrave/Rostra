@@ -356,3 +356,24 @@ model Birthday {
   @@id([guildId, userId])
   @@index([month, day])
 }
+
+// ── Extras (afk / autoresponder) ─────────────────────────────────────────────
+
+model AfkStatus {
+  guildId String
+  userId  String
+  reason  String
+  since   DateTime @default(now())
+
+  @@id([guildId, userId])
+}
+
+model AutoResponder {
+  id       String @id @default(cuid())
+  guildId  String
+  trigger  String
+  response String
+
+  @@unique([guildId, trigger])
+  @@index([guildId])
+}

@@ -29,7 +29,9 @@ const schema = z.object({
 	REDIS_URL: z.string().optional(),
 	PORT: z.coerce.number().int().default(3000),
 	HOST: z.string().default("0.0.0.0"),
-	SHARD_COUNT: z.coerce.number().int().positive().optional(),
+	// Named TOTAL_SHARDS (not SHARD_COUNT) to avoid colliding with discord.js's reserved
+	// SHARD_COUNT env var that the ShardingManager sets on spawned shard processes.
+	TOTAL_SHARDS: z.coerce.number().int().positive().optional(),
 	SHARDING_MODE: z.enum(["native", "hybrid"]).default("native"),
 	AI_API_KEY: z.string().optional(),
 	AI_BASE_URL: z.string().optional(),
@@ -84,7 +86,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 		database: { url: e.DATABASE_URL },
 		redis: { url: e.REDIS_URL },
 		web: { port: e.PORT, host: e.HOST },
-		sharding: { count: e.SHARD_COUNT, mode: e.SHARDING_MODE },
+		sharding: { count: e.TOTAL_SHARDS, mode: e.SHARDING_MODE },
 		ai: { apiKey: e.AI_API_KEY, baseUrl: e.AI_BASE_URL, model: e.AI_MODEL },
 		lavalink: {
 			nodes,

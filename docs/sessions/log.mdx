@@ -96,6 +96,27 @@ accept them. 39/39 tests pass; typecheck + lint + embed guard clean; loader show
 Discord `<t:unix:F|R>` markup. The `gallery`/`section` helpers are the reusable path for any module that
 needs images — modules must not hand-roll V2 builders.
 
-**next**: **security/antinuke** (port i-karen's sentinel + `resolveAuditAdvanced` audit-log resolution,
-whitelist/extra-owner config, punishment dispatch). It's the largest module — event-driven across ~15
-gateway events. Run `prisma migrate` at deploy for the moderation tables.
+**next**: security/antinuke (DONE — see next entry).
+
+### 2026-06-05 (later — security/antinuke module)
+
+**changed**: Built the antinuke module. `/security` (Admin-only) config command: enable/disable/status,
+punishment (ban|kick|strip), logchannel, notify, per-module toggle, and whitelist/extraowner add/remove
+groups. 9 detection events (channelCreate/Delete, roleCreate/Delete, guildBanAdd, guildMemberRemove,
+guildMemberAdd-bots, webhooksUpdate, guildUpdate) attribute the actor via audit log (`resolveAuditExecutor`,
+ported from i-karen with retry + TTL) and `punish()` the untrusted executor (hierarchy-checked, with
+strip-roles fallback) + log + owner DM. New `AntinukeConfig` model with `String[]` whitelist/extraOwners.
+Config cached per-process. 41/41 tests pass; typecheck + lint + embed guard clean; loader registers
+`help, mod, ping, security, util`.
+
+**files touched**: `src/modules/security/{index,events,audit,service}.ts` (+ `service.test.ts`),
+`prisma/schema.prisma`, `docs/modules/security.mdx`.
+
+**decisions made**: Immediate-punish-on-unauthorized-action (core antinuke) rather than i-karen's
+threshold/panic system (deferred). Single trusted whitelist + extraOwners (vs per-action whitelist).
+v1 does not auto-revert deleted resources. Antinuke config in its own table, not the generic
+`GuildModuleConfig`, for typed per-field access in hot event paths.
+
+**next**: **automod** module — use the `bad-words` npm package (already a dependency) for the profanity
+engine, plus anti-invite / anti-link / anti-spam / mass-mention, with per-guild config. Then logging,
+welcome, tickets, etc. per build order. Run `prisma migrate` at deploy for the new tables.

@@ -80,6 +80,22 @@ Soft-delete cases (`active=false`), never hard-delete. `/mod` uses one top-level
 (stays well under the 100-command cap) with `ModerateMembers` default visibility + per-subcommand perm
 checks.
 
-**next**: **security/antinuke** module (port i-karen's sentinel/audit-resolver patterns) OR **logging**
-(audit-log events) — per build order in `memory.md`. Run `prisma migrate` at deploy to create the new
-moderation tables.
+**next**: see utility entry below, then security/antinuke.
+
+### 2026-06-05 (later — utility module + V2 kit extension)
+
+**changed**: Added the **utility** module: `/util avatar|banner|userinfo|serverinfo` (read-only, no DB).
+Extended the Components V2 kit (`src/utils/components.ts`) with `gallery()` (media gallery from image
+URLs) and `section()` (text block with thumbnail accessory), widening the container/top-level unions to
+accept them. 39/39 tests pass; typecheck + lint + embed guard clean; loader shows `help, mod, ping, util`.
+
+**files touched**: `src/modules/utility/index.ts`, `src/utils/components.ts` (+ `components.test.ts`),
+`docs/modules/utility.mdx`.
+
+**decisions made**: `banner` force-fetches the user (banners aren't on the cached partial). Timestamps use
+Discord `<t:unix:F|R>` markup. The `gallery`/`section` helpers are the reusable path for any module that
+needs images — modules must not hand-roll V2 builders.
+
+**next**: **security/antinuke** (port i-karen's sentinel + `resolveAuditAdvanced` audit-log resolution,
+whitelist/extra-owner config, punishment dispatch). It's the largest module — event-driven across ~15
+gateway events. Run `prisma migrate` at deploy for the moderation tables.

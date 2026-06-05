@@ -20,3 +20,17 @@ test("errorContainer sets an accent color", async () => {
 	const c = errorContainer("nope");
 	assert.equal(typeof c.data.accent_color, "number");
 });
+
+test("gallery builds a media gallery from urls", async () => {
+	const { gallery } = await import("./components.ts");
+	const g = gallery(["https://example.com/a.png", "https://example.com/b.png"]);
+	assert.equal(g.items.length, 2);
+});
+
+test("container accepts mixed children including a gallery", async () => {
+	const { container, text, gallery, Accent } = await import("./components.ts");
+	const c = container(Accent.info, [text("hi"), gallery(["https://example.com/a.png"])]);
+	assert.equal(typeof c.data.accent_color, "number");
+	assert.ok(Array.isArray(c.components));
+	assert.equal(c.components.length, 2);
+});

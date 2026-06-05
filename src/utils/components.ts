@@ -2,11 +2,15 @@ import {
 	ContainerBuilder,
 	type InteractionEditReplyOptions,
 	type InteractionReplyOptions,
+	MediaGalleryBuilder,
+	MediaGalleryItemBuilder,
 	MessageFlags,
 	type RepliableInteraction,
+	SectionBuilder,
 	SeparatorBuilder,
 	SeparatorSpacingSize,
 	TextDisplayBuilder,
+	ThumbnailBuilder,
 } from "discord.js";
 
 export const Accent = {
@@ -26,13 +30,29 @@ export function divider(large = false): SeparatorBuilder {
 		.setSpacing(large ? SeparatorSpacingSize.Large : SeparatorSpacingSize.Small);
 }
 
-type ContainerChild = TextDisplayBuilder | SeparatorBuilder;
+/** A media gallery from one or more image URLs. */
+export function gallery(urls: string[]): MediaGalleryBuilder {
+	return new MediaGalleryBuilder().addItems(
+		...urls.map((url) => new MediaGalleryItemBuilder().setURL(url)),
+	);
+}
+
+/** A text section with a thumbnail image accessory. */
+export function section(lines: string[], thumbnailUrl: string): SectionBuilder {
+	return new SectionBuilder()
+		.addTextDisplayComponents(...lines.map((l) => text(l)))
+		.setThumbnailAccessory(new ThumbnailBuilder({ media: { url: thumbnailUrl } }));
+}
+
+type ContainerChild = TextDisplayBuilder | SeparatorBuilder | MediaGalleryBuilder | SectionBuilder;
 
 export function container(accent: number, children: ContainerChild[]): ContainerBuilder {
 	const c = new ContainerBuilder().setAccentColor(accent);
 	for (const child of children) {
 		if (child instanceof TextDisplayBuilder) c.addTextDisplayComponents(child);
-		else c.addSeparatorComponents(child);
+		else if (child instanceof SeparatorBuilder) c.addSeparatorComponents(child);
+		else if (child instanceof MediaGalleryBuilder) c.addMediaGalleryComponents(child);
+		else c.addSectionComponents(child);
 	}
 	return c;
 }
@@ -45,7 +65,12 @@ export function errorContainer(message: string): ContainerBuilder {
 	return container(Accent.error, [text(`⚠️ ${message}`)]);
 }
 
-type TopLevel = ContainerBuilder | TextDisplayBuilder | SeparatorBuilder;
+type TopLevel =
+	| ContainerBuilder
+	| TextDisplayBuilder
+	| SeparatorBuilder
+	| MediaGalleryBuilder
+	| SectionBuilder;
 
 export type V2Response = { flags: number; components: TopLevel[] };
 

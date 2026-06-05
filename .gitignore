@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Local agent / assistant files (never commit)
+CLAUDE.md
+memory.md
+.claude/
+
+# Prisma local
+prisma/*.db
+prisma/*.db-journal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Misc
+coverage/
+.cache/
+tmp/
+
+# Archived source bots (reference only, removed as ported)
+# (kept locally, not committed)
+Archive/

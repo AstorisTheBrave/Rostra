@@ -225,7 +225,18 @@ avoids cross-shard worker mis-routing. 56/56 tests; clean; 13 commands, componen
 **decisions made**: Chose per-shard timers over BullMQ for guild-bound scheduling. Entries as `String[]`
 on the row. `setTimeout` capped at ~24.8d, re-arms on fire/restart.
 
-**next**: **joinToCreate** (voice: a "join to create" hub channel → creates a temp voice channel owned by
-the joiner, deleted when empty; voiceStateUpdate). Then serverstats/birthday/reactionroles, misc, trivia,
-games, ai, music. (BullMQ `jobs/queue.ts` still unused by a feature — a future cron-style module like
-birthday can use it.)
+**next**: joinToCreate (DONE — see next entry).
+
+### 2026-06-05 (later — joinToCreate module)
+
+**changed**: `/voicehub` (set/nametemplate/limit/disable/status). voiceStateUpdate handler creates a temp
+voice channel when a member joins the hub (owner gets channel-management perms, moved in) and deletes
+tracked temp channels when empty. Models `JoinToCreateConfig`, `J2CChannel`. `formatName` tested. 58/58
+tests; clean; 13 commands.
+
+**files touched**: `src/modules/joinToCreate/{index,events,service}.ts` (+ test), `prisma/schema.prisma`,
+`docs/modules/joinToCreate.mdx`.
+
+**next**: **reactionroles** (self-assign roles via buttons/select — more component handlers) +
+**birthday** (cron via BullMQ `jobs/queue.ts` — finally exercises the queue) as a batch, then misc
+(afk/snipe/autoresponder/tags), trivia, games, ai, music.

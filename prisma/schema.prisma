@@ -172,3 +172,21 @@ model LoggingConfig {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+// ── Welcome / Autorole ───────────────────────────────────────────────────────
+
+/// Per-guild welcome, goodbye, and auto-role configuration.
+model WelcomeConfig {
+  guildId          String   @id
+  welcomeEnabled   Boolean  @default(false)
+  welcomeChannelId String?
+  welcomeMessage   String   @default("Welcome {user} to **{server}**! You're member #{membercount}.")
+  goodbyeEnabled   Boolean  @default(false)
+  goodbyeChannelId String?
+  goodbyeMessage   String   @default("**{username}** has left the server.")
+  dmEnabled        Boolean  @default(false)
+  dmMessage        String   @default("Welcome to {server}! We're glad to have you.")
+  autoroleIds      String[] @default([])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}

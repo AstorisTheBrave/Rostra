@@ -298,3 +298,24 @@ model Giveaway {
   @@index([guildId])
   @@index([ended])
 }
+
+// ── Join to Create (temp voice) ──────────────────────────────────────────────
+
+model JoinToCreateConfig {
+  guildId      String   @id
+  hubChannelId String?
+  categoryId   String?
+  nameTemplate String   @default("{user}'s channel")
+  userLimit    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model J2CChannel {
+  channelId String   @id
+  guildId   String
+  ownerId   String
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+}

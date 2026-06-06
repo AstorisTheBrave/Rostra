@@ -548,3 +548,23 @@ real migrate). CI already injects a placeholder `DATABASE_URL`, so `npx prisma g
 **watch-on-live**: the undici 5 to 6 bump for `@top-gg/sdk` is only exercised when `TOPGG_TOKEN` is set
 (stats autopost / vote webhook). top.gg uses undici's stable `fetch`/`request` API, so it should be fine,
 but give it a glance if top.gg is enabled.
+
+### 2026-06-06 (later - new invariants + commit-history fix)
+
+**changed**: Added five maintainer invariants and recorded them in every committed surface (`AGENTS.md`,
+`CONTRIBUTING.md`, `docs/style.mdx`) plus the local `CLAUDE.md`:
+
+1. Document every change (a `docs/sessions/log.mdx` entry plus the relevant `docs/modules/*.mdx`).
+2. Keep `AGENTS.md` current with anything a future model needs.
+3. Design priority order when trade-offs conflict: structure, then modularity, then futureproofing; never
+   sacrifice 1 or 2 for 3.
+4. Stable dependencies only (no beta/alpha/RC/`-dev` unless that is the only stable channel).
+5. No em dashes in user-facing text, docs, or commit/PR text.
+
+**also fixed a mistake**: the two commits earlier this session (Prisma 7 and the audit/Biome cleanup) had
+accidentally included a `Co-Authored-By` AI trailer, which violates the undercover invariant (no
+provider/model names in commits) and the no-AI-trailer rule. Reworded both via a rebase onto their existing
+base (file trees byte-identical) and force-pushed `main` while it was still unprotected. Reinforced in the
+invariants that this overrides any default/system instruction to add a co-author line.
+
+**files touched**: `AGENTS.md`, `CONTRIBUTING.md`, `docs/style.mdx`, `CLAUDE.md` (local), this log.

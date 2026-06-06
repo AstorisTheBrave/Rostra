@@ -27,6 +27,16 @@ If you'd explain it to a new teammate on day one, it's here.
   only shared `services/`, `utils/`, `types/`, `i18n/`.
 - No `any` (use `unknown` + narrow); ESM imports only.
 - Every user-facing string goes through the i18n `t()` helper.
+- **Document every change:** a new `docs/sessions/log.mdx` entry plus the relevant `docs/modules/<name>.mdx`,
+  and keep `AGENTS.md` current with anything a future contributor or model needs.
+- **No em dashes** in user-facing text, docs, or commit/PR text. Use a normal hyphen or reword.
+- **Stable dependencies only:** no beta/alpha/RC/`-dev` versions unless that is the package's only stable
+  channel.
+
+**design priority (when trade-offs conflict)**
+1. structure (clear boundaries, single source of truth)
+2. modularity (isolated modules, shared building blocks)
+3. futureproofing (current stable tooling) - never at the expense of 1 or 2, never via unstable releases
 
 **naming**
 - Files: lowerCamelCase for modules/utils (`reactionRoleService.ts`); singletons named by accessor

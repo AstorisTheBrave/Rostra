@@ -36,6 +36,27 @@ Rostra — an all-in-one Discord bot. Node 20+ ESM · TypeScript strict · disco
 7. **Modules are isolated** — never import another module's internals; share only via `services/`, `utils/`,
    `ui/`, `types/`, `i18n/`.
 8. **Every user-facing string** goes through `t()` (`src/i18n`). Wrap I/O in try/catch with Pino logs.
+9. **Document every change.** Any change to the codebase must be recorded in `docs/sessions/log.mdx` (a new
+   entry) and in the relevant `docs/modules/<name>.mdx`. Docs are part of the change, not an afterthought.
+10. **Keep `AGENTS.md` current.** When you learn something a future model needs to work this repo safely (a
+    new pattern, gotcha, tool, or constraint), add it here in the same change.
+11. **No em dashes.** Do not use em dashes (the long dash) in user-facing text, docs, commit messages, or
+    anything written under the maintainer's account (PR/issue comments). Use a normal hyphen or reword.
+12. **Stable dependencies only.** No beta, alpha, RC, or `-dev` versions unless that is the only published
+    stable channel for the package. Pin/upgrade to released stable versions.
+
+### Design priorities (when they conflict, in this order)
+
+1. **Structure** - clear boundaries, single source of truth, predictable layout.
+2. **Modularity** - self-contained modules, shared building blocks, no cross-module coupling.
+3. **Futureproofing** - current stable tooling, no dead ends - but never at the cost of 1 or 2, and never
+   by adopting unstable releases.
+
+### Contributing flow (branch protection)
+
+`main` is protected by a ruleset: changes land via pull request with **green CI required**, and direct
+force-pushes/deletions are blocked. The maintainer may bypass for solo work. Contributors: branch, PR,
+let CI pass. See `CONTRIBUTING.md`.
 
 ## Shared building blocks (import these)
 
@@ -77,5 +98,6 @@ npm run deploy:commands
 ## Definition of done for a change
 
 `typecheck` + `lint` + `test:env` all pass; new logic has a `*.test.ts`; UI built via `@/ui`; invariants
-respected; `docs/modules/*.mdx` + `docs/sessions/log.mdx` updated if structure changed; conventional commit
-message (no AI trailers).
+respected; `docs/sessions/log.mdx` (new entry) **and** the relevant `docs/modules/*.mdx` updated for every
+change; `AGENTS.md` updated if a future model needs to know something new; conventional commit message with
+no AI trailers and no em dashes.

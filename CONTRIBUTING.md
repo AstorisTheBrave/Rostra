@@ -61,9 +61,20 @@ Shared code (import these; don't reinvent them):
 8. **Wrap I/O in try/catch** with structured Pino logs; handle missing permissions and API errors
    gracefully.
 
+9. **Document every change.** Add a `docs/sessions/log.mdx` entry and update the relevant
+   `docs/modules/<name>.mdx` as part of the change.
+10. **No em dashes** in user-facing text, docs, or commit/PR text. Use a normal hyphen or reword.
+11. **Stable dependencies only** - no beta/alpha/RC/`-dev` versions unless that is the package's only
+    stable channel.
+
+When trade-offs conflict, prioritize in this order: **structure, then modularity, then futureproofing.**
+Never sacrifice clear structure or module isolation for a futureproofing win, and never pull in an
+unstable release to chase one.
+
 > Note: this project ships an AI assistant whose underlying provider is intentionally a hidden
 > implementation detail. Do not reference any AI provider or model name anywhere in code, comments,
-> strings, or commits — the assistant only ever presents as "Rostra". The CI checks for this.
+> strings, or commits, and do not add AI co-author trailers to commits. The assistant only ever presents
+> as "Rostra". The CI checks for this.
 
 ## Adding a feature module (checklist)
 
@@ -74,10 +85,17 @@ Shared code (import these; don't reinvent them):
 5. Run `typecheck` + `lint` + `test:env`; make sure the loader picks it up.
 6. Add a short `docs/modules/<name>.mdx` and a line to `docs/sessions/log.mdx`.
 
-## Commits & PRs
+## Branching & PRs
 
-- Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`.
+`main` is protected by a branch ruleset: changes land through a **pull request with passing CI**, and
+force-pushes/deletions are blocked. So:
+
+1. Branch off `main` (`git switch -c feat/my-thing`).
+2. Make your change with tests + docs, run the checks locally.
+3. Open a PR. CI (typecheck, lint, tests, and the embed/undercover/`@/ui` guards) must be green to merge.
+
+- Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `build:`, `ci:`.
 - Keep PRs focused; describe what changed and how you tested it.
-- Make sure `typecheck`, `lint`, and tests pass — CI runs them on every PR.
+- No em dashes and no AI co-author trailers in commit or PR text.
 
-Happy hacking! 🛠️
+Happy hacking!

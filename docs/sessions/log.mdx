@@ -759,3 +759,21 @@ carry action rows). All strings go through `t()` (core i18n keys added). 6 new t
 
 **files touched**: `src/modules/core/{index,categories,stats,index.test,categories.test,stats.test}.ts`,
 `src/utils/components.ts`, `README.md`, `docs/modules/ui.mdx`, `CLAUDE.md` (room index).
+
+### 2026-06-06 (later - centralized platform systems spec)
+
+**changed**: Wrote `docs/superpowers/specs/2026-06-06-centralized-platform-systems.md` - a refined design
+(range + blast radius) for four centralized systems to take Rostra to MEE6/Wick/Beemo tier, adapted from
+Project Anastasia's themes (tenant, durable recovery, scheduler) and Postgres/Redis best practices pulled
+via Context7: (1) a cached per-guild **GuildTenant** config (L1 memory + L2 Redis, 5-min TTL, no raw
+lookups, wizard writes here); (2) a **durable ScheduledTask scheduler** that survives restart/crash and
+replaces per-module setTimeout maps, enabling tempban/tempmute/temprole lifts; (3) a **centralized cron**
+on the existing BullMQ queue; (4) a **caching/indexing pass** (cache-aside 300s TTL, pipelined reads,
+composite @@index on hot call sites). Plus setup wizards writing to the tenant and optional Anastasia
+feature ports (starboard, anti-raid, sticky, verification). Recommended rollout is lowest-blast-radius
+first; each step is its own tested PR.
+
+**note**: the Anastasia codebase is not on disk anymore; features were inferred from its session history
+(tenant ~7k refs, recovery/durable, scheduler/cron, starboard, anti-raid, sticky, verification).
+
+**files touched**: `docs/superpowers/specs/2026-06-06-centralized-platform-systems.md`, this log.

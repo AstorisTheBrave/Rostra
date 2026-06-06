@@ -1,0 +1,38 @@
+---
+last-updated: 2026-06-06
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Social reaction commands: 24 anime-gif actions (hug, kiss, slap, pat, cuddle, dance...) plus a `ship`
+compatibility score. Ported from the zyn-bot roleplay cog, reshaped to slash-only Components V2.
+
+## technical map
+
+**file paths**
+- command: `src/modules/roleplay/index.ts`
+- action catalogue + helpers: `src/modules/roleplay/service.ts` (+ `service.test.ts`)
+- no database (stateless)
+
+**command** - `/roleplay action:<choice> [target]`. One command with up to 25 action choices (24 gif
+actions plus `ship`); `target` is a user option, required for targeted actions and for `ship`.
+
+**exports (service.ts)** - `ROLEPLAY_ACTIONS` (the catalogue, `satisfies Record<string, RoleplayAction>`
+so keys are literal), `isRoleplayAction`/`isTargeted` guards, `fetchRoleplayGif(category, fetchImpl?)`
+(returns a gif URL or undefined), and the pure `shipScore(a, b)` (deterministic, symmetric, 0-100) +
+`shipBar(score)`.
+
+## gotchas
+
+- Gifs come from the free **nekos.best** API (`https://nekos.best/api/v2/<category>`, no key). The fetch
+  has a 5s timeout and returns undefined on any failure, so the command still posts the flavour text
+  without an image. `fetchRoleplayGif` takes an injectable `fetchImpl` for tests.
+- The gif renders via the `@/ui` `gallery([url])` media gallery inside a container; no raw embeds.
+- All action lines are i18n keys (`roleplay:act.<name>`) with `{user}`/`{target}` placeholders. Adding an
+  action = one catalogue entry + one i18n string (keep the catalogue at 24 so the +1 `ship` choice stays
+  within Discord's 25-choice limit; there is a test guarding this).
+- `shipScore` sorts the two ids before hashing, so `ship A B` and `ship B A` match. It is deterministic,
+  not random, so the same pair always gets the same percentage.
+- Network-bound, so safeAck auto-defers; the reply is public (not ephemeral).

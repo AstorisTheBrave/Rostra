@@ -643,3 +643,21 @@ does not open PRs for pre-existing alerts, so those are fixed by hand as here.
 
 **files touched**: `src/web/server.ts`, `package.json` + `package-lock.json`,
 `.github/workflows/{ci,docker,release-please}.yml`.
+
+### 2026-06-06 (later - port zyn-bot, module 1: roleplay)
+
+**changed**: First of four features ported from the re-added `Archive/zyn-bot` (a discord.py project).
+Added the **roleplay** module: `/roleplay action:<choice> [target]` with 24 anime-gif reaction actions
+(hug, kiss, slap, pat, cuddle, dance, ...) plus a `ship` compatibility score. Stateless, slash-only,
+Components V2 via `@/ui` (`gallery` for the gif). Gifs from the free nekos.best API (no key) with a 5s
+timeout and graceful text-only fallback. All action lines are i18n keys; `shipScore` is deterministic and
+symmetric (sorted-id hash, 0-100). 6 new tests (97... see totals); typecheck + Biome + tests green.
+
+**mapping note**: most zyn cogs duplicate existing Rostra modules (automod, moderation, security, welcome,
+autorole, giveaway, voicemaster->joinToCreate, logging, afk, ping/stats) or break invariants (premium =
+free-only; noprefix = slash-only; embed builder = Components V2; jishaku eval = security). The genuinely
+new, on-brand features are roleplay (this entry), reminders, steal emoji/sticker, and profile cards, which
+are being ported in sequence.
+
+**files touched**: `src/modules/roleplay/{index,service,service.test}.ts`, `docs/modules/roleplay.mdx`,
+`CLAUDE.md` (room index).

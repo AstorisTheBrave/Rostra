@@ -1,15 +1,15 @@
-import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
-import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
 import type { LoggingConfig } from "@prisma/client";
 import {
 	type ChatInputCommandInteraction,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
+import { t } from "@/i18n/index.ts";
+import type { BotModule, SlashCommand } from "@/types/module.ts";
+import { Accent, container, reply, text } from "@/utils/components.ts";
 import { loggingEvents } from "./events.ts";
-import { type LogEvent, getConfig, upsertConfig } from "./service.ts";
+import { getConfig, type LogEvent, upsertConfig } from "./service.ts";
 
 const EVENTS: { name: string; value: LogEvent }[] = [
 	{ name: "Message deletes", value: "messageDelete" },

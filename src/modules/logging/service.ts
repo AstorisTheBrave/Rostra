@@ -1,7 +1,7 @@
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 import type { LoggingConfig } from "@prisma/client";
 import { type ContainerBuilder, type Guild, MessageFlags } from "discord.js";
+import { getPrisma } from "@/services/database.ts";
+import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("logging");
 

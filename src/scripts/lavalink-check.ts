@@ -1,5 +1,5 @@
-import { config } from "@/config.ts";
 import { LavalinkManager } from "lavalink-client";
+import { config } from "@/config.ts";
 
 /** Connectivity diagnostic: tries every configured Lavalink node and reports which connect. */
 async function main(): Promise<void> {

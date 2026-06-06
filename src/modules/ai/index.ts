@@ -1,8 +1,8 @@
+import { SlashCommandBuilder } from "discord.js";
 import { config } from "@/config.ts";
 import { t } from "@/i18n/index.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
-import { SlashCommandBuilder } from "discord.js";
 import { ask } from "./service.ts";
 
 const askCommand: SlashCommand = {

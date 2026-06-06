@@ -1,5 +1,5 @@
-import { getPrisma } from "@/services/database.ts";
 import type { ReactionRolePanel } from "@prisma/client";
+import { getPrisma } from "@/services/database.ts";
 
 export interface PanelRole {
 	roleId: string;

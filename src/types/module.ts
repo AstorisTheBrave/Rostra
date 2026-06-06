@@ -1,4 +1,3 @@
-import type { BotClient } from "@/client/BotClient.ts";
 import type {
 	AutocompleteInteraction,
 	Awaitable,
@@ -9,6 +8,7 @@ import type {
 	PermissionResolvable,
 	RESTPostAPIApplicationCommandsJSONBody,
 } from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
 
 export interface CommandContext {
 	interaction: ChatInputCommandInteraction;

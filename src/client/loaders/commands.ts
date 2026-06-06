@@ -1,8 +1,8 @@
+import type { RESTPostAPIApplicationCommandsJSONBody } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { registerLocale } from "@/i18n/index.ts";
 import { getLogger } from "@/services/logger.ts";
 import type { BotModule } from "@/types/module.ts";
-import type { RESTPostAPIApplicationCommandsJSONBody } from "discord.js";
 
 const log = getLogger("loader:commands");
 

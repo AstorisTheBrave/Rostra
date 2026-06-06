@@ -1,6 +1,6 @@
+import type { JoinToCreateConfig } from "@prisma/client";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
-import type { JoinToCreateConfig } from "@prisma/client";
 
 const log = getLogger("j2c");
 

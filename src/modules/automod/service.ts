@@ -1,9 +1,9 @@
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
-import { Accent, container, text } from "@/utils/components.ts";
 import type { AutomodConfig } from "@prisma/client";
 import { Filter } from "bad-words";
 import { type Message, MessageFlags } from "discord.js";
+import { getPrisma } from "@/services/database.ts";
+import { getLogger } from "@/services/logger.ts";
+import { Accent, container, text } from "@/utils/components.ts";
 import { hasDisallowedLink, hasInvite, isCapsAbuse } from "./checks.ts";
 
 const log = getLogger("automod");

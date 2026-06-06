@@ -1,8 +1,8 @@
+import type { ConnectionOptions, Queue } from "bullmq";
+import Redis from "ioredis";
 import { config } from "@/config.ts";
 import { getLogger } from "@/services/logger.ts";
 import type { JobDefinition } from "@/types/module.ts";
-import type { ConnectionOptions, Queue } from "bullmq";
-import Redis from "ioredis";
 
 const log = getLogger("jobs");
 

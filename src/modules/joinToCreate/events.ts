@@ -1,6 +1,6 @@
+import { ChannelType, PermissionFlagsBits } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
-import { ChannelType, PermissionFlagsBits } from "discord.js";
 import { formatName, getConfig, isTemp, recordTemp, removeTemp } from "./service.ts";
 
 export const j2cEvents: RegisteredEvent[] = [

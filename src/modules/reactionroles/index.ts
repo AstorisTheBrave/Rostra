@@ -1,7 +1,3 @@
-import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
-import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, button, buttonGrid, container, reply, text } from "@/ui";
 import {
 	ButtonStyle,
 	type ChatInputCommandInteraction,
@@ -10,13 +6,17 @@ import {
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
+import { t } from "@/i18n/index.ts";
+import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
+import { Accent, button, buttonGrid, container, reply, text } from "@/ui";
 import {
-	type PanelRole,
 	addRole,
 	createPanel,
 	deletePanel,
 	getPanel,
 	listPanels,
+	type PanelRole,
 	parseRoles,
 	removeRole,
 	setMessage,

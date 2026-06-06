@@ -1,7 +1,7 @@
+import { MessageFlags } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { Accent, container, text } from "@/utils/components.ts";
-import { MessageFlags } from "discord.js";
 import { addXp, getConfig, getRewards } from "./service.ts";
 
 const lastXp = new Map<string, number>();

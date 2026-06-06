@@ -1,22 +1,22 @@
 import { randomUUID } from "node:crypto";
-import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
-import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
 	ButtonStyle,
 	type ChatInputCommandInteraction,
 	MessageFlags,
 	SlashCommandBuilder,
 } from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
+import { t } from "@/i18n/index.ts";
+import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
+import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
-	type Rps,
-	type TttState,
 	checkTicTacToe,
 	getTtt,
+	type Rps,
 	randomRps,
 	rpsOutcome,
 	startTtt,
+	type TttState,
 } from "./service.ts";
 
 const CELL_EMOJI = { X: "❌", O: "⭕", empty: "⬜" } as const;

@@ -1,5 +1,5 @@
-import { getLogger } from "@/services/logger.ts";
 import type { AuditLogEvent, Guild } from "discord.js";
+import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("security:audit");
 

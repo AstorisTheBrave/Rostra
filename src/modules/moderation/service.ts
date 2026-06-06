@@ -1,6 +1,6 @@
+import type { Guild, GuildMember, User } from "discord.js";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
-import type { Guild, GuildMember, User } from "discord.js";
 
 const log = getLogger("moderation");
 

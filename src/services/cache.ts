@@ -1,8 +1,8 @@
-import { config } from "@/config.ts";
-import { getLogger } from "@/services/logger.ts";
 import KeyvRedis from "@keyv/redis";
 import Redis from "ioredis";
 import Keyv from "keyv";
+import { config } from "@/config.ts";
+import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("cache");
 

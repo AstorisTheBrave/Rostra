@@ -1,10 +1,10 @@
-import { getLogger } from "@/services/logger.ts";
-import { Accent, buildResponse, container, text } from "@/utils/components.ts";
 import {
 	type InteractionEditReplyOptions,
 	MessageFlags,
 	type RepliableInteraction,
 } from "discord.js";
+import { getLogger } from "@/services/logger.ts";
+import { Accent, buildResponse, container, text } from "@/utils/components.ts";
 
 const log = getLogger("safeAck");
 

@@ -1,12 +1,12 @@
-import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
-import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
 import {
 	type ChatInputCommandInteraction,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
+import { t } from "@/i18n/index.ts";
+import type { BotModule, SlashCommand } from "@/types/module.ts";
+import { Accent, container, reply, text } from "@/utils/components.ts";
 import { extrasEvents } from "./events.ts";
 import { addResponder, getResponders, getSnipe, removeResponder, setAfk } from "./service.ts";
 

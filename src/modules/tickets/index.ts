@@ -1,7 +1,3 @@
-import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
-import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import type { TicketConfig } from "@prisma/client";
 import {
 	ButtonStyle,
@@ -13,6 +9,10 @@ import {
 	SlashCommandBuilder,
 	type TextChannel,
 } from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
+import { t } from "@/i18n/index.ts";
+import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
+import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
 	claimTicket,
 	closeTicket,

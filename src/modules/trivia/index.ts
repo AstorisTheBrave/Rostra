@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
-import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
-import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
 	ButtonStyle,
 	type ChatInputCommandInteraction,
 	MessageFlags,
 	SlashCommandBuilder,
 } from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
+import { t } from "@/i18n/index.ts";
+import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
+import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
 	buildOptions,
 	fetchQuestion,

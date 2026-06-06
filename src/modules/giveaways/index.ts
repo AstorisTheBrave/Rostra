@@ -1,9 +1,3 @@
-import type { BotClient } from "@/client/BotClient.ts";
-import { defineEvent } from "@/client/defineEvent.ts";
-import { t } from "@/i18n/index.ts";
-import { getLogger } from "@/services/logger.ts";
-import type { BotModule, ComponentHandler, RegisteredEvent, SlashCommand } from "@/types/module.ts";
-import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
 	ButtonStyle,
 	type ChatInputCommandInteraction,
@@ -12,6 +6,12 @@ import {
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
+import { defineEvent } from "@/client/defineEvent.ts";
+import { t } from "@/i18n/index.ts";
+import { getLogger } from "@/services/logger.ts";
+import type { BotModule, ComponentHandler, RegisteredEvent, SlashCommand } from "@/types/module.ts";
+import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
 	addEntry,
 	createGiveaway,

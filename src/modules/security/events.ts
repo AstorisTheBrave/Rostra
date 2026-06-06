@@ -1,6 +1,6 @@
+import { AuditLogEvent, type Guild } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
-import { AuditLogEvent, type Guild } from "discord.js";
 import { resolveAuditExecutor } from "./audit.ts";
 import { type AntinukeModule, getConfig, punish } from "./service.ts";
 

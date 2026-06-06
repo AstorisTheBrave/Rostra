@@ -1,12 +1,12 @@
-import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
-import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, gallery, reply, section, text } from "@/utils/components.ts";
 import {
 	type ChatInputCommandInteraction,
 	GuildMember as GuildMemberClass,
 	SlashCommandBuilder,
 } from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
+import { t } from "@/i18n/index.ts";
+import type { BotModule, SlashCommand } from "@/types/module.ts";
+import { Accent, container, gallery, reply, section, text } from "@/utils/components.ts";
 
 function ts(date: Date | number, style: "F" | "R" = "R"): string {
 	const seconds = Math.floor((typeof date === "number" ? date : date.getTime()) / 1000);

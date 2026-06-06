@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { SlashCommand } from "@/types/module.ts";
 import {
 	type ChatInputCommandInteraction,
 	PermissionFlagsBits,
 	PermissionsBitField,
 } from "discord.js";
+import type { SlashCommand } from "@/types/module.ts";
 import { checkPermissions } from "./permissions.ts";
 
 const baseCommand: SlashCommand = {

@@ -1,5 +1,3 @@
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 import type { TicketConfig } from "@prisma/client";
 import {
 	ChannelType,
@@ -9,6 +7,8 @@ import {
 	type TextChannel,
 	type User,
 } from "discord.js";
+import { getPrisma } from "@/services/database.ts";
+import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("tickets");
 

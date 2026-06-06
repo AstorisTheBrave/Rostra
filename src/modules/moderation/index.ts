@@ -1,7 +1,3 @@
-import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
-import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
 import {
 	type ChatInputCommandInteraction,
 	type GuildMember,
@@ -11,11 +7,15 @@ import {
 	SlashCommandBuilder,
 	type TextChannel,
 } from "discord.js";
-import { MAX_TIMEOUT_MS, formatDuration, parseDuration } from "./duration.ts";
+import type { BotClient } from "@/client/BotClient.ts";
+import { t } from "@/i18n/index.ts";
+import type { BotModule, SlashCommand } from "@/types/module.ts";
+import { Accent, container, reply, text } from "@/utils/components.ts";
+import { formatDuration, MAX_TIMEOUT_MS, parseDuration } from "./duration.ts";
 import {
-	type CaseType,
 	addNote,
 	banUser,
+	type CaseType,
 	deactivateCase,
 	getCases,
 	kickUser,

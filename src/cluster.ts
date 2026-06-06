@@ -1,9 +1,9 @@
 import { fileURLToPath } from "node:url";
+import { ShardingManager } from "discord.js";
 import { config } from "@/config.ts";
 import { getLogger } from "@/services/logger.ts";
 import { startAutopost } from "@/web/autopost.ts";
 import { type ShardStat, startWebServer } from "@/web/server.ts";
-import { ShardingManager } from "discord.js";
 
 const log = getLogger("cluster");
 

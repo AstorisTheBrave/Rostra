@@ -1,5 +1,5 @@
-import { getPrisma } from "@/services/database.ts";
 import type { Giveaway } from "@prisma/client";
+import { getPrisma } from "@/services/database.ts";
 
 /** Pick up to `count` unique random winners from a list of entry user ids. */
 export function pickWinners(entries: string[], count: number): string[] {

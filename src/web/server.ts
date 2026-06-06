@@ -1,7 +1,7 @@
+import Fastify, { type FastifyInstance } from "fastify";
 import { config } from "@/config.ts";
 import { getLogger } from "@/services/logger.ts";
-import { type VotePayload, recordVote, verifyVoteAuth } from "@/services/topgg.ts";
-import Fastify, { type FastifyInstance } from "fastify";
+import { recordVote, type VotePayload, verifyVoteAuth } from "@/services/topgg.ts";
 
 const log = getLogger("web");
 

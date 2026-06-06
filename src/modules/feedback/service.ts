@@ -1,5 +1,5 @@
-import { getPrisma } from "@/services/database.ts";
 import type { FeedbackConfig } from "@prisma/client";
+import { getPrisma } from "@/services/database.ts";
 
 export async function getConfig(guildId: string): Promise<FeedbackConfig | null> {
 	return getPrisma().feedbackConfig.findUnique({ where: { guildId } });

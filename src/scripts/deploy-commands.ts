@@ -1,9 +1,9 @@
+import { REST, Routes } from "discord.js";
 import { BotClient } from "@/client/BotClient.ts";
 import { collectCommandJSON, registerCommands } from "@/client/loaders/commands.ts";
 import { loadModules } from "@/client/loaders/modules.ts";
 import { config } from "@/config.ts";
 import { getLogger } from "@/services/logger.ts";
-import { REST, Routes } from "discord.js";
 
 const log = getLogger("deploy");
 

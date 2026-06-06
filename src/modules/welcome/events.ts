@@ -1,8 +1,8 @@
+import { MessageFlags } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { Accent, container, text } from "@/utils/components.ts";
-import { MessageFlags } from "discord.js";
-import { type MessageContext, formatMessage, getConfig } from "./service.ts";
+import { formatMessage, getConfig, type MessageContext } from "./service.ts";
 
 export const welcomeEvents: RegisteredEvent[] = [
 	defineEvent("guildMemberAdd", {

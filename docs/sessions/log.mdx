@@ -349,8 +349,29 @@ game/giveaway/rr/ticket/trivia.
 
 **files touched**: `src/modules/games/{index,service}.ts` (+ test), `docs/modules/games.mdx`.
 
-**next (LAST module): music** — Lavalink. `LAVALINK_NODES` (10 nodes) already in `.env` and validated into
-`config.lavalink`. Pick `lavalink-client` (modern, TS-first) or shoukaku; multi-node + failover; voice
-connection via discord.js; `/music play|skip|queue|pause|resume|stop|nowplaying|volume|loop`. **Needs a
-running Lavalink node to smoke-test** (user has them). After music: full final verification + MIGRATION.md
-+ optionally delete Archive/ subfolders per the original brief.
+**next (LAST module): music** — DONE (see below).
+
+### 2026-06-05 (later — music module = ALL MODULES COMPLETE 🎉)
+
+**changed**: `/music play|skip|stop|pause|resume|queue|nowplaying|volume|loop` via **lavalink-client v2**
+(Lavalink v4). `getManager` builds a multi-node manager from `config.lavalink.nodes`; `initMusic` (on
+`ready`) wires node + track events and the untyped `"raw"` gateway listener. Lazy/guarded — `/music` says
+"unavailable" with no nodes. 78/78 tests; typecheck + lint + embed + undercover clean; **22 commands**.
+
+**files touched**: `src/modules/music/{index,service,events}.ts`, `package.json`, `docs/modules/music.mdx`.
+
+**verify-on-live note**: music needs a real Lavalink node to confirm playback (typechecks + loads; 10
+public nodes are in `.env`). Everything else is unit-tested/loaded.
+
+## ✅ PROJECT COMPLETE — full AIO
+
+All 15 archived bots' features are ported into Rostra. **17 feature modules** (moderation, security,
+automod, logging, welcome, tickets, economy, leveling, giveaways, joinToCreate, reactionroles, birthday,
+extras, utility, trivia, games, music, ai) + the full core platform (config, services, Components-V2 kit,
+i18n, sharding IPC, BotClient + loaders, command pipeline + safeAck, interaction router, jobs, Fastify
+health + top.gg, cluster/shard entries, graceful shutdown). **22 top-level commands**, 5 component
+prefixes. 78/78 tests; tsc + Biome + embed-guard + undercover all clean; live login verified.
+
+**Added:** `MIGRATION.md` (decommission guide). **Remaining ops (user/fresh session):** run
+`prisma migrate` against the live DB; `deploy:commands`; live-smoke music against a Lavalink node;
+optionally delete `Archive/<bot>/` subfolders after verifying replacements (irreversible — left to user).

@@ -338,6 +338,19 @@ giveaway/rr/ticket/trivia.
 **files touched**: `src/modules/trivia/{index,service}.ts` (+ test), `prisma/schema.prisma`,
 `docs/modules/trivia.mdx`.
 
-**next**: **games** (button mini-games: tictactoe/connect4/rps/wordle — stateless-ish component flows,
-in-memory game state keyed by message/token; reference trivia/tickets for the component pattern). Then
-**music** (Lavalink — 10 nodes in `.env`; needs a running node to smoke-test).
+**next**: games (DONE — see next entry).
+
+### 2026-06-05 (later — games module)
+
+**changed**: `/game tictactoe <opponent>` (live 3×3 button grid, turn-validated, `interaction.update`
+re-renders) + `/game rps` (vs bot, ephemeral). Pure `checkTicTacToe`/`rpsOutcome` tested; tic-tac-toe
+state in-memory (token, 10-min TTL); no DB. 78/78 tests; clean; **21 commands**, components
+game/giveaway/rr/ticket/trivia.
+
+**files touched**: `src/modules/games/{index,service}.ts` (+ test), `docs/modules/games.mdx`.
+
+**next (LAST module): music** — Lavalink. `LAVALINK_NODES` (10 nodes) already in `.env` and validated into
+`config.lavalink`. Pick `lavalink-client` (modern, TS-first) or shoukaku; multi-node + failover; voice
+connection via discord.js; `/music play|skip|queue|pause|resume|stop|nowplaying|volume|loop`. **Needs a
+running Lavalink node to smoke-test** (user has them). After music: full final verification + MIGRATION.md
++ optionally delete Archive/ subfolders per the original brief.

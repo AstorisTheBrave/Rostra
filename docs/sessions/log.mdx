@@ -530,3 +530,21 @@ green.
 
 **note**: the strict `env()` in `prisma.config.ts` is intentional (a missing `DATABASE_URL` should fail a
 real migrate). CI already injects a placeholder `DATABASE_URL`, so `npx prisma generate` there is fine.
+
+### 2026-06-06 (later - deferred cleanups: audit overrides + Biome warnings)
+
+**changed**: Cleared the two items deferred earlier.
+
+- **npm audit now reports 0 vulnerabilities** via `overrides` in `package.json` (no `audit fix --force`,
+  which would have downgraded `@top-gg/sdk`). Pinned `undici` to `^6.26.0`: the flagged copy was top.gg's
+  `undici@5.29.0`; discord.js was already on a safe 6.x and needs undici in the 6.x range, so 6.26.0 (the
+  latest stable 6.x) unifies both (deduped) and stays compatible with `@discordjs/rest`. Pinned
+  `@hono/node-server` to `^1.19.13`, which only reaches the unused `prisma dev` tooling (`@prisma/dev`).
+- **Biome warnings cleared (now 0)**: applied the unsafe autofixes for `useOptionalChain` (x13) and
+  `noUnusedImports` (x3) across 13 module files. Mechanical, 1 to 4 lines each.
+
+**verified**: typecheck + `biome check` (0 warnings) + 85/85 tests green. `npm audit` clean.
+
+**watch-on-live**: the undici 5 to 6 bump for `@top-gg/sdk` is only exercised when `TOPGG_TOKEN` is set
+(stats autopost / vote webhook). top.gg uses undici's stable `fetch`/`request` API, so it should be fine,
+but give it a glance if top.gg is enabled.

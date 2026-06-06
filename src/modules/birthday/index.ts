@@ -10,7 +10,6 @@ import { Accent, container, reply, text } from "@/utils/components.ts";
 import { birthdayEvents } from "./events.ts";
 import {
 	getBirthday,
-	getConfig,
 	isValidDate,
 	listForGuild,
 	removeBirthday,

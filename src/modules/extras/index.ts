@@ -3,7 +3,6 @@ import {
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
-import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";

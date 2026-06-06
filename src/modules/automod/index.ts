@@ -285,7 +285,7 @@ const messageGuard = defineEvent("messageCreate", {
 	execute: async (_client, message) => {
 		if (message.author.bot || !message.inGuild()) return;
 		const config = await getConfig(message.guild.id);
-		if (!config || !config.enabled) return;
+		if (!config?.enabled) return;
 		const violation = checkMessage(message, config);
 		if (violation) await enforce(message, config, violation);
 	},

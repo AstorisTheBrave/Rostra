@@ -14,7 +14,7 @@ export const levelingEvents: RegisteredEvent[] = [
 		execute: async (_c, message) => {
 			if (message.author.bot || !message.inGuild()) return;
 			const config = await getConfig(message.guild.id);
-			if (!config || !config.enabled) return;
+			if (!config?.enabled) return;
 
 			const key = `${message.guild.id}:${message.author.id}`;
 			const now = Date.now();

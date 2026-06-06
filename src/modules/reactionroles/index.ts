@@ -180,7 +180,7 @@ const reactionRoleComponent: ComponentHandler = {
 		if (!panel) return void reply.error(interaction, t("reactionroles:notFound"));
 		const member = interaction.member as GuildMember | null;
 		const role = interaction.guild.roles.cache.get(roleId);
-		if (!member || !role || !role.editable) {
+		if (!member || !role?.editable) {
 			return void reply.error(interaction, t("reactionroles:cannotAssign"));
 		}
 		if (member.roles.cache.has(roleId)) {

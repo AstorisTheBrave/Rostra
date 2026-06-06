@@ -13,7 +13,7 @@ async function handleViolation(
 	reason: string,
 ): Promise<void> {
 	const config = await getConfig(guild.id);
-	if (!config || !config.enabled || !config[module]) return;
+	if (!config?.enabled || !config[module]) return;
 	const executorId = await resolveAuditExecutor(guild, auditType, targetId);
 	if (!executorId) return;
 	await punish(guild, config, executorId, reason);

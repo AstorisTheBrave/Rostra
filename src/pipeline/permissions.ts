@@ -22,13 +22,13 @@ export function checkPermissions(
 	}
 	if (command.userPermissions?.length) {
 		const perms = interaction.memberPermissions;
-		if (!perms || !perms.has(command.userPermissions)) {
+		if (!perms?.has(command.userPermissions)) {
 			return { ok: false, reason: "userPerms" };
 		}
 	}
 	if (command.botPermissions?.length && interaction.inGuild()) {
 		const me = interaction.guild?.members.me;
-		if (!me || !me.permissions.has(command.botPermissions)) {
+		if (!me?.permissions.has(command.botPermissions)) {
 			return { ok: false, reason: "botPerms" };
 		}
 	}

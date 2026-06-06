@@ -327,7 +327,7 @@ async function execute({
 			if (!hasPerm(interaction, PermissionFlagsBits.ManageMessages)) return denyNoPerm(interaction);
 			const count = interaction.options.getInteger("count", true);
 			const channel = interaction.channel;
-			if (!channel || !channel.isTextBased() || channel.isDMBased()) {
+			if (!channel?.isTextBased() || channel.isDMBased()) {
 				return void reply.error(interaction, t("moderation:error.badChannel"));
 			}
 			const deleted = await (channel as TextChannel).bulkDelete(count, true).catch(() => null);

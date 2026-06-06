@@ -125,7 +125,7 @@ export async function createTicket(
 
 export async function claimTicket(channelId: string, moderatorId: string): Promise<boolean> {
 	const ticket = await getPrisma().ticket.findUnique({ where: { channelId } });
-	if (!ticket || !ticket.open) return false;
+	if (!ticket?.open) return false;
 	await getPrisma().ticket.update({ where: { channelId }, data: { claimedBy: moderatorId } });
 	return true;
 }

@@ -3,7 +3,6 @@ import {
 	ButtonStyle,
 	type ChatInputCommandInteraction,
 	type GuildMember,
-	type MessageComponentInteraction,
 	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
@@ -246,7 +245,7 @@ const ticketComponents: ComponentHandler = {
 		const config = await getConfig(guild.id);
 
 		if (action === "open") {
-			if (!config || !config.enabled) {
+			if (!config?.enabled) {
 				return void reply.error(interaction, t("tickets:error.disabled"));
 			}
 			const result = await createTicket(guild, config, interaction.user);

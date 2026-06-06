@@ -49,7 +49,7 @@ export const welcomeEvents: RegisteredEvent[] = [
 	defineEvent("guildMemberRemove", {
 		execute: async (_c, member) => {
 			const config = await getConfig(member.guild.id);
-			if (!config || !config.goodbyeEnabled || !config.goodbyeChannelId) return;
+			if (!config?.goodbyeEnabled || !config.goodbyeChannelId) return;
 			const channel = await member.guild.channels.fetch(config.goodbyeChannelId).catch(() => null);
 			if (!channel?.isTextBased()) return;
 			const ctx: MessageContext = {

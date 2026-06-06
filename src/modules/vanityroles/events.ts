@@ -10,10 +10,10 @@ export const vanityEvents: RegisteredEvent[] = [
 			if (!guild || !member) return;
 
 			const config = await getConfig(guild.id);
-			if (!config || !config.enabled || !config.keyword || !config.roleId) return;
+			if (!config?.enabled || !config.keyword || !config.roleId) return;
 
 			const role = guild.roles.cache.get(config.roleId);
-			if (!role || !role.editable) return;
+			if (!role?.editable) return;
 
 			const texts = newPresence.activities.flatMap((a) => [a.name, a.state, a.details]);
 			const matches = statusMatches(texts, config.keyword);

@@ -61,7 +61,7 @@ export async function sendLog(
 	build: () => ContainerBuilder,
 ): Promise<void> {
 	const config = await getConfig(guild.id);
-	if (!config || !config.logChannelId || !config[event]) return;
+	if (!config?.logChannelId || !config[event]) return;
 	const channel = await guild.channels.fetch(config.logChannelId).catch(() => null);
 	if (!channel?.isTextBased()) return;
 	await channel.send({ components: [build()], flags: MessageFlags.IsComponentsV2 }).catch(() => {});

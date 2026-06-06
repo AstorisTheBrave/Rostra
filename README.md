@@ -4,6 +4,10 @@
 tickets, applications, economy, leveling, giveaways, music, trivia, games, and more into one fast,
 sharded application — built to scale to millions of users.
 
+[![CI](https://github.com/AstorisTheBrave/Rostra/actions/workflows/ci.yml/badge.svg)](https://github.com/AstorisTheBrave/Rostra/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/AstorisTheBrave/Rostra?style=flat-square&logo=github)](https://github.com/AstorisTheBrave/Rostra/releases/latest)
+[![GHCR image](https://img.shields.io/badge/ghcr.io-rostra-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/AstorisTheBrave/Rostra/pkgs/container/rostra)
+
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white)
 ![discord.js](https://img.shields.io/badge/discord.js-v14-5865F2?style=flat-square&logo=discord&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Prisma-336791?style=flat-square&logo=postgresql&logoColor=white)

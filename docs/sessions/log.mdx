@@ -443,3 +443,28 @@ after adding `docker/setup-buildx-action` (gha cache needs the container driver)
 **still manual (can't automate):** enable the **Presence** privileged intent in the Discord Developer
 Portal (for `/vanityrole`); add a support-server invite to the README once one exists; the GHCR package may
 need to be flipped to **public** in the repo's Packages settings so `docker pull` works without auth.
+
+### 2026-06-06 (automation — Dependabot, release-please, badges)
+
+**changed**: Added repo automation. (1) **Dependabot** (`.github/dependabot.yml`) — weekly `npm`
+(minor/patch grouped into one PR, `build:`-prefixed) + `github-actions` (`ci:`-prefixed) updates.
+(2) **Automated releases** via **release-please** (`googleapis/release-please-action@v4`, manifest mode:
+`release-please-config.json` + `.release-please-manifest.json` baselined at `0.1.0`, `release-type: node`,
+`include-v-in-tag`, `bump-*-pre-major` so 0.x feats bump patch). On conventional commits it opens a release
+PR that bumps `package.json` + `CHANGELOG.md`; merging tags `vX.Y.Z` and cuts a GitHub release.
+(3) **README badges**: CI status, latest release, GHCR image.
+
+**Docker gotcha handled**: release-please tags via `GITHUB_TOKEN`, which does **not** cascade-trigger
+`docker.yml`'s `tags: v*` push. So `docker.yml` gained a `workflow_call` trigger with a `version` input
+(feeds `type=raw` version/`v`version/`latest` image tags), and `release-please.yml` has a `publish-image`
+job that `uses: ./.github/workflows/docker.yml` gated on `release_created` — same run, so the versioned
+image always builds. The existing push-to-`main` + `tags: v*` triggers are untouched (manual tags still
+publish). Nothing broken.
+
+**verified**: typecheck + Biome + 85/85 tests green locally. Workflow YAML/JSON validity confirmed on push
+(watch the Actions tab). release-please will not open a PR until a `feat`/`fix` lands (recent commits are
+`docs`/`ci`/`build`, which are hidden + non-bumping by config) — expected.
+
+**still manual:** for the release-please **publish-image** path to push to GHCR, `GITHUB_TOKEN` `packages:
+write` must be allowed (set at the job level — default repo workflow permissions suffice). Same prior
+manual items stand (Presence intent; GHCR package public).

@@ -6,6 +6,14 @@ All notable changes to Rostra are documented here. The format is based on
 
 ## [Unreleased]
 
+### CI / Ops
+
+- Dependabot for `npm` (grouped minor/patch) and `github-actions`, weekly.
+- Automated releases via release-please: conventional commits open a release PR that bumps the
+  version + `CHANGELOG.md` and, on merge, tags `vX.Y.Z`, cuts a GitHub release, and publishes the
+  versioned GHCR image.
+- README badges: CI status, latest release, GHCR image.
+
 ## [0.1.0] - 2026-06-05
 
 First release — a full all-in-one bot unifying 15 legacy bots into one sharded TypeScript platform.

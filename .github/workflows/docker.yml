@@ -4,6 +4,15 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+  # Callable by release-please: GITHUB_TOKEN-created tags don't cascade-trigger
+  # the `tags: v*` push above, so the release workflow invokes this directly with
+  # the version it just cut.
+  workflow_call:
+    inputs:
+      version:
+        description: Explicit semver to tag the image with (e.g. 1.2.3), without leading v.
+        required: false
+        type: string
 
 jobs:
   publish:
@@ -26,11 +35,16 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.img.outputs.name }}
+          # When called by release-please, `inputs.version` drives the version/latest
+          # tags (the ref is main, so the semver patterns below won't match on their own).
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
+            type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=raw,value=v${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=raw,value=latest,enable=${{ inputs.version != '' }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3

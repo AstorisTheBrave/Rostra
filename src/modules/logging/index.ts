@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { getTenant, setFeatures } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { loggingEvents } from "./events.ts";
@@ -48,6 +49,9 @@ function buildData(): SlashCommandBuilder {
 					.addChoices(...EVENTS.map((e) => ({ name: e.name, value: e.value }))),
 			)
 			.addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true)),
+	);
+	cmd.addSubcommand((s) =>
+		s.setName("setup").setDescription("One-click logging setup (uses this channel)"),
 	);
 	cmd.addSubcommand((s) => s.setName("status").setDescription("Show logging settings"));
 	cmd.addSubcommandGroup((g) =>
@@ -114,6 +118,13 @@ async function execute({
 	}
 
 	switch (sub) {
+		case "setup": {
+			const tenant = await getTenant(guild.id);
+			const channelId = tenant.logChannelId ?? interaction.channelId;
+			await upsertConfig(guild.id, { logChannelId: channelId });
+			await setFeatures(guild.id, { logging: true });
+			return ok(interaction, "logging:setup.done", { channel: `<#${channelId}>` });
+		}
 		case "channel": {
 			const channel = interaction.options.getChannel("channel", true);
 			await upsertConfig(guild.id, { logChannelId: channel.id });
@@ -155,6 +166,7 @@ const logging: BotModule = {
 	commands: [loggingCommand],
 	events: loggingEvents,
 	i18n: {
+		"setup.done": "📜 Logging is on, posting to {channel} with all event types enabled.",
 		"channel.set": "📋 Log channel set to {channel}.",
 		"toggle.set": "⚙️ **{type}** logging turned **{state}**.",
 		"ignore.add": "🙈 Now ignoring {channel}.",

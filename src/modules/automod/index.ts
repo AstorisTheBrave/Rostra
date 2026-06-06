@@ -7,7 +7,7 @@ import {
 import type { BotClient } from "@/client/BotClient.ts";
 import { defineEvent } from "@/client/defineEvent.ts";
 import { t } from "@/i18n/index.ts";
-import { isFeatureBlocked } from "@/services/tenant.ts";
+import { getTenant, isFeatureBlocked, setFeatures } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { checkMessage, enforce, getConfig, upsertConfig } from "./service.ts";
@@ -29,6 +29,9 @@ function buildData(): SlashCommandBuilder {
 		.setDescription("Automatic moderation filters")
 		.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
 
+	cmd.addSubcommand((s) =>
+		s.setName("setup").setDescription("One-click recommended automod setup"),
+	);
 	cmd.addSubcommand((s) => s.setName("enable").setDescription("Enable automod"));
 	cmd.addSubcommand((s) => s.setName("disable").setDescription("Disable automod"));
 	cmd.addSubcommand((s) => s.setName("status").setDescription("Show automod settings"));
@@ -211,6 +214,19 @@ async function execute({
 	}
 
 	switch (sub) {
+		case "setup": {
+			const tenant = await getTenant(guild.id);
+			await upsertConfig(guild.id, {
+				enabled: true,
+				antiInvite: true,
+				antiLink: true,
+				antiSpam: true,
+				antiMassMention: true,
+				...(tenant.logChannelId ? { logChannelId: tenant.logChannelId } : {}),
+			});
+			await setFeatures(guild.id, { automod: true });
+			return ok(interaction, "automod:setup.done");
+		}
 		case "enable":
 			await upsertConfig(guild.id, { enabled: true });
 			return ok(interaction, "automod:enabled");
@@ -298,6 +314,8 @@ const automod: BotModule = {
 	commands: [automodCommand],
 	events: [messageGuard],
 	i18n: {
+		"setup.done":
+			"🤖 Auto-mod is on with the recommended filters (invite, link, spam, mass-mention).",
 		enabled: "🧹 Automod **enabled**.",
 		disabled: "🧹 Automod **disabled**.",
 		"action.set": "⚙️ Automod action set to **{type}**.",

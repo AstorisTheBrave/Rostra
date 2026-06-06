@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { getTenant, setFeatures } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { welcomeEvents } from "./events.ts";
@@ -61,6 +62,9 @@ function buildData(): SlashCommandBuilder {
 					.addChoices(...MSG_TARGETS),
 			)
 			.addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true)),
+	);
+	cmd.addSubcommand((s) =>
+		s.setName("setup").setDescription("One-click welcome setup (uses this channel)"),
 	);
 	cmd.addSubcommand((s) => s.setName("test").setDescription("Preview the welcome message"));
 	cmd.addSubcommand((s) => s.setName("status").setDescription("Show settings"));
@@ -124,6 +128,13 @@ async function execute({
 	}
 
 	switch (sub) {
+		case "setup": {
+			const tenant = await getTenant(guild.id);
+			const channelId = tenant.welcomeChannelId ?? interaction.channelId;
+			await upsertConfig(guild.id, { welcomeEnabled: true, welcomeChannelId: channelId });
+			await setFeatures(guild.id, { welcome: true });
+			return ok(interaction, "welcome:setup.done", { channel: `<#${channelId}>` });
+		}
 		case "channel": {
 			const type = interaction.options.getString("type", true);
 			const channel = interaction.options.getChannel("channel", true);
@@ -194,6 +205,7 @@ const welcome: BotModule = {
 	commands: [welcomeCommand],
 	events: welcomeEvents,
 	i18n: {
+		"setup.done": "👋 Welcome messages are on, greeting new members in {channel}.",
 		"channel.set": "📍 {type} channel set to {channel}.",
 		"message.set": "✏️ {type} message updated.",
 		"toggle.set": "⚙️ **{type}** turned **{state}**.",

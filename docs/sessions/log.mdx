@@ -926,3 +926,19 @@ timeout; reminders/giveaways already restart-safe), and per-system wizards (`/se
 ports (starboard etc.) intentionally dropped per the maintainer. Release PR #15 (0.1.1) held open.
 
 **files touched**: `src/modules/security/index.ts`.
+
+### 2026-06-06 (later - tenant read-through completed + per-system wizards)
+
+**changed**: (1) Extended tenant read-through to the last two baseline toggles: gated the leveling XP
+`messageCreate` handler and the `/economy` command on the tenant kill-switch, so all six `/setup` toggles
+now bite. (2) Added per-system setup wizards on the `/security setup` pattern: `/automod setup` (enable +
+recommended filters + tenant log channel), `/logging setup` (point logging at this channel or the tenant
+log channel, all event types on), `/welcome setup` (enable welcome in this/the tenant channel). Each flips
+its tenant feature flag so `/setup` reflects it. typecheck + Biome + 128/128 green.
+
+**remaining (optional consolidation)**: reminders and giveaways already survive restart via their own DB +
+ready resync, so unifying them onto the central scheduler is a refactor with no new user-facing capability;
+left for a focused pass rather than rushed at the end of a long session.
+
+**files touched**: `src/modules/leveling/events.ts`, `src/modules/economy/index.ts`,
+`src/modules/{automod,logging,welcome}/index.ts`.

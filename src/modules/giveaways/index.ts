@@ -3,10 +3,8 @@ import { defineEvent } from "@/client/defineEvent.ts";
 import { t } from "@/i18n/index.ts";
 import { getLogger } from "@/services/logger.ts";
 import type { BotModule, ComponentHandler, RegisteredEvent, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
+import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
-	ActionRowBuilder,
-	ButtonBuilder,
 	ButtonStyle,
 	type ChatInputCommandInteraction,
 	type Client,
@@ -39,13 +37,14 @@ function parseDuration(input: string): number | null {
 	return found ? total : null;
 }
 
-function enterRow(id: string, entries: number): ActionRowBuilder<ButtonBuilder> {
-	return new ActionRowBuilder<ButtonBuilder>().addComponents(
-		new ButtonBuilder()
-			.setCustomId(`giveaway:enter:${id}`)
-			.setLabel(`Enter (${entries})`)
-			.setEmoji("🎉")
-			.setStyle(ButtonStyle.Primary),
+function enterRow(id: string, entries: number) {
+	return actionRow(
+		button({
+			id: `giveaway:enter:${id}`,
+			label: `Enter (${entries})`,
+			emoji: "🎉",
+			style: ButtonStyle.Primary,
+		}),
 	);
 }
 

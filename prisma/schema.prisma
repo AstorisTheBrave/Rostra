@@ -390,3 +390,38 @@ model TriviaScore {
   @@id([guildId, userId])
   @@index([guildId])
 }
+
+// ── Tags (custom text snippets) ──────────────────────────────────────────────
+
+model Tag {
+  guildId   String
+  name      String
+  content   String
+  createdBy String
+  uses      Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@id([guildId, name])
+  @@index([guildId])
+}
+
+// ── Vanity status roles ──────────────────────────────────────────────────────
+
+model VanityRoleConfig {
+  guildId String  @id
+  enabled Boolean @default(false)
+  keyword String?
+  roleId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Feedback ─────────────────────────────────────────────────────────────────
+
+model FeedbackConfig {
+  guildId   String  @id
+  channelId String?
+  anonymous Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

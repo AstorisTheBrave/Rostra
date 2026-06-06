@@ -1,10 +1,8 @@
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
+import { Accent, button, buttonGrid, container, reply, text } from "@/ui";
 import {
-	ActionRowBuilder,
-	ButtonBuilder,
 	ButtonStyle,
 	type ChatInputCommandInteraction,
 	type GuildMember,
@@ -24,21 +22,17 @@ import {
 	setMessage,
 } from "./service.ts";
 
-function buttonRows(panelId: string, roles: PanelRole[]): ActionRowBuilder<ButtonBuilder>[] {
-	const rows: ActionRowBuilder<ButtonBuilder>[] = [];
-	for (let i = 0; i < roles.length && rows.length < 5; i += 5) {
-		const row = new ActionRowBuilder<ButtonBuilder>();
-		for (const role of roles.slice(i, i + 5)) {
-			const button = new ButtonBuilder()
-				.setCustomId(`rr:${panelId}:${role.roleId}`)
-				.setLabel(role.label)
-				.setStyle(ButtonStyle.Secondary);
-			if (role.emoji) button.setEmoji(role.emoji);
-			row.addComponents(button);
-		}
-		rows.push(row);
-	}
-	return rows;
+function buttonRows(panelId: string, roles: PanelRole[]) {
+	return buttonGrid(
+		roles.map((role) =>
+			button({
+				id: `rr:${panelId}:${role.roleId}`,
+				label: role.label,
+				style: ButtonStyle.Secondary,
+				...(role.emoji ? { emoji: role.emoji } : {}),
+			}),
+		),
+	);
 }
 
 function buildData(): SlashCommandBuilder {

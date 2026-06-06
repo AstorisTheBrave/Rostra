@@ -1,11 +1,9 @@
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
+import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import type { TicketConfig } from "@prisma/client";
 import {
-	ActionRowBuilder,
-	ButtonBuilder,
 	ButtonStyle,
 	type ChatInputCommandInteraction,
 	type GuildMember,
@@ -24,27 +22,16 @@ import {
 	upsertConfig,
 } from "./service.ts";
 
-function panelRow(): ActionRowBuilder<ButtonBuilder> {
-	return new ActionRowBuilder<ButtonBuilder>().addComponents(
-		new ButtonBuilder()
-			.setCustomId("ticket:open")
-			.setLabel("Open Ticket")
-			.setEmoji("🎫")
-			.setStyle(ButtonStyle.Primary),
+function panelRow() {
+	return actionRow(
+		button({ id: "ticket:open", label: "Open Ticket", emoji: "🎫", style: ButtonStyle.Primary }),
 	);
 }
 
-function controlRow(): ActionRowBuilder<ButtonBuilder> {
-	return new ActionRowBuilder<ButtonBuilder>().addComponents(
-		new ButtonBuilder()
-			.setCustomId("ticket:claim")
-			.setLabel("Claim")
-			.setStyle(ButtonStyle.Secondary),
-		new ButtonBuilder()
-			.setCustomId("ticket:close")
-			.setLabel("Close")
-			.setEmoji("🔒")
-			.setStyle(ButtonStyle.Danger),
+function controlRow() {
+	return actionRow(
+		button({ id: "ticket:claim", label: "Claim", style: ButtonStyle.Secondary }),
+		button({ id: "ticket:close", label: "Close", emoji: "🔒", style: ButtonStyle.Danger }),
 	);
 }
 

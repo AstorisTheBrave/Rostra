@@ -17,9 +17,7 @@ import {
 } from "discord.js";
 
 /** Action rows the kit produces for messages (button rows and select rows). */
-type MessageActionRow =
-	| ActionRowBuilder<ButtonBuilder>
-	| ActionRowBuilder<StringSelectMenuBuilder>;
+type MessageActionRow = ActionRowBuilder<ButtonBuilder> | ActionRowBuilder<StringSelectMenuBuilder>;
 
 export const Accent = {
 	success: 0x2ecc71,

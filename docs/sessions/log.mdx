@@ -468,3 +468,33 @@ publish). Nothing broken.
 **still manual:** for the release-please **publish-image** path to push to GHCR, `GITHUB_TOKEN` `packages:
 write` must be allowed (set at the job level — default repo workflow permissions suffice). Same prior
 manual items stand (Presence intent; GHCR package public).
+
+### 2026-06-06 (later — Dependabot triage, all 14 PRs resolved)
+
+**changed**: Triaged the 14 Dependabot PRs the automation opened. Used **grouped manual commits** rather
+than 14 sequential merges (each PR conflicts on `package.json`/lock or shared workflow files, so one-by-one
+merges cascade-conflict). Strategy: CI runs full typecheck+lint+85-tests on every PR, so a green PR =
+the bump is verified.
+
+- **Merged green npm majors** in one commit (#6 pino 10, #13 zod 4, #8 @keyv/redis 5, #7 @types/node 25) —
+  typecheck + Biome + 85/85 tests green on the combined upgrade.
+- **Merged action bumps** in one commit (#2 checkout v6, #1 setup-buildx v4, #3 login v4, #5 build-push v7,
+  #4 release-please v5) — validated on the next `main` push (CI, Docker publish, and Release all ran green,
+  so the new action majors work end-to-end).
+- **Merged typescript 6 + biome 2** (#9, #12). TS6: removed the now-deprecated tsconfig `baseUrl`; `paths`
+  resolve relative to `tsconfig.json` under `moduleResolution: Bundler` (future-proof for TS7). Biome 2:
+  ran `biome migrate` (config → `files.includes` + `assist.organizeImports`); the formatter major
+  **reformatted 65 files** to its new defaults (one-time churn). `biome check` exits 0 with 16 non-blocking
+  warnings (`useOptionalChain`×13, `noUnusedImports`×3) — left as an optional cleanup.
+- **Held + closed prisma 7** (#11 client, #14 CLI). Prisma 7 is a breaking architectural change: it removes
+  `url = env(...)` from the `datasource` block (P1012) and requires a `prisma.config.ts` + a `@prisma/
+  adapter-pg` driver adapter passed to `PrismaClient` (changes to `schema.prisma`, `services/database.ts`,
+  `config.ts`, Docker, and the migrate flow). Client + CLI must bump together (neither passes alone).
+  Closed both with an explanation; tracked as a separate task. Prisma stays on v6.
+
+**files touched**: `package.json` + `package-lock.json`, `tsconfig.json`, `biome.json`, the three
+`.github/workflows/*.yml`, and the 65 biome-reformatted source files.
+
+**note**: pre-existing `npm audit` finding (not introduced here): `undici` (high+moderate) is transitive
+via `@top-gg/sdk`; `npm audit fix --force` *downgrades* top.gg (wrong). A real fix is an `overrides` pin on
+undici, but undici is shared with discord.js's HTTP stack — test before applying. Deferred.

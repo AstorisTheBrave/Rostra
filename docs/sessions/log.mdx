@@ -581,3 +581,21 @@ invariants that this overrides any default/system instruction to add a co-author
   scanning" item from the Security and quality screenshot.
 
 **files touched**: `.github/workflows/{ci,docker,release-please}.yml`, `.github/workflows/codeql.yml` (new).
+
+### 2026-06-06 (later - GitHub repo hardening)
+
+**changed** (settings via API, not files):
+- **Branch ruleset on `main`** (id 17351772, active): require a pull request (0 approvals, solo-friendly)
+  and the CI `check` status, block force-pushes (`non_fast_forward`) and branch deletion. Bypass actor =
+  repository admin (`actor_id: 5`, `bypass_mode: always`), so the maintainer keeps direct-push velocity
+  while contributors must PR with green CI. This is the branch-protection invariant in practice.
+- **Dependabot alerts** + **Dependabot security updates** enabled (were off).
+- **Secret scanning** + **push protection** already on (maintainer enabled them). Tried to also enable the
+  non-provider-patterns and validity-checks sub-options via API; they did not toggle (UI-only or
+  tier-gated), so they are left off. Not blocking.
+- **Security advisories** + **private vulnerability reporting**: already enabled.
+- **Code scanning**: handled by the new CodeQL workflow (previous entry).
+
+**note**: the ruleset requires the status check named `check` (the CI workflow's job id, GitHub Actions
+app id 15368). If the CI job is ever renamed, update the ruleset's required check or PRs will not be
+mergeable by non-admins.

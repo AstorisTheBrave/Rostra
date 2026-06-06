@@ -4,26 +4,34 @@ import {
 	GuildMember as GuildMemberClass,
 	PermissionFlagsBits,
 	type PermissionResolvable,
+	type Role,
 	SlashCommandBuilder,
 	type TextChannel,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { registerTaskHandler } from "@/services/scheduler.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { formatDuration, MAX_TIMEOUT_MS, parseDuration } from "./duration.ts";
 import {
 	addNote,
+	applyTempRole,
 	banUser,
 	type CaseType,
 	deactivateCase,
 	getCases,
 	kickUser,
+	removeTempRoleTask,
 	removeTimeout,
 	timeoutUser,
 	unbanUser,
 	warnUser,
 } from "./service.ts";
+
+// Register the durable handler at module load (before the boot recovery runs),
+// so a temprole removal scheduled before a restart still fires.
+registerTaskHandler("temprole_remove", removeTempRoleTask);
 
 const REASON = "reason";
 
@@ -149,6 +157,15 @@ function buildData(): SlashCommandBuilder {
 				o.setName("nickname").setDescription("New nickname (empty to reset)"),
 			),
 	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("temprole")
+			.setDescription("Add a role to a member for a limited time")
+			.addUserOption((o) => o.setName("user").setDescription("Member").setRequired(true))
+			.addRoleOption((o) => o.setName("role").setDescription("Role to add").setRequired(true))
+			.addStringOption((o) => o.setName("duration").setDescription("e.g. 1h, 2d").setRequired(true))
+			.addStringOption((o) => o.setName(REASON).setDescription("Reason")),
+	);
 	return cmd;
 }
 
@@ -183,6 +200,7 @@ async function ok(
 
 async function execute({
 	interaction,
+	client,
 }: {
 	interaction: ChatInputCommandInteraction;
 	client: BotClient;
@@ -366,6 +384,30 @@ async function execute({
 			await target.setNickname(nickname ?? null).catch(() => null);
 			return ok(interaction, "moderation:nick.success", { user: target.user.tag });
 		}
+		case "temprole": {
+			if (!hasPerm(interaction, PermissionFlagsBits.ManageRoles)) return denyNoPerm(interaction);
+			const target = resolveMember();
+			if (!target) return void reply.error(interaction, t("moderation:error.userNotInServer"));
+			const role = interaction.options.getRole("role", true) as Role;
+			const durationMs = parseDuration(interaction.options.getString("duration", true));
+			if (!durationMs) return void reply.error(interaction, t("moderation:error.invalidDuration"));
+			const res = await applyTempRole({
+				guild,
+				target,
+				moderator,
+				role,
+				durationMs,
+				reason,
+				client,
+			});
+			if (!res.ok) return void reply.error(interaction, t(res.messageKey, res.vars));
+			return ok(interaction, "moderation:success.temprole", {
+				user: target.user.tag,
+				role: role.name,
+				duration: formatDuration(durationMs),
+				case: res.caseNumber ?? 0,
+			});
+		}
 		default:
 			await reply.error(interaction, t("common:error.generic"));
 	}
@@ -388,6 +430,7 @@ const moderation: BotModule = {
 		"success.untimeout": "✅ Removed timeout from **{user}**",
 		"success.warn": "⚠️ Warned **{user}** • Case #{case}",
 		"success.note": "📝 Note added for **{user}** • Case #{case}",
+		"success.temprole": "🎭 Gave **{user}** the **{role}** role for `{duration}` • Case #{case}",
 		"purge.success": "🧹 Deleted **{count}** messages.",
 		"slowmode.success": "🐌 Slowmode set to **{seconds}s**.",
 		"lock.success": "🔒 Channel locked.",
@@ -406,6 +449,7 @@ const moderation: BotModule = {
 		"error.notBanned": "That user is not banned.",
 		"error.notKickable": "I can't kick that member.",
 		"error.notModeratable": "I can't moderate that member.",
+		"error.roleTooHigh": "I can't manage that role - it's managed or above my highest role.",
 		"error.notTimedOut": "That member is not timed out.",
 		"error.userNotInServer": "That user is not in this server.",
 		"error.invalidDuration": "Invalid duration. Use formats like `10m`, `1h`, `2d` (max 28d).",

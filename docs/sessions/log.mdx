@@ -846,3 +846,13 @@ tempban/tempmute/temprole lifts in moderation. Then step 4 (centralized cron), s
 
 **files touched**: `src/services/{scheduler,scheduler.test}.ts`, `src/modules/core/index.ts`,
 `prisma/schema.prisma`, `prisma/migrations/0_init/migration.sql`, `docs/modules/services.mdx`.
+
+### 2026-06-06 (later - platform step 3 consumer: durable /mod temprole)
+
+**changed**: First real consumer of the durable scheduler. Added `/mod temprole <user> <role> <duration>`:
+adds a role and schedules its removal as a `temprole_remove` ScheduledTask, so the role is removed on time
+even across a restart/crash. The handler (`removeTempRoleTask`) is registered via `registerTaskHandler` at
+moderation module import (before core's boot recovery runs, so pre-restart tasks still fire). New CaseType
+`temprole`; hierarchy + bot-role-position checks reused. typecheck + Biome + 124/124 green.
+
+**files touched**: `src/modules/moderation/{index,service}.ts`.

@@ -1,10 +1,19 @@
-import type { Guild, GuildMember, User } from "discord.js";
+import type { Client, Guild, GuildMember, Role, User } from "discord.js";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
+import { schedule } from "@/services/scheduler.ts";
 
 const log = getLogger("moderation");
 
-export type CaseType = "ban" | "kick" | "timeout" | "untimeout" | "unban" | "warn" | "note";
+export type CaseType =
+	| "ban"
+	| "kick"
+	| "timeout"
+	| "untimeout"
+	| "unban"
+	| "warn"
+	| "note"
+	| "temprole";
 
 export type ModResult =
 	| { ok: true; caseNumber?: number }
@@ -229,6 +238,59 @@ export async function addNote(opts: {
 		reason: opts.reason,
 	});
 	return { ok: true, caseNumber };
+}
+
+/** Add a role to a member and schedule its durable removal after `durationMs`. */
+export async function applyTempRole(opts: {
+	guild: Guild;
+	target: GuildMember;
+	moderator: GuildMember;
+	role: Role;
+	durationMs: number;
+	reason: string;
+	client: Client;
+}): Promise<ModResult> {
+	const me = opts.guild.members.me;
+	if (!me) return { ok: false, messageKey: "moderation:error.botNotInGuild" };
+	if (opts.role.managed || me.roles.highest.position <= opts.role.position) {
+		return { ok: false, messageKey: "moderation:error.roleTooHigh" };
+	}
+	const mod = checkHierarchy(opts.moderator, opts.target);
+	if (!mod.ok) return mod;
+	try {
+		await opts.target.roles.add(opts.role, opts.reason);
+	} catch (err) {
+		log.error({ err }, "temprole add failed");
+		return { ok: false, messageKey: "moderation:error.actionFailed" };
+	}
+	const caseNumber = await createCase({
+		guildId: opts.guild.id,
+		type: "temprole",
+		targetId: opts.target.id,
+		moderatorId: opts.moderator.id,
+		reason: opts.reason,
+		durationMs: opts.durationMs,
+	});
+	await schedule(
+		{
+			type: "temprole_remove",
+			runAt: new Date(Date.now() + opts.durationMs),
+			guildId: opts.guild.id,
+			payload: { guildId: opts.guild.id, userId: opts.target.id, roleId: opts.role.id },
+		},
+		opts.client,
+	);
+	return { ok: true, caseNumber };
+}
+
+/** Durable-scheduler handler: remove a temporary role when it expires. */
+export async function removeTempRoleTask(payload: unknown, client: Client): Promise<void> {
+	const p = payload as { guildId?: string; userId?: string; roleId?: string };
+	if (!p.guildId || !p.userId || !p.roleId) return;
+	const guild = client.guilds.cache.get(p.guildId);
+	if (!guild) return;
+	const member = await guild.members.fetch(p.userId).catch(() => null);
+	await member?.roles.remove(p.roleId, "Temporary role expired").catch(() => {});
 }
 
 /** All cases for a target (optionally filtered by type), newest first. */

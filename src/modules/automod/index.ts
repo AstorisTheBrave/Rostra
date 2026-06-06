@@ -7,6 +7,7 @@ import {
 import type { BotClient } from "@/client/BotClient.ts";
 import { defineEvent } from "@/client/defineEvent.ts";
 import { t } from "@/i18n/index.ts";
+import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { checkMessage, enforce, getConfig, upsertConfig } from "./service.ts";
@@ -284,6 +285,7 @@ const automodCommand: SlashCommand = {
 const messageGuard = defineEvent("messageCreate", {
 	execute: async (_client, message) => {
 		if (message.author.bot || !message.inGuild()) return;
+		if (await isFeatureBlocked(message.guild.id, "automod")) return;
 		const config = await getConfig(message.guild.id);
 		if (!config?.enabled) return;
 		const violation = checkMessage(message, config);

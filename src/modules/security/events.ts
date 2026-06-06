@@ -1,5 +1,6 @@
 import { AuditLogEvent, type Guild } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
+import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { resolveAuditExecutor } from "./audit.ts";
 import { type AntinukeModule, getConfig, punish } from "./service.ts";
@@ -12,6 +13,7 @@ async function handleViolation(
 	targetId: string | null,
 	reason: string,
 ): Promise<void> {
+	if (await isFeatureBlocked(guild.id, "security")) return;
 	const config = await getConfig(guild.id);
 	if (!config?.enabled || !config[module]) return;
 	const executorId = await resolveAuditExecutor(guild, auditType, targetId);

@@ -1,5 +1,6 @@
 import { MessageFlags } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
+import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { Accent, container, text } from "@/utils/components.ts";
 import { formatMessage, getConfig, type MessageContext } from "./service.ts";
@@ -7,6 +8,7 @@ import { formatMessage, getConfig, type MessageContext } from "./service.ts";
 export const welcomeEvents: RegisteredEvent[] = [
 	defineEvent("guildMemberAdd", {
 		execute: async (_c, member) => {
+			if (await isFeatureBlocked(member.guild.id, "welcome")) return;
 			const config = await getConfig(member.guild.id);
 			if (!config) return;
 			const ctx: MessageContext = {
@@ -48,6 +50,7 @@ export const welcomeEvents: RegisteredEvent[] = [
 	}),
 	defineEvent("guildMemberRemove", {
 		execute: async (_c, member) => {
+			if (await isFeatureBlocked(member.guild.id, "welcome")) return;
 			const config = await getConfig(member.guild.id);
 			if (!config?.goodbyeEnabled || !config.goodbyeChannelId) return;
 			const channel = await member.guild.channels.fetch(config.goodbyeChannelId).catch(() => null);

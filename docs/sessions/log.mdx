@@ -887,3 +887,16 @@ verification).
 
 **files touched**: `src/modules/setup/{index,index.test}.ts`, `src/modules/core/categories.ts`,
 `README.md`, `docs/modules/setup.mdx`.
+
+### 2026-06-06 (later - tenant read-through: /setup toggles gate the baseline systems)
+
+**changed**: Made `/setup`'s feature toggles a real master override. Added `tenantFeature(tenant, feature)`
+(three-state: true/false/undefined) + `isFeatureBlocked(guildId, feature)` (true only when explicitly
+OFF). Gated the four baseline modules at their event chokepoints: automod `messageCreate`, logging
+`sendLog`, security `handleViolation`, welcome `guildMemberAdd`/`guildMemberRemove`. Semantics: a feature
+explicitly turned OFF in `/setup` is hard-blocked; unset or ON defers to the module's own config, so
+defaults never change and no per-module command rewrite is needed. Reads go through the tenant cache
+(cheap on hot paths). 1 new test; typecheck + Biome + 128/128 green.
+
+**files touched**: `src/services/{tenant,tenant.test}.ts`, `src/modules/automod/index.ts`,
+`src/modules/logging/service.ts`, `src/modules/security/events.ts`, `src/modules/welcome/events.ts`.

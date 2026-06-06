@@ -2,6 +2,7 @@ import type { LoggingConfig } from "@prisma/client";
 import { type ContainerBuilder, type Guild, MessageFlags } from "discord.js";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
+import { isFeatureBlocked } from "@/services/tenant.ts";
 
 const log = getLogger("logging");
 
@@ -60,6 +61,7 @@ export async function sendLog(
 	event: LogEvent,
 	build: () => ContainerBuilder,
 ): Promise<void> {
+	if (await isFeatureBlocked(guild.id, "logging")) return;
 	const config = await getConfig(guild.id);
 	if (!config?.logChannelId || !config[event]) return;
 	const channel = await guild.channels.fetch(config.logChannelId).catch(() => null);

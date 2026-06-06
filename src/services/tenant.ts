@@ -76,10 +76,28 @@ export async function updateTenant(guildId: string, patch: TenantPatch): Promise
 	return updated;
 }
 
-/** Whether a feature flag is enabled on the tenant. */
-export function isFeatureEnabled(tenant: GuildTenant, feature: string): boolean {
+/** The raw three-state feature flag: true / false / undefined (unset). */
+export function tenantFeature(tenant: GuildTenant, feature: string): boolean | undefined {
 	const map = tenant.features as Record<string, unknown> | null;
-	return map?.[feature] === true;
+	const value = map?.[feature];
+	return typeof value === "boolean" ? value : undefined;
+}
+
+/** Whether a feature flag is explicitly enabled on the tenant. */
+export function isFeatureEnabled(tenant: GuildTenant, feature: string): boolean {
+	return tenantFeature(tenant, feature) === true;
+}
+
+/**
+ * Master override check for a guild feature. Returns true only when an admin has
+ * explicitly turned the feature OFF in the setup wizard (flag === false). When
+ * the flag is unset or true, the module's own config governs - so this is a safe
+ * kill-switch that never changes default behaviour. Reads through the tenant
+ * cache, so it is cheap on hot event paths.
+ */
+export async function isFeatureBlocked(guildId: string, feature: string): Promise<boolean> {
+	const tenant = await getTenant(guildId);
+	return tenantFeature(tenant, feature) === false;
 }
 
 /** Read a free-form setting from the tenant. */

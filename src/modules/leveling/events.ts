@@ -1,5 +1,6 @@
 import { MessageFlags } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
+import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { Accent, container, text } from "@/utils/components.ts";
 import { addXp, getConfig, getRewards } from "./service.ts";
@@ -13,6 +14,7 @@ export const levelingEvents: RegisteredEvent[] = [
 	defineEvent("messageCreate", {
 		execute: async (_c, message) => {
 			if (message.author.bot || !message.inGuild()) return;
+			if (await isFeatureBlocked(message.guild.id, "leveling")) return;
 			const config = await getConfig(message.guild.id);
 			if (!config?.enabled) return;
 

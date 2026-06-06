@@ -1,6 +1,7 @@
 import { type ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import {
@@ -90,6 +91,9 @@ async function execute({
 }): Promise<void> {
 	const guild = interaction.guild;
 	if (!guild) return void reply.error(interaction, t("common:error.guildOnly"));
+	if (await isFeatureBlocked(guild.id, "economy")) {
+		return void reply.error(interaction, t("economy:disabled"));
+	}
 	const gid = guild.id;
 	const uid = interaction.user.id;
 	const sub = interaction.options.getSubcommand();
@@ -240,6 +244,7 @@ const economy: BotModule = {
 	name: "economy",
 	commands: [economyCommand],
 	i18n: {
+		disabled: "💤 The economy is turned off in this server.",
 		balance: "**{user}**\nWallet: {wallet}\nBank: {bank}\nNet worth: {total}",
 		cooldown: "⏳ You can do that again {when}.",
 		daily: "💰 You claimed {amount}! Streak: **{streak}** days.",

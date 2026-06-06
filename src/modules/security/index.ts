@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { getTenant, setFeatures } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { securityEvents } from "./events.ts";
@@ -27,6 +28,9 @@ function buildData(): SlashCommandBuilder {
 		.setDescription("Antinuke and server protection")
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
+	cmd.addSubcommand((s) =>
+		s.setName("setup").setDescription("One-click recommended antinuke setup"),
+	);
 	cmd.addSubcommand((s) => s.setName("enable").setDescription("Enable antinuke"));
 	cmd.addSubcommand((s) => s.setName("disable").setDescription("Disable antinuke"));
 	cmd.addSubcommand((s) => s.setName("status").setDescription("Show antinuke settings"));
@@ -154,6 +158,29 @@ async function execute({
 	}
 
 	switch (sub) {
+		case "setup": {
+			const tenant = await getTenant(guild.id);
+			await upsertConfig(guild.id, {
+				enabled: true,
+				punishment: "strip",
+				antiBan: true,
+				antiKick: true,
+				antiBotAdd: true,
+				antiChannel: true,
+				antiRole: true,
+				antiWebhook: true,
+				...(tenant.logChannelId ? { logChannelId: tenant.logChannelId } : {}),
+			});
+			await setFeatures(guild.id, { security: true });
+			const checklist = MODULE_KEYS.map((k) => `✅ ${k}`).join("\n");
+			return void reply.components(interaction, [
+				container(Accent.success, [
+					text(`# 🛡️ ${t("security:setup.title")}`),
+					text(t("security:setup.done")),
+					text(checklist),
+				]),
+			]);
+		}
 		case "enable":
 			await upsertConfig(guild.id, { enabled: true });
 			return ok(interaction, "security:enabled");
@@ -215,6 +242,9 @@ const security: BotModule = {
 	commands: [securityCommand],
 	events: securityEvents,
 	i18n: {
+		"setup.title": "Antinuke Setup",
+		"setup.done":
+			"Antinuke is enabled with the recommended settings (punishment: **strip roles**). All filters are on:",
 		enabled: "🛡️ Antinuke **enabled**.",
 		disabled: "🛡️ Antinuke **disabled**.",
 		"punishment.set": "⚙️ Punishment set to **{type}**.",

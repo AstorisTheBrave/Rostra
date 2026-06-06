@@ -911,3 +911,18 @@ resync, so migrating them onto the central scheduler is a later consolidation, n
 typecheck + Biome + 128/128 green.
 
 **files touched**: `src/modules/moderation/{index,service}.ts`.
+
+### 2026-06-06 (later - per-system wizard: /security setup)
+
+**changed**: Added `/security setup` - one-click recommended antinuke: enables the module with all filters
+on and punishment `strip`, pulls the log channel from the tenant if set, flips the tenant `security`
+feature flag (so it shows on in `/setup`), and replies with the filter checklist panel (matching the
+screenshot UX). This is the per-system wizard pattern other modules can follow. typecheck + Biome + 128/128
+green.
+
+**rollout follow-on (all three chosen items done)**: tenant read-through (baseline modules gate on the
+tenant kill-switch), scheduler consumers (durable `/mod tempban` + `/mod temprole`; tempmute = native
+timeout; reminders/giveaways already restart-safe), and per-system wizards (`/security setup`). Feature
+ports (starboard etc.) intentionally dropped per the maintainer. Release PR #15 (0.1.1) held open.
+
+**files touched**: `src/modules/security/index.ts`.

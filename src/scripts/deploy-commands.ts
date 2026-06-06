@@ -1,25 +1,17 @@
-import { REST, Routes } from "discord.js";
-import { BotClient } from "@/client/BotClient.ts";
-import { collectCommandJSON, registerCommands } from "@/client/loaders/commands.ts";
-import { loadModules } from "@/client/loaders/modules.ts";
-import { config } from "@/config.ts";
+import { syncCommands } from "@/services/commandSync.ts";
 import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("deploy");
 
-async function main(): Promise<void> {
-	const client = new BotClient();
-	const modules = await loadModules();
-	registerCommands(client, modules);
-	const body = collectCommandJSON(client);
-
-	const rest = new REST().setToken(config.discord.token);
-	await rest.put(Routes.applicationCommands(config.discord.clientId), { body });
-	log.info({ count: body.length }, "registered global application commands");
-	process.exit(0);
-}
-
-main().catch((err) => {
-	log.error({ err }, "command deployment failed");
-	process.exit(1);
-});
+// Manual deploy: force re-registration regardless of the stored hash. The bot
+// also auto-syncs on boot (only when commands changed), so this is just an
+// escape hatch for forcing an update.
+syncCommands(true)
+	.then((r) => {
+		log.info({ count: r.count }, "force-registered global application commands");
+		process.exit(0);
+	})
+	.catch((err) => {
+		log.error({ err }, "command deployment failed");
+		process.exit(1);
+	});

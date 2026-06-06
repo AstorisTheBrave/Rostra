@@ -797,3 +797,18 @@ cut once more of the platform work lands.
 
 **files touched**: `src/services/{cache,cache.test}.ts`, `prisma/schema.prisma`,
 `prisma/migrations/0_init/migration.sql`, `docs/modules/services.mdx`.
+
+### 2026-06-06 (later - hash-gated automatic command registration)
+
+**changed**: Slash commands now auto-register on boot **only when their definitions changed**, so there is
+no manual deploy step and no needless Discord API calls on every restart. New `src/services/commandSync.ts`:
+`hashCommands(body)` computes a stable SHA-256 of the command payload (sorted by name, so load order does
+not matter), and `syncCommands(force?)` compares it to the hash stored in the new `BotState` table
+(`key/value` singletons); it re-registers via `REST.put` and stores the new hash only on a change. Wired
+into the manager boot (`cluster.ts main()`, before shards spawn, failure never blocks boot), so it works
+identically under Docker or any custom host (the hash lives in the shared DB, so multiple replicas converge
+and a re-register is idempotent anyway). `npm run deploy:commands` now calls `syncCommands(true)` as a
+force escape hatch. 3 new tests; typecheck + Biome + 118/118 green. Baseline regenerated (35 tables).
+
+**files touched**: `src/services/{commandSync,commandSync.test}.ts`, `src/cluster.ts`,
+`src/scripts/deploy-commands.ts`, `prisma/schema.prisma`, `prisma/migrations/0_init/migration.sql`.

@@ -440,6 +440,15 @@ CREATE TABLE "Profile" (
     CONSTRAINT "Profile_pkey" PRIMARY KEY ("userId")
 );
 
+-- CreateTable
+CREATE TABLE "BotState" (
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BotState_pkey" PRIMARY KEY ("key")
+);
+
 -- CreateIndex
 CREATE INDEX "GuildModuleConfig_guildId_idx" ON "GuildModuleConfig"("guildId");
 

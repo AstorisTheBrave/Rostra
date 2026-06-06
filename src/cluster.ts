@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { ShardingManager } from "discord.js";
 import { config } from "@/config.ts";
+import { syncCommands } from "@/services/commandSync.ts";
 import { getLogger } from "@/services/logger.ts";
 import { startAutopost } from "@/web/autopost.ts";
 import { type ShardStat, startWebServer } from "@/web/server.ts";
@@ -35,6 +36,9 @@ async function totalGuilds(): Promise<number> {
 }
 
 async function main(): Promise<void> {
+	// Auto-register slash commands when their definitions changed (hash-gated).
+	// Runs once in the manager before shards spawn; failure never blocks boot.
+	await syncCommands().catch((err) => log.error({ err }, "command sync failed (continuing)"));
 	await startWebServer({ shardStats });
 	startAutopost(async () => ({
 		serverCount: await totalGuilds(),

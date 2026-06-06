@@ -661,3 +661,19 @@ are being ported in sequence.
 
 **files touched**: `src/modules/roleplay/{index,service,service.test}.ts`, `docs/modules/roleplay.mdx`,
 `CLAUDE.md` (room index).
+
+### 2026-06-06 (later - port zyn-bot, module 2: reminders)
+
+**changed**: Added the **reminders** module (zyn-bot remind, ported): `/reminder set <when> <message>`,
+`/reminder list`, `/reminder cancel <id>`. New `Reminder` model. Scheduling reuses the per-shard
+`setTimeout` map + `ready` resync pattern from giveaways/birthday (capped at ~24.8d, re-armed on
+fire/restart); reminders are guild-bound so the owning shard handles them. On fire the bot pings the user
+in the original channel (DM fallback) via Components V2 and deletes the row. Duration parser supports
+`s/m/h/d/w`, min 1s, max 365 days. 4 new tests; typecheck + Biome + 95/95 tests green.
+
+**migration note**: adding the model regenerated the `0_init` baseline with
+`prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script --output ...`. Prisma 7 renamed
+`--to-schema-datamodel` to `--to-schema`. Baseline is now 33 tables.
+
+**files touched**: `src/modules/reminders/{index,service,service.test}.ts`, `prisma/schema.prisma`,
+`prisma/migrations/0_init/migration.sql`, `docs/modules/reminders.mdx`, `CLAUDE.md` (room index).

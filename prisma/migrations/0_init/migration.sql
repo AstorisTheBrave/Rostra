@@ -415,6 +415,19 @@ CREATE TABLE "FeedbackConfig" (
     CONSTRAINT "FeedbackConfig_pkey" PRIMARY KEY ("guildId")
 );
 
+-- CreateTable
+CREATE TABLE "Reminder" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "dueAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Reminder_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE INDEX "GuildModuleConfig_guildId_idx" ON "GuildModuleConfig"("guildId");
 
@@ -493,6 +506,12 @@ CREATE INDEX "TriviaScore_guildId_idx" ON "TriviaScore"("guildId");
 -- CreateIndex
 CREATE INDEX "Tag_guildId_idx" ON "Tag"("guildId");
 
+-- CreateIndex
+CREATE INDEX "Reminder_guildId_idx" ON "Reminder"("guildId");
+
+-- CreateIndex
+CREATE INDEX "Reminder_userId_idx" ON "Reminder"("userId");
+
 -- AddForeignKey
 ALTER TABLE "GuildModuleConfig" ADD CONSTRAINT "GuildModuleConfig_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES "Guild"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -504,4 +523,3 @@ ALTER TABLE "GuildMember" ADD CONSTRAINT "GuildMember_userId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "UserVote" ADD CONSTRAINT "UserVote_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

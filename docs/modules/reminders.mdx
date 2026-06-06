@@ -1,0 +1,41 @@
+---
+last-updated: 2026-06-06
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Personal reminders: `/reminder set <when> <message>`, `/reminder list`, `/reminder cancel <id>`. When a
+reminder is due the bot pings the user in the channel it was set in (DM fallback). Ported from the zyn-bot
+remind command, on Rostra's per-shard timer pattern.
+
+## technical map
+
+**file paths**
+- command + scheduling + resync: `src/modules/reminders/index.ts`
+- DB helpers + duration parser: `src/modules/reminders/service.ts` (+ `service.test.ts`)
+- model: `Reminder` in `prisma/schema.prisma`
+
+**command** - `/reminder set <when> <message>` · `/reminder list` · `/reminder cancel <id>`.
+`when` accepts compound durations (`10m`, `1h30m`, `2d`, `1w`), min 1s, max 365 days.
+
+**model** - `Reminder { id, userId, guildId, channelId, message, dueAt, createdAt }`, indexed on
+`guildId` and `userId`.
+
+**exports (service.ts)** - pure `parseDuration(input)` + `MAX_REMINDER_MS`, and the DB helpers
+`createReminder`, `getReminder`, `listUserReminders`, `cancelReminder` (owner-scoped), `deleteReminder`,
+`getPendingReminders`.
+
+## gotchas
+
+- Scheduling mirrors giveaways/birthday: a per-shard `setTimeout` map keyed by reminder id, capped at
+  ~24.8 days and re-armed on fire/restart. A `ready` handler reschedules pending reminders for guilds the
+  shard can see. Reminders are guild-bound, so the owning shard always handles them (no cross-shard
+  duplicate firing).
+- On fire the bot deletes the row, so there is no `fired` flag to manage. Cancelling clears the local
+  timer (same shard as the guild) and deletes only if the row belongs to the caller.
+- The due ping uses Components V2 with `allowedMentions` restricted to the target user; if the channel is
+  gone it DMs the user instead.
+- Adding the model regenerated the `0_init` baseline via `prisma migrate diff --from-empty --to-schema`
+  (Prisma 7 renamed `--to-schema-datamodel`). Now 33 tables.

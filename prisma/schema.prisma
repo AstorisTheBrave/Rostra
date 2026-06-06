@@ -424,3 +424,18 @@ model FeedbackConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ── Reminders ────────────────────────────────────────────────────────────────
+
+model Reminder {
+  id        String   @id @default(cuid())
+  userId    String
+  guildId   String
+  channelId String
+  message   String
+  dueAt     DateTime
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+  @@index([userId])
+}

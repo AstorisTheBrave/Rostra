@@ -18,6 +18,10 @@ If you'd explain it to a new teammate on day one, it's here.
 - No `process.env` access outside `src/config.ts`.
 - No `new PrismaClient()` outside `src/services/database.ts`; use `getPrisma()`.
 - **Components V2 only** (`MessageFlags.IsComponentsV2`); never `EmbedBuilder`/legacy embeds.
+- **All UI comes from `@/ui`.** Never instantiate discord.js component builders (`ButtonBuilder`,
+  `ActionRowBuilder`, `ContainerBuilder`, `StringSelectMenuBuilder`, `ModalBuilder`, `TextInputBuilder`,
+  …) directly in a module. If `@/ui` lacks something, add it there (with a test) first, then use it. `@/ui`
+  is the single source of truth for the bot's visual language.
 - Slash-only commands; no message-prefix engine.
 - Each feature is a self-contained `src/modules/<name>/`; modules never import each other's internals —
   only shared `services/`, `utils/`, `types/`, `i18n/`.

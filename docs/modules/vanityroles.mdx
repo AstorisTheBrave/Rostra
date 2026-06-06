@@ -1,0 +1,31 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Rewards members who advertise the server: if a member's status/activity text contains a configured keyword
+(e.g. `.gg/yourserver`), the bot grants them a role automatically, and removes it when they stop.
+
+## technical map
+
+**file paths**
+- command: `src/modules/vanityroles/index.ts`
+- presence handler: `src/modules/vanityroles/events.ts`
+- config + matcher: `src/modules/vanityroles/service.ts` (+ `service.test.ts`)
+- model: `prisma/schema.prisma` → `VanityRoleConfig`
+
+**command** — `/vanityrole set <keyword> <role>` · `/vanityrole disable` · `/vanityrole status`
+(Manage Server).
+
+**event** — `presenceUpdate`: scans the member's activity `name`/`state`/`details` for the keyword
+(`statusMatches`, tested) and adds/removes the role.
+
+## gotchas
+
+- **Requires the `GuildPresences` privileged intent** — added to BotClient; it must also be enabled in the
+  Discord Developer Portal for presence events to arrive.
+- Only assigns roles the bot can manage (`role.editable`). Config is cached per guild.
+- Requires `prisma migrate` for `VanityRoleConfig`.

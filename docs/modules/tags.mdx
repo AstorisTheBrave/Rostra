@@ -1,0 +1,27 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Saved text snippets ("tags") a server can recall on demand — e.g. `/tag get rules` posts the saved rules
+text. Staff create/edit/delete them; anyone can fetch or list.
+
+## technical map
+
+**file paths**
+- command: `src/modules/tags/index.ts`
+- storage: `src/modules/tags/service.ts`
+- model: `prisma/schema.prisma` → `Tag` (composite id `[guildId, name]`)
+
+**command** — `/tag get <name>` · `/tag add <name> <content>` (Manage Messages) · `/tag remove <name>`
+(Manage Messages) · `/tag list`.
+
+**exports (service.ts)** — `getTag`, `addTag`, `removeTag`, `listTags`, `bumpUses`.
+
+## gotchas
+
+- Names are lower-cased for case-insensitive lookup. `uses` is incremented on each `get`.
+- UI comes from `@/ui` (`container`/`text`/`reply`). Requires `prisma migrate` for the `Tag` table.

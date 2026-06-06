@@ -380,6 +380,41 @@ CREATE TABLE "TriviaScore" (
     CONSTRAINT "TriviaScore_pkey" PRIMARY KEY ("guildId","userId")
 );
 
+-- CreateTable
+CREATE TABLE "Tag" (
+    "guildId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "createdBy" TEXT NOT NULL,
+    "uses" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Tag_pkey" PRIMARY KEY ("guildId","name")
+);
+
+-- CreateTable
+CREATE TABLE "VanityRoleConfig" (
+    "guildId" TEXT NOT NULL,
+    "enabled" BOOLEAN NOT NULL DEFAULT false,
+    "keyword" TEXT,
+    "roleId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "VanityRoleConfig_pkey" PRIMARY KEY ("guildId")
+);
+
+-- CreateTable
+CREATE TABLE "FeedbackConfig" (
+    "guildId" TEXT NOT NULL,
+    "channelId" TEXT,
+    "anonymous" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "FeedbackConfig_pkey" PRIMARY KEY ("guildId")
+);
+
 -- CreateIndex
 CREATE INDEX "GuildModuleConfig_guildId_idx" ON "GuildModuleConfig"("guildId");
 
@@ -454,6 +489,9 @@ CREATE UNIQUE INDEX "AutoResponder_guildId_trigger_key" ON "AutoResponder"("guil
 
 -- CreateIndex
 CREATE INDEX "TriviaScore_guildId_idx" ON "TriviaScore"("guildId");
+
+-- CreateIndex
+CREATE INDEX "Tag_guildId_idx" ON "Tag"("guildId");
 
 -- AddForeignKey
 ALTER TABLE "GuildModuleConfig" ADD CONSTRAINT "GuildModuleConfig_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES "Guild"("id") ON DELETE CASCADE ON UPDATE CASCADE;

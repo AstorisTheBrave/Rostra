@@ -394,3 +394,20 @@ prefixes. 78/78 tests; tsc + Biome + embed-guard + undercover all clean; live lo
 **Manual-only leftover:** rename the Discord application "Felisha" → "Rostra" in the Developer Portal
 (browser action; can't be automated). Bot is otherwise production-ready: `npm run prisma:migrate` on the
 live DB, then `npm start`.
+
+### 2026-06-05 (later — niche features + @/ui invariant + rewiring)
+
+**changed**: Added the 3 leftover niche modules — **tags** (`/tag get|add|remove|list`; `Tag` model),
+**vanityroles** (`/vanityrole set|disable|status` + `presenceUpdate` keyword→role; `VanityRoleConfig`;
+**added `GuildPresences` intent**), **feedback** (`/feedback send|setup`; `FeedbackConfig`). New
+**invariant**: all UI must come from `@/ui` — never hand-roll discord.js component builders; if `@/ui`
+lacks something, add it there first (in CLAUDE.md CIT-INVARIANTS + `docs/style.mdx`). Rewired
+**tickets / giveaways / reactionroles** to build buttons via `@/ui` (`button`/`actionRow`/`buttonGrid`).
+Baseline migration regenerated → **32 tables**. 85/85 tests; tsc + Biome + embed + undercover clean;
+**25 top-level commands**.
+
+**files touched**: `src/modules/{tags,vanityroles,feedback}/*`, `src/modules/{tickets,giveaways,
+reactionroles}/index.ts`, `src/client/BotClient.ts`, `prisma/schema.prisma` (+ `migrations/0_init`),
+`docs/style.mdx`, `docs/modules/{tags,vanityroles,feedback}.mdx`, CLAUDE.md.
+
+**note**: `GuildPresences` is privileged — enable it in the Dev Portal for vanityroles to work.

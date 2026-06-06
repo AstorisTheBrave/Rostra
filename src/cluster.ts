@@ -1,7 +1,9 @@
 import { fileURLToPath } from "node:url";
 import { ShardingManager } from "discord.js";
 import { config } from "@/config.ts";
+import { registerBuiltinCron } from "@/jobs/builtins.ts";
 import { syncCommands } from "@/services/commandSync.ts";
+import { startCron } from "@/services/cron.ts";
 import { getLogger } from "@/services/logger.ts";
 import { startAutopost } from "@/web/autopost.ts";
 import { type ShardStat, startWebServer } from "@/web/server.ts";
@@ -45,6 +47,8 @@ async function main(): Promise<void> {
 		shardCount: typeof manager.totalShards === "number" ? manager.totalShards : 1,
 	}));
 	await manager.spawn();
+	registerBuiltinCron();
+	startCron();
 	log.info("all shards spawned");
 }
 

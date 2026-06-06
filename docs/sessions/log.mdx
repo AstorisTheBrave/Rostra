@@ -856,3 +856,15 @@ moderation module import (before core's boot recovery runs, so pre-restart tasks
 `temprole`; hierarchy + bot-role-position checks reused. typecheck + Biome + 124/124 green.
 
 **files touched**: `src/modules/moderation/{index,service}.ts`.
+
+### 2026-06-06 (later - platform step 4: centralized cron)
+
+**changed**: Added a lightweight centralized cron registry (`src/services/cron.ts`): `registerCron(job)`,
+`startCron()`, `stopCron()`, `listCronJobs()`. Jobs run in the manager process so each fires once
+cluster-wide (client-needing jobs can `broadcastEval`; BullMQ in `jobs/queue.ts` stays available for queue
+work). `src/jobs/builtins.ts` registers the first job - `prune-scheduled-tasks` (daily; deletes
+ScheduledTask rows >7 days past `runAt` so the table never grows unbounded). Wired into `cluster.ts` boot
+(`registerBuiltinCron()` + `startCron()` after spawn; timers `unref`'d). 1 new test; typecheck + Biome +
+125/125 green.
+
+**files touched**: `src/services/{cron,cron.test}.ts`, `src/jobs/builtins.ts`, `src/cluster.ts`.

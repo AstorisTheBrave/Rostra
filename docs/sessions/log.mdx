@@ -828,3 +828,21 @@ tested (3 new); typecheck + Biome + 121/121 green. Baseline now 36 tables.
 
 **files touched**: `src/services/{tenant,tenant.test}.ts`, `prisma/schema.prisma`,
 `prisma/migrations/0_init/migration.sql`, `docs/modules/services.mdx`.
+
+### 2026-06-06 (later - platform step 3: durable scheduler foundation)
+
+**changed**: Added the durable, crash-safe scheduler (`src/services/scheduler.ts` + `ScheduledTask` model).
+Future actions are rows that survive restart; each shard re-arms the ones it owns on boot via core's new
+`ready` event (`recoverScheduled`). API: `registerTaskHandler(type, handler)`, `schedule({type, runAt,
+guildId?, payload?}, client?)`, `cancelTask(id)`. Pure `shouldArm(task, shardId, ownsGuild)` (guild tasks
+on the owning shard, global `guildId:null` tasks only on shard 0 to avoid cluster-wide duplicates) and
+`clampDelay` (setTimeout cap + re-arm) are tested. On fire, the payload dispatches to the registered
+handler and the row is deleted. The table starts empty with no handlers, so the recovery boot path is a
+safe no-op until consumers land. 3 new tests; typecheck + Biome + 124/124 green. Baseline now 37 tables.
+
+**next (step 3 consumers)**: migrate reminders/giveaways onto `schedule(...)` and add durable
+tempban/tempmute/temprole lifts in moderation. Then step 4 (centralized cron), step 5 (wizards), step 6
+(Anastasia feature ports).
+
+**files touched**: `src/services/{scheduler,scheduler.test}.ts`, `src/modules/core/index.ts`,
+`prisma/schema.prisma`, `prisma/migrations/0_init/migration.sql`, `docs/modules/services.mdx`.

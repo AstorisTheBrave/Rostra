@@ -465,6 +465,18 @@ CREATE TABLE "GuildTenant" (
     CONSTRAINT "GuildTenant_pkey" PRIMARY KEY ("guildId")
 );
 
+-- CreateTable
+CREATE TABLE "ScheduledTask" (
+    "id" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "runAt" TIMESTAMP(3) NOT NULL,
+    "guildId" TEXT,
+    "payload" JSONB NOT NULL DEFAULT '{}',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ScheduledTask_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE INDEX "GuildModuleConfig_guildId_idx" ON "GuildModuleConfig"("guildId");
 
@@ -548,6 +560,12 @@ CREATE INDEX "Reminder_guildId_idx" ON "Reminder"("guildId");
 
 -- CreateIndex
 CREATE INDEX "Reminder_userId_idx" ON "Reminder"("userId");
+
+-- CreateIndex
+CREATE INDEX "ScheduledTask_runAt_idx" ON "ScheduledTask"("runAt");
+
+-- CreateIndex
+CREATE INDEX "ScheduledTask_guildId_idx" ON "ScheduledTask"("guildId");
 
 -- AddForeignKey
 ALTER TABLE "GuildModuleConfig" ADD CONSTRAINT "GuildModuleConfig_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES "Guild"("id") ON DELETE CASCADE ON UPDATE CASCADE;

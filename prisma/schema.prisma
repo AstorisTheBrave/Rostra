@@ -477,3 +477,19 @@ model GuildTenant {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
+
+// ── Durable scheduler ────────────────────────────────────────────────────────
+// One row per future action (reminder, giveaway end, tempban/mute/role lift,
+// ticket auto-close, ...). Survives restart/crash; re-armed per shard on boot.
+
+model ScheduledTask {
+  id        String   @id @default(cuid())
+  type      String
+  runAt     DateTime
+  guildId   String?
+  payload   Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([runAt])
+  @@index([guildId])
+}

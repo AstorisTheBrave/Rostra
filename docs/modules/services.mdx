@@ -38,6 +38,18 @@ shared instance so the whole bot reuses one connection instead of making new one
 - `isFeatureEnabled(tenant, name)`, `getSetting(tenant, key)`, `setFeatures(guildId, flags)`,
   `evictTenantL1(guildId)`.
 
+**`src/services/scheduler.ts`** - durable, crash-safe scheduler (model `ScheduledTask`). Future actions are
+rows, so they survive restart; each shard re-arms what it owns on boot (core's `ready` event calls
+`recoverScheduled`).
+- `registerTaskHandler(type, handler)` - a module registers the handler for its task `type`.
+- `schedule({ type, runAt, guildId?, payload? }, client?)` - create a durable task and arm it locally.
+- `cancelTask(id)` - clear the timer and delete the row.
+- `recoverScheduled(client)` - boot recovery; `shouldArm(task, shardId, ownsGuild)` decides ownership
+  (guild tasks on the owning shard, global `guildId:null` tasks only on shard 0). `clampDelay` caps the
+  setTimeout and re-arms for long waits. On fire the payload is dispatched to the handler and the row
+  deleted. Consumers (reminders, giveaways, tempban/mute/role lifts) register a handler and call
+  `schedule(...)`.
+
 **depends on**
 - `src/config.ts` for log level, `DATABASE_URL`, `REDIS_URL`, env mode
 - `@prisma/client` (generated from `prisma/schema.prisma`) + `@prisma/adapter-pg` (Prisma 7 driver

@@ -709,3 +709,15 @@ draw blank text). Added the `Profile` model and regenerated the `0_init` baselin
 **files touched**: `src/modules/profile/{index,service,card,service.test}.ts`, `prisma/schema.prisma`,
 `prisma/migrations/0_init/migration.sql`, `Dockerfile`, `package.json` + `package-lock.json`,
 `docs/modules/profile.mdx`, `CLAUDE.md` (room index).
+
+### 2026-06-06 (later - profile cards show leveling/economy stats)
+
+**changed**: `/profile view` now renders a leveling/economy strip in a guild (`Level N · Rank #R · X
+coins`). New `src/modules/profile/stats.ts` reads the shared `LevelUser`/`EconomyUser` tables via
+`getPrisma()` and the `lb:level:`/`lb:eco:` Redis leaderboards via `getRedis()` for rank (read-only, no
+cross-module import, no cache concern). Degrades to 0/no-rank when a row or Redis is missing; omitted in
+DMs (no guild). Card text avoids colour emoji (DejaVu has none) and uses a plain accent-coloured strip.
+Pure `compactNumber`/`statLine` helpers are tested. typecheck + Biome + 105/105 tests green; render smoke
+produced a valid PNG.
+
+**files touched**: `src/modules/profile/{stats,stats.test,card,index}.ts`, `docs/modules/profile.mdx`.

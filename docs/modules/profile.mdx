@@ -15,6 +15,7 @@ edit your own card. Ported from the zyn-bot profile cog + card_generator.
 **file paths**
 - command: `src/modules/profile/index.ts`
 - DB helpers + pure validators: `src/modules/profile/service.ts` (+ `service.test.ts`)
+- leveling/economy stats: `src/modules/profile/stats.ts` (+ `stats.test.ts`)
 - image rendering (canvas): `src/modules/profile/card.ts` (kept separate so the test never loads the
   native canvas module)
 - model: `Profile` in `prisma/schema.prisma`
@@ -41,3 +42,7 @@ per guild).
   degrades gracefully (no avatar / solid background) rather than erroring.
 - Background URLs are restricted to https with an image extension; accent is validated as 6-digit hex.
   Rendering is network + CPU bound, so safeAck auto-defers and the card replies via `editReply`.
+- In a guild the card shows a leveling/economy strip (`Level N · Rank #R · X coins`). `stats.ts` reads the
+  shared `LevelUser`/`EconomyUser` tables and the `lb:level:`/`lb:eco:` Redis leaderboards directly
+  (read-only, no cross-module import, degrades to 0/no-rank when absent). In DMs there is no guild, so the
+  strip is omitted. Canvas text avoids colour emoji (DejaVu has none), so the strip uses plain text.

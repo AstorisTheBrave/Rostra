@@ -8,6 +8,8 @@ export interface ProfileCardData {
 	accent: string;
 	backgroundUrl: string | null;
 	memberSince: string;
+	/** Optional pre-formatted leveling/economy strip (guild context only). */
+	stats: string | null;
 }
 
 const WIDTH = 800;
@@ -116,12 +118,18 @@ export async function renderProfileCard(data: ProfileCardData): Promise<Buffer> 
 	if (data.bio) {
 		ctx.fillStyle = "#e3e5e8";
 		ctx.font = `22px ${FONT}`;
-		wrapText(ctx, data.bio, textX, 192, WIDTH - textX - 40, 30);
+		wrapText(ctx, data.bio, textX, 188, WIDTH - textX - 40, 28);
+	}
+
+	if (data.stats) {
+		ctx.fillStyle = data.accent;
+		ctx.font = `bold 22px ${FONT}`;
+		ctx.fillText(data.stats, textX, 244);
 	}
 
 	ctx.fillStyle = "#8e9297";
 	ctx.font = `18px ${FONT}`;
-	ctx.fillText(`Member since ${data.memberSince}`, textX, 272);
+	ctx.fillText(`Member since ${data.memberSince}`, textX, 276);
 
 	return canvas.toBuffer("image/png");
 }

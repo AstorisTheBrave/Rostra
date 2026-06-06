@@ -21,6 +21,7 @@ import {
 	resetProfile,
 	upsertProfile,
 } from "./service.ts";
+import { getProfileStats, statLine } from "./stats.ts";
 
 function buildData(): SlashCommandBuilder {
 	const cmd = new SlashCommandBuilder().setName("profile").setDescription("Custom profile cards");
@@ -56,7 +57,10 @@ function buildData(): SlashCommandBuilder {
 
 async function showCard(interaction: ChatInputCommandInteraction): Promise<void> {
 	const target = interaction.options.getUser("user") ?? interaction.user;
-	const profile = await getProfile(target.id);
+	const [profile, stats] = await Promise.all([
+		getProfile(target.id),
+		interaction.guildId ? getProfileStats(interaction.guildId, target.id) : Promise.resolve(null),
+	]);
 	const buffer = await renderProfileCard({
 		username: target.username,
 		displayName: target.displayName,
@@ -69,6 +73,7 @@ async function showCard(interaction: ChatInputCommandInteraction): Promise<void>
 			month: "short",
 			day: "numeric",
 		}),
+		stats: stats ? statLine(stats) : null,
 	});
 	const file = new AttachmentBuilder(buffer, { name: "profile.png" });
 	const payload = {

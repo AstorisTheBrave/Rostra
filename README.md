@@ -148,7 +148,7 @@ Enable these for the bot in the Discord Developer Portal: Server Members, Messag
 Commands are slash-only and grouped under top-level commands with subcommands (well under Discord's
 100-command limit):
 
-`/mod` · `/security` · `/automod` · `/logging` · `/welcome` · `/ticket` · `/economy` · `/level` ·
+`/setup` · `/mod` · `/security` · `/automod` · `/logging` · `/welcome` · `/ticket` · `/economy` · `/level` ·
 `/giveaway` · `/voicehub` · `/reactionrole` · `/birthday` · `/tag` · `/vanityrole` · `/feedback` ·
 `/trivia` · `/game` · `/roleplay` · `/profile` · `/music` · `/ask` · `/afk` · `/snipe` · `/steal` ·
 `/reminder` · `/autoresponder` · `/util` · `/help` · `/stats` · `/shards` · `/ping`

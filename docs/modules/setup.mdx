@@ -1,0 +1,33 @@
+---
+last-updated: 2026-06-06
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+The server setup wizard: `/setup` (Administrator) opens an interactive Components V2 panel to toggle core
+systems, apply a recommended baseline, and create a log channel. All choices save to the centralized
+`GuildTenant` (see `src/services/tenant.ts`), so features resolve them from cache with no raw lookups.
+
+## technical map
+
+**file paths**
+- command + component: `src/modules/setup/index.ts` (+ `index.test.ts`)
+- no model of its own (writes the `GuildTenant`)
+
+**command** - `/setup` (default member permission: Administrator).
+
+**panel** - feature toggles via the `@/ui` `settingsPanel` (customId `setup:toggle:<feature>`), plus
+`setup:baseline` (enables automod/logging/welcome/security) and `setup:logchannel` (creates `#rostra-logs`
+and stores its id on the tenant). The component re-renders with `interaction.update`.
+
+## gotchas
+
+- The wizard writes the **tenant** (feature flags + `logChannelId`), the platform's central per-guild
+  config. Modules read those flags from the tenant cache as they migrate onto it (see
+  `docs/superpowers/specs/2026-06-06-centralized-platform-systems.md`); the tenant is the single source of
+  truth the wizard manages.
+- Admin is checked on both the command and every button press. Channel creation needs Manage Channels and
+  degrades with a clear error.
+- `emoji()` icons come from the custom application-emoji set (unicode fallback).

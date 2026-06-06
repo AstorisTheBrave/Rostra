@@ -23,7 +23,15 @@ export const HELP_CATEGORIES: HelpCategory[] = [
 		label: "Server Management",
 		description: "Onboarding, roles, and voice",
 		emoji: "settings",
-		commands: ["welcome", "voicehub", "reactionrole", "vanityrole", "autoresponder", "ticket"],
+		commands: [
+			"setup",
+			"welcome",
+			"voicehub",
+			"reactionrole",
+			"vanityrole",
+			"autoresponder",
+			"ticket",
+		],
 	},
 	{
 		id: "community",

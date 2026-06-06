@@ -8,10 +8,16 @@ test("every registry name has a non-empty unicode fallback", () => {
 	}
 });
 
-test("emoji() returns the unicode fallback when no id is configured", () => {
-	// emoji-ids.json ships empty, so everything falls back to unicode.
-	assert.equal(emoji("success"), EMOJI_FALLBACK.success);
-	assert.equal(emoji("security"), "🛡️");
+test("emoji() returns a custom application emoji or the unicode fallback", () => {
+	// Robust to either state: ids populated (custom <:name:id>) or empty (fallback).
+	for (const name of EMOJI_NAMES) {
+		const value = emoji(name);
+		const isCustom = new RegExp(`^<a?:${name}:\\d+>$`).test(value);
+		assert.ok(
+			isCustom || value === EMOJI_FALLBACK[name],
+			`${name} -> ${value} is neither a custom emoji nor the fallback`,
+		);
+	}
 });
 
 test("EMOJI_NAMES matches the fallback keys", () => {

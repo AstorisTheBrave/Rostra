@@ -326,3 +326,18 @@ rejected (Discord can refuse toggling that flag on edit), so auto-deferred comma
 **verify-on-live note**: confirm `deferReply()` → `editReply({ flags: IsComponentsV2, components })` renders
 in one message on a real interaction; if Discord rejects it, the followUp fallback fires (one extra message)
 — functional either way, worth a quick eyeball during smoke-testing.
+
+### 2026-06-05 (later — trivia module)
+
+**changed**: `/trivia play|score|leaderboard` + answer buttons (`trivia:answer:<token>:<i>`, ephemeral).
+Fetches from Open Trivia DB (`encode=url3986` → `decodeURIComponent`), shuffles options
+(`buildOptions`, tested), tracks round state in an in-memory token map (60s TTL, one answer/user),
+records `TriviaScore` + Redis `lb:trivia:<guild>`. 74/74 tests; clean; **20 commands**, components
+giveaway/rr/ticket/trivia.
+
+**files touched**: `src/modules/trivia/{index,service}.ts` (+ test), `prisma/schema.prisma`,
+`docs/modules/trivia.mdx`.
+
+**next**: **games** (button mini-games: tictactoe/connect4/rps/wordle — stateless-ish component flows,
+in-memory game state keyed by message/token; reference trivia/tickets for the component pattern). Then
+**music** (Lavalink — 10 nodes in `.env`; needs a running node to smoke-test).

@@ -1,0 +1,36 @@
+---
+last-updated: 2026-06-05
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+A quiz game: the bot pulls a multiple-choice question from the Open Trivia DB, shows four answer buttons,
+and tracks each player's correct answers with a leaderboard.
+
+## technical map
+
+**file paths**
+- command + answer buttons: `src/modules/trivia/index.ts`
+- question fetch, shuffle, sessions, scores: `src/modules/trivia/service.ts` (+ `service.test.ts`)
+- model: `prisma/schema.prisma` → `TriviaScore`
+
+**command** — `/trivia play | score [user] | leaderboard`.
+
+**button (ComponentHandler `prefix: "trivia"`, `deferEphemeral`)** — `trivia:answer:<token>:<index>`;
+checks the answer, records the score, replies privately right/wrong.
+
+**exports (service.ts)** — `fetchQuestion` (OTDB, `encode=url3986` + `decodeURIComponent`), pure
+`buildOptions(correct, incorrect)` (Fisher–Yates shuffle + `correctIndex`), `startSession/getSession`
+(in-memory round state), `recordAnswer/getScore/leaderboard`.
+
+## gotchas
+
+- Uses the OTDB `encode=url3986` option so answers decode cleanly with `decodeURIComponent` (no HTML-entity
+  table needed).
+- Round state lives in an in-memory `Map` keyed by a short token, auto-expiring after 60s — correct since
+  the question message is on the shard that created it. One answer per user per round.
+- Scores mirror to Redis sorted set `lb:trivia:<guild>` with a DB fallback.
+- Button labels are truncated to Discord's 80-char limit.
+- Requires `prisma migrate` for `TriviaScore`.

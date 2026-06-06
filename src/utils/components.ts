@@ -1,4 +1,6 @@
 import {
+	type ActionRowBuilder,
+	type ButtonBuilder,
 	ContainerBuilder,
 	type InteractionEditReplyOptions,
 	type InteractionReplyOptions,
@@ -9,9 +11,15 @@ import {
 	SectionBuilder,
 	SeparatorBuilder,
 	SeparatorSpacingSize,
+	type StringSelectMenuBuilder,
 	TextDisplayBuilder,
 	ThumbnailBuilder,
 } from "discord.js";
+
+/** Action rows the kit produces for messages (button rows and select rows). */
+type MessageActionRow =
+	| ActionRowBuilder<ButtonBuilder>
+	| ActionRowBuilder<StringSelectMenuBuilder>;
 
 export const Accent = {
 	success: 0x2ecc71,
@@ -70,7 +78,8 @@ type TopLevel =
 	| TextDisplayBuilder
 	| SeparatorBuilder
 	| MediaGalleryBuilder
-	| SectionBuilder;
+	| SectionBuilder
+	| MessageActionRow;
 
 export type V2Response = { flags: number; components: TopLevel[] };
 

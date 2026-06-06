@@ -55,4 +55,7 @@ reads `emoji-ids.json` (ships empty -> all unicode until uploaded).
   (mutually exclusive).
 - `@/ui` re-exports `@/utils/components.ts`, so it's a superset - existing modules importing the latter keep
   working; new code should import from `@/ui`.
+- `reply.components()` accepts button and select action rows alongside containers (the `TopLevel` type
+  includes `ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>`), so a panel can mix a `container`
+  with a `stringSelect`/`paginatorRow` in one V2 reply.
 - Pure builders, no side effects - fully unit-tested.

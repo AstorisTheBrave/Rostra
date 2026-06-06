@@ -741,3 +741,21 @@ typecheck + Biome + 108/108 tests green; generator produced 43 PNGs.
 **files touched**: `src/ui/{emojis.ts,emojis.test.ts,emoji-ids.json,index.ts}`,
 `src/scripts/{generate,upload}-emojis.ts`, `assets/emojis/*.png` (generated), `package.json`,
 `docs/modules/ui.mdx`.
+
+### 2026-06-06 (later - help redesign + stats/shards panels, custom emojis)
+
+**changed**: Redesigned `/help` and added `/stats` + `/shards`, all using the new `emoji()` icons
+(Components V2). `/help` shows a categorised overview with a select menu to drill into a category's
+commands (curated `src/modules/core/categories.ts`, one category per command, tested). `/stats` aggregates
+servers/users/channels/memory across shards via `broadcastEval` (local fallback when unsharded) and shows
+gateway/uptime/memory/commands. `/shards` paginates per-shard stats with the `@/ui` `paginatorRow`
+(`shards:page:<n>` handler). Pure `formatBytes`/`formatUptime` + the category catalogue are tested.
+
+**@/ui change**: widened the kit's `TopLevel` (used by `reply.components`) to include button and select
+action rows (`ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>`), so a single V2 reply can mix a
+container with a select/paginator. This is the proper kit fix (previously only `interaction.reply` could
+carry action rows). All strings go through `t()` (core i18n keys added). 6 new tests; typecheck + Biome +
+113/113 green.
+
+**files touched**: `src/modules/core/{index,categories,stats,index.test,categories.test,stats.test}.ts`,
+`src/utils/components.ts`, `README.md`, `docs/modules/ui.mdx`, `CLAUDE.md` (room index).

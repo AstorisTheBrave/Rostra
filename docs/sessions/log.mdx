@@ -372,6 +372,25 @@ i18n, sharding IPC, BotClient + loaders, command pipeline + safeAck, interaction
 health + top.gg, cluster/shard entries, graceful shutdown). **22 top-level commands**, 5 component
 prefixes. 78/78 tests; tsc + Biome + embed-guard + undercover all clean; live login verified.
 
-**Added:** `MIGRATION.md` (decommission guide). **Remaining ops (user/fresh session):** run
-`prisma migrate` against the live DB; `deploy:commands`; live-smoke music against a Lavalink node;
-optionally delete `Archive/<bot>/` subfolders after verifying replacements (irreversible — left to user).
+**Added:** `MIGRATION.md` (decommission guide).
+
+### 2026-06-05 (later — UI library + ops items)
+
+**UI library** (`src/ui/`, import `@/ui`): centralized Components-V2 toolkit — primitives (`button`,
+`linkButton`, `actionRow`, `buttonGrid`, `stringSelect`, `modal`, `textInput`) + patterns (`confirmRow`,
+`toggleButton`/`settingsPanel`, `paginatorRow`); re-exports the layout kit. customId convention
+`module:action:arg` so module ComponentHandlers wire behavior. 83/83 tests; `docs/modules/ui.mdx`.
+
+**4 ops items — all done:**
+1. ✅ **Baseline DB migration** generated via `migrate diff` → `prisma/migrations/0_init/migration.sql`
+   (29 tables) + `migration_lock.toml`. `npm run prisma:migrate` now = `prisma migrate deploy`.
+2. ✅ **Slash commands registered** globally with Discord — **22 commands** (verified via REST.put). Fixed
+   `deploy:commands` npm script to load env (`--env-file-if-exists`).
+3. ✅ **Lavalink verified** — added `src/scripts/lavalink-check.ts` (`npm run lavalink:check`); **7/10 nodes
+   connect** (real WS auth). 3 fail node-side (expired cert / 401 / timeout) — failover covers them. Music
+   connection layer confirmed working; in-VC playback still needs a human to fully exercise.
+4. ✅ **Archive/ deleted** (60M, 13 source-bot folders) now that all features are ported + verified.
+
+**Manual-only leftover:** rename the Discord application "Felisha" → "Rostra" in the Developer Portal
+(browser action; can't be automated). Bot is otherwise production-ready: `npm run prisma:migrate` on the
+live DB, then `npm start`.

@@ -20,7 +20,7 @@ function init(): Keyv {
 		log.info("cache backed by redis");
 	} else {
 		keyv = new Keyv({ namespace: "rostra" });
-		log.warn("REDIS_URL unset — using in-memory cache (not shared across shards)");
+		log.warn("REDIS_URL unset - using in-memory cache (not shared across shards)");
 	}
 	keyv.on("error", (err) => log.error({ err }, "cache error"));
 	return keyv;

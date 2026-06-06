@@ -13,21 +13,21 @@ dev/test commands work today.
 
 **install**
 - `npm install`
-- `npm run prisma:generate` — generate the Prisma client (after any schema change)
+- `npm run prisma:generate` - generate the Prisma client (after any schema change)
 
 **develop**
-- `npm run dev` — runs `src/cluster.ts` via tsx watch (exists after runtime plan)
-- `npm run typecheck` — `tsc --noEmit`
-- `npm run lint` / `npm run lint:fix` — Biome
-- `npm run test` — pure tests; `npm run test:env` — all tests with `.env` loaded
+- `npm run dev` - runs `src/cluster.ts` via tsx watch (exists after runtime plan)
+- `npm run typecheck` - `tsc --noEmit`
+- `npm run lint` / `npm run lint:fix` - Biome
+- `npm run test` - pure tests; `npm run test:env` - all tests with `.env` loaded
 
 **build & run (after runtime plan)**
-- `npm run build` — tsup bundles `src/cluster.ts` + `src/bot.ts` to `dist/`
-- `npm run start` — `node dist/cluster.js`
-- `npm run deploy:commands` — register slash commands with Discord
+- `npm run build` - tsup bundles `src/cluster.ts` + `src/bot.ts` to `dist/`
+- `npm run start` - `node dist/cluster.js`
+- `npm run deploy:commands` - register slash commands with Discord
 
 **database**
-- `npm run prisma:migrate` — create/apply migrations (dev)
+- `npm run prisma:migrate` - create/apply migrations (dev)
 - Production: Postgres + pgBouncer (transaction mode) recommended at scale
 
 **planned ops (runtime plan)**
@@ -36,6 +36,6 @@ dev/test commands work today.
 
 ## gotchas
 
-- tsup/esbuild needs explicit handling for the `@/*` path alias and `.ts` import extensions — wire this
+- tsup/esbuild needs explicit handling for the `@/*` path alias and `.ts` import extensions - wire this
   when adding the build entry points, or the bundle will fail to resolve imports.
 - Commands register globally (one REST push); `/owner` registers to `DEV_GUILD_ID` only.

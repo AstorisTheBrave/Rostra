@@ -34,9 +34,9 @@ specs/plans under `docs/superpowers/`.
 premium (all free). Undercover mode is a hard invariant (no AI-provider references). Stats autopost from
 the manager process, not per-shard. Bot name = "Rostra".
 
-**next**: Plan 1b (Runtime) — DONE (see next entry). Then feature modules (moderation first).
+**next**: Plan 1b (Runtime) - DONE (see next entry). Then feature modules (moderation first).
 
-### 2026-06-05 (later — Plan 1b Runtime)
+### 2026-06-05 (later - Plan 1b Runtime)
 
 **changed**: Implemented the full runtime layer. Module contract (`SlashCommand`/`ComponentHandler`/
 `RegisteredEvent`/`JobDefinition`/`BotModule`), `BotClient` with auto-loaders, `defineEvent` typed
@@ -46,7 +46,7 @@ autoposter, `cluster.ts` (ShardingManager) + `bot.ts` shard entry, graceful shut
 sample `core` module (`/ping`, `/help`), Dockerfile + docker-compose + README + CI. **Live login verified**
 (connected as Felisha#3245). 33/33 tests pass, typecheck + lint clean, embed guard clean.
 
-**decisions made**: Run via **tsx in dev AND prod** (dropped tsup) — bundling collapses `import.meta.url`
+**decisions made**: Run via **tsx in dev AND prod** (dropped tsup) - bundling collapses `import.meta.url`
 which breaks filesystem module discovery; running TS directly keeps drop-in modules working. Renamed env
 `SHARD_COUNT`→`TOTAL_SHARDS` to avoid colliding with discord.js's reserved sharding env var. top.gg stats
 posted from the manager process (aggregate across shards). Removed unused `tsup`/`topgg-autoposter` deps;
@@ -58,9 +58,9 @@ moved `tsx` to runtime deps.
 `src/modules/core/index.ts`, `src/scripts/deploy-commands.ts`, `src/{cluster,bot}.ts`, `Dockerfile`,
 `docker-compose.yml`, `README.md`, `.github/workflows/ci.yml`, `package.json` (+ tests).
 
-**next**: First feature module — moderation (DONE, see next entry).
+**next**: First feature module - moderation (DONE, see next entry).
 
-### 2026-06-05 (later — moderation module)
+### 2026-06-05 (later - moderation module)
 
 **changed**: Built the first feature module. `/mod` with 15 subcommands (ban, unban, kick, timeout,
 untimeout, warn, warnings, removewarn, cases, note, purge, slowmode, lock, unlock, nick). New Prisma
@@ -82,7 +82,7 @@ checks.
 
 **next**: see utility entry below, then security/antinuke.
 
-### 2026-06-05 (later — utility module + V2 kit extension)
+### 2026-06-05 (later - utility module + V2 kit extension)
 
 **changed**: Added the **utility** module: `/util avatar|banner|userinfo|serverinfo` (read-only, no DB).
 Extended the Components V2 kit (`src/utils/components.ts`) with `gallery()` (media gallery from image
@@ -94,11 +94,11 @@ accept them. 39/39 tests pass; typecheck + lint + embed guard clean; loader show
 
 **decisions made**: `banner` force-fetches the user (banners aren't on the cached partial). Timestamps use
 Discord `<t:unix:F|R>` markup. The `gallery`/`section` helpers are the reusable path for any module that
-needs images — modules must not hand-roll V2 builders.
+needs images - modules must not hand-roll V2 builders.
 
-**next**: security/antinuke (DONE — see next entry).
+**next**: security/antinuke (DONE - see next entry).
 
-### 2026-06-05 (later — security/antinuke module)
+### 2026-06-05 (later - security/antinuke module)
 
 **changed**: Built the antinuke module. `/security` (Admin-only) config command: enable/disable/status,
 punishment (ban|kick|strip), logchannel, notify, per-module toggle, and whitelist/extraowner add/remove
@@ -117,9 +117,9 @@ threshold/panic system (deferred). Single trusted whitelist + extraOwners (vs pe
 v1 does not auto-revert deleted resources. Antinuke config in its own table, not the generic
 `GuildModuleConfig`, for typed per-field access in hot event paths.
 
-**next**: automod (DONE — see next entry).
+**next**: automod (DONE - see next entry).
 
-### 2026-06-05 (later — automod module)
+### 2026-06-05 (later - automod module)
 
 **changed**: Built automod. `/automod` (Manage Server) config: enable/disable/status, action
 (delete|warn|timeout), per-filter toggle, limits, logchannel, exempt role/channel groups, custom-word
@@ -137,9 +137,9 @@ wrapped with a per-guild cached Filter + custom words. Spam tracking is in-memor
 since a guild's traffic lands on one shard). Fixed check order; first hit wins; exempt roles/channels
 short-circuit.
 
-**next**: logging (DONE — see next entry).
+**next**: logging (DONE - see next entry).
 
-### 2026-06-05 (later — logging module)
+### 2026-06-05 (later - logging module)
 
 **changed**: Built audit logging. `/logging` (Manage Server): channel, toggle <type>, status, ignore
 add/remove group. 10 event handlers (message delete/edit, member join/leave/ban/unban, role create/delete,
@@ -151,11 +151,11 @@ enabled. New `LoggingConfig` model; cached. `truncate` helper tested. 46/46 test
 `prisma/schema.prisma`, `docs/modules/logging.mdx`.
 
 **decisions made**: `sendLog` takes a builder thunk (container only built when the event is enabled).
-Message events skip bots + ignored channels; partials show "—" for missing content.
+Message events skip bots + ignored channels; partials show "-" for missing content.
 
-**next**: welcome/autorole (DONE — see next entry).
+**next**: welcome/autorole (DONE - see next entry).
 
-### 2026-06-05 (later — welcome/autorole module)
+### 2026-06-05 (later - welcome/autorole module)
 
 **changed**: `/welcome` (Manage Server): channel/message/toggle for welcome|goodbye|dm, test preview,
 status, autorole add/remove group. guildMemberAdd (autorole + welcome post + welcome DM) and
@@ -165,9 +165,9 @@ guildMemberRemove (goodbye) handlers. `WelcomeConfig` model; `formatMessage` pla
 **files touched**: `src/modules/welcome/{index,events,service}.ts` (+ test), `prisma/schema.prisma`,
 `docs/modules/welcome.mdx`.
 
-**next**: tickets (DONE — see next entry).
+**next**: tickets (DONE - see next entry).
 
-### 2026-06-05 (later — tickets module)
+### 2026-06-05 (later - tickets module)
 
 **changed**: First component-interaction module. `/ticket` (Manage Server): enable/disable/status, panel,
 category, logchannel, close, claim, add, supportrole add/remove group. Button handlers (`ComponentHandler`
@@ -182,9 +182,9 @@ prefix `ticket`): `ticket:open` (creates private channel w/ overwrites + control
 **decisions made**: One open ticket per user/guild. Buttons via customId `prefix:action`. Close deletes
 channel after a delay; no HTML transcript yet (future). Tickets is the reference for component modules.
 
-**next**: economy (DONE — see next entry).
+**next**: economy (DONE - see next entry).
 
-### 2026-06-05 (later — economy module)
+### 2026-06-05 (later - economy module)
 
 **changed**: `/economy` with 11 subcommands (balance, daily, work, beg, crime, rob, pay, deposit,
 withdraw, gamble, leaderboard). `EconomyUser` model (composite id). `updateBalance` clamps + mirrors net
@@ -198,9 +198,9 @@ timestamp columns; pure `formatCoins`/`cooldownRemaining` tested. 51/51 tests; c
 **decisions made**: Int balances clamped to 1e9 (avoid 32-bit overflow). Redis leaderboard with DB
 fallback. Daily streak continues if claimed within 48h.
 
-**next**: leveling (DONE — see next entry).
+**next**: leveling (DONE - see next entry).
 
-### 2026-06-05 (later — leveling module)
+### 2026-06-05 (later - leveling module)
 
 **changed**: `/level` (rank, leaderboard, enable, disable, announcechannel, set, reward add/remove/list).
 XP on messageCreate w/ per-user in-memory cooldown; `LevelConfig`/`LevelUser`/`LevelReward` models; pure
@@ -210,13 +210,13 @@ fallback; role rewards granted on level-up (back-fills ≤ level). 54/54 tests; 
 **files touched**: `src/modules/leveling/{index,events,service}.ts` (+ test), `prisma/schema.prisma`,
 `docs/modules/leveling.mdx`.
 
-**next**: giveaways (DONE — see next entry).
+**next**: giveaways (DONE - see next entry).
 
-### 2026-06-05 (later — giveaways module)
+### 2026-06-05 (later - giveaways module)
 
 **changed**: `/giveaway start|end|reroll|list` + `giveaway:enter:<id>` button. `Giveaway` model;
 `pickWinners` (Fisher–Yates, tested). **Auto-end via per-shard `setTimeout`, not BullMQ** (giveaways are
-guild-bound; the owning shard schedules, and reschedules active ones on `ready` for guilds it can see) —
+guild-bound; the owning shard schedules, and reschedules active ones on `ready` for guilds it can see) -
 avoids cross-shard worker mis-routing. 56/56 tests; clean; 13 commands, components `giveaway, ticket`.
 
 **files touched**: `src/modules/giveaways/{index,service}.ts` (+ test), `prisma/schema.prisma`,
@@ -225,9 +225,9 @@ avoids cross-shard worker mis-routing. 56/56 tests; clean; 13 commands, componen
 **decisions made**: Chose per-shard timers over BullMQ for guild-bound scheduling. Entries as `String[]`
 on the row. `setTimeout` capped at ~24.8d, re-arms on fire/restart.
 
-**next**: joinToCreate (DONE — see next entry).
+**next**: joinToCreate (DONE - see next entry).
 
-### 2026-06-05 (later — joinToCreate module)
+### 2026-06-05 (later - joinToCreate module)
 
 **changed**: `/voicehub` (set/nametemplate/limit/disable/status). voiceStateUpdate handler creates a temp
 voice channel when a member joins the hub (owner gets channel-management perms, moved in) and deletes
@@ -237,9 +237,9 @@ tests; clean; 13 commands.
 **files touched**: `src/modules/joinToCreate/{index,events,service}.ts` (+ test), `prisma/schema.prisma`,
 `docs/modules/joinToCreate.mdx`.
 
-**next**: reactionroles + birthday (BOTH DONE — see entries below).
+**next**: reactionroles + birthday (BOTH DONE - see entries below).
 
-### 2026-06-05 (later — reactionroles + birthday modules)
+### 2026-06-05 (later - reactionroles + birthday modules)
 
 **reactionroles**: `/reactionrole create|addrole|removerole|post|list|delete` (Manage Roles) + button
 handler `rr:<panelId>:<roleId>` toggling roles (single/multiple mode). `ReactionRolePanel` (roles in JSON,
@@ -255,9 +255,9 @@ reaffirmed as the pattern for guild-bound time tasks (BullMQ reserved for non-gu
 **files touched**: `src/modules/reactionroles/{index,service}.ts`, `src/modules/birthday/{index,events,
 service}.ts` (+ tests), `prisma/schema.prisma`, `docs/modules/{reactionroles,birthday}.mdx`.
 
-**next**: extras (DONE — see next entry).
+**next**: extras (DONE - see next entry).
 
-### 2026-06-05 (later — extras module)
+### 2026-06-05 (later - extras module)
 
 **changed**: `extras` module exporting THREE commands: `/afk [reason]`, `/snipe`, `/autoresponder
 add|remove|list`. messageCreate handles AFK clear/mention + autoresponder; messageDelete stores snipe;
@@ -271,21 +271,21 @@ is in-memory only. Pure `matchResponder` tested. 64/64 tests; clean; **18 top-le
 plain `content` (allowed; embed-ban is about `EmbedBuilder`, not plain text). AFK kept in-memory for
 fast per-message checks, DB for restart recovery.
 
-**Remaining (4 specialized modules, larger — good for a fresh context):**
-- **trivia** — self-contained quiz game; Open Trivia DB API (`node-fetch`), question/answer buttons,
+**Remaining (4 specialized modules, larger - good for a fresh context):**
+- **trivia** - self-contained quiz game; Open Trivia DB API (`node-fetch`), question/answer buttons,
   per-user scores + leaderboard.
-- **games** — button mini-games (tictactoe, connect4, rps, wordle…); mostly stateless component flows.
-- **ai** — chat via neutral `AI_*` env (provider hidden); **undercover-critical**: persona "Rostra" only,
+- **games** - button mini-games (tictactoe, connect4, rps, wordle…); mostly stateless component flows.
+- **ai** - chat via neutral `AI_*` env (provider hidden); **undercover-critical**: persona "Rostra" only,
   no provider names anywhere. Needs an AI client wrapper around `AI_BASE_URL`/`AI_API_KEY` (OpenAI-compatible).
-- **music** — Lavalink (10 nodes already in `.env` as `LAVALINK_NODES`); pick `lavalink-client`/shoukaku;
+- **music** - Lavalink (10 nodes already in `.env` as `LAVALINK_NODES`); pick `lavalink-client`/shoukaku;
   `/music play|queue|skip|…`; needs a running node to smoke-test (user has them).
 
-### 2026-06-05 (later — ai module)
+### 2026-06-05 (later - ai module)
 
 **changed**: `/ask <question>` assistant. `ask()` POSTs to `${AI_BASE_URL}/chat/completions`
 (OpenAI-compatible) with a generic persona + the question; `sanitizeReply` strips leak phrases.
 **Undercover verified**: repo-wide `grep -riE "openai|anthropic|claude|groq|gpt|gemini|llama|mistral" src`
-returns clean — no provider name anywhere (persona is generic, no denylist of names in source). Deferred
+returns clean - no provider name anywhere (persona is generic, no denylist of names in source). Deferred
 reply + 5s cooldown; graceful "unavailable" when `AI_*` unset. 67/67 tests; clean; **19 commands**.
 
 **files touched**: `src/modules/ai/{index,service}.ts` (+ test), `docs/modules/ai.mdx`.
@@ -294,12 +294,12 @@ reply + 5s cooldown; graceful "unavailable" when `AI_*` unset. 67/67 tests; clea
 leak. Persona instructs generically ("never name the technology powering you") rather than listing
 vendors (listing would itself violate undercover). `sanitizeReply` handles generic leak phrases only.
 
-**Remaining (3 modules): trivia, games, music** — larger/specialized; best with fresh context. music needs
+**Remaining (3 modules): trivia, games, music** - larger/specialized; best with fresh context. music needs
 a running Lavalink node to smoke-test (nodes are in `.env`).
 
-### 2026-06-05 (later — safeAck core utility)
+### 2026-06-05 (later - safeAck core utility)
 
-**changed**: Added `src/utils/safeAck.ts` (`withSafeAck`) — auto-defers any interaction whose handler
+**changed**: Added `src/utils/safeAck.ts` (`withSafeAck`) - auto-defers any interaction whose handler
 hasn't replied within ~2.3s (margin under Discord's 3000ms deadline), showing the native "thinking…" state
 so slow handlers never fail with "Unknown interaction". Wired centrally into `pipeline/runCommand.ts`
 (commands) and `interactions/router.ts` (components/modals). Checks `replied||deferred` first so
@@ -309,9 +309,9 @@ self-deferring handlers (/ask, ticket close) aren't double-acked. Optional `defe
 **files touched**: `src/utils/safeAck.ts` (+ test), `src/pipeline/runCommand.ts`,
 `src/interactions/router.ts`, `src/types/module.ts`.
 
-### 2026-06-05 (later — safeAck heartbeat + V2 follow-up fallback)
+### 2026-06-05 (later - safeAck heartbeat + V2 follow-up fallback)
 
-**changed**: Added an opt-in `heartbeat` to `withSafeAck` — for long-running handlers it edits the
+**changed**: Added an opt-in `heartbeat` to `withSafeAck` - for long-running handlers it edits the
 deferred reply every ~8s ("⏳ Rostra is still working on it… (Ns)"), and a graceful note as the ~15-min
 interaction token nears expiry; stops the instant the handler finishes. Heartbeat uses Components V2 to
 stay flag-consistent with the final reply. Added `heartbeat?` to `SlashCommand`/`ComponentHandler`
@@ -325,9 +325,9 @@ rejected (Discord can refuse toggling that flag on edit), so auto-deferred comma
 
 **verify-on-live note**: confirm `deferReply()` → `editReply({ flags: IsComponentsV2, components })` renders
 in one message on a real interaction; if Discord rejects it, the followUp fallback fires (one extra message)
-— functional either way, worth a quick eyeball during smoke-testing.
+- functional either way, worth a quick eyeball during smoke-testing.
 
-### 2026-06-05 (later — trivia module)
+### 2026-06-05 (later - trivia module)
 
 **changed**: `/trivia play|score|leaderboard` + answer buttons (`trivia:answer:<token>:<i>`, ephemeral).
 Fetches from Open Trivia DB (`encode=url3986` → `decodeURIComponent`), shuffles options
@@ -338,9 +338,9 @@ giveaway/rr/ticket/trivia.
 **files touched**: `src/modules/trivia/{index,service}.ts` (+ test), `prisma/schema.prisma`,
 `docs/modules/trivia.mdx`.
 
-**next**: games (DONE — see next entry).
+**next**: games (DONE - see next entry).
 
-### 2026-06-05 (later — games module)
+### 2026-06-05 (later - games module)
 
 **changed**: `/game tictactoe <opponent>` (live 3×3 button grid, turn-validated, `interaction.update`
 re-renders) + `/game rps` (vs bot, ephemeral). Pure `checkTicTacToe`/`rpsOutcome` tested; tic-tac-toe
@@ -349,13 +349,13 @@ game/giveaway/rr/ticket/trivia.
 
 **files touched**: `src/modules/games/{index,service}.ts` (+ test), `docs/modules/games.mdx`.
 
-**next (LAST module): music** — DONE (see below).
+**next (LAST module): music** - DONE (see below).
 
-### 2026-06-05 (later — music module = ALL MODULES COMPLETE 🎉)
+### 2026-06-05 (later - music module = ALL MODULES COMPLETE 🎉)
 
 **changed**: `/music play|skip|stop|pause|resume|queue|nowplaying|volume|loop` via **lavalink-client v2**
 (Lavalink v4). `getManager` builds a multi-node manager from `config.lavalink.nodes`; `initMusic` (on
-`ready`) wires node + track events and the untyped `"raw"` gateway listener. Lazy/guarded — `/music` says
+`ready`) wires node + track events and the untyped `"raw"` gateway listener. Lazy/guarded - `/music` says
 "unavailable" with no nodes. 78/78 tests; typecheck + lint + embed + undercover clean; **22 commands**.
 
 **files touched**: `src/modules/music/{index,service,events}.ts`, `package.json`, `docs/modules/music.mdx`.
@@ -363,7 +363,7 @@ game/giveaway/rr/ticket/trivia.
 **verify-on-live note**: music needs a real Lavalink node to confirm playback (typechecks + loads; 10
 public nodes are in `.env`). Everything else is unit-tested/loaded.
 
-## ✅ PROJECT COMPLETE — full AIO
+## ✅ PROJECT COMPLETE - full AIO
 
 All 15 archived bots' features are ported into Rostra. **17 feature modules** (moderation, security,
 automod, logging, welcome, tickets, economy, leveling, giveaways, joinToCreate, reactionroles, birthday,
@@ -374,20 +374,20 @@ prefixes. 78/78 tests; tsc + Biome + embed-guard + undercover all clean; live lo
 
 **Added:** `MIGRATION.md` (decommission guide).
 
-### 2026-06-05 (later — UI library + ops items)
+### 2026-06-05 (later - UI library + ops items)
 
-**UI library** (`src/ui/`, import `@/ui`): centralized Components-V2 toolkit — primitives (`button`,
+**UI library** (`src/ui/`, import `@/ui`): centralized Components-V2 toolkit - primitives (`button`,
 `linkButton`, `actionRow`, `buttonGrid`, `stringSelect`, `modal`, `textInput`) + patterns (`confirmRow`,
 `toggleButton`/`settingsPanel`, `paginatorRow`); re-exports the layout kit. customId convention
 `module:action:arg` so module ComponentHandlers wire behavior. 83/83 tests; `docs/modules/ui.mdx`.
 
-**4 ops items — all done:**
+**4 ops items - all done:**
 1. ✅ **Baseline DB migration** generated via `migrate diff` → `prisma/migrations/0_init/migration.sql`
    (29 tables) + `migration_lock.toml`. `npm run prisma:migrate` now = `prisma migrate deploy`.
-2. ✅ **Slash commands registered** globally with Discord — **22 commands** (verified via REST.put). Fixed
+2. ✅ **Slash commands registered** globally with Discord - **22 commands** (verified via REST.put). Fixed
    `deploy:commands` npm script to load env (`--env-file-if-exists`).
-3. ✅ **Lavalink verified** — added `src/scripts/lavalink-check.ts` (`npm run lavalink:check`); **7/10 nodes
-   connect** (real WS auth). 3 fail node-side (expired cert / 401 / timeout) — failover covers them. Music
+3. ✅ **Lavalink verified** - added `src/scripts/lavalink-check.ts` (`npm run lavalink:check`); **7/10 nodes
+   connect** (real WS auth). 3 fail node-side (expired cert / 401 / timeout) - failover covers them. Music
    connection layer confirmed working; in-VC playback still needs a human to fully exercise.
 4. ✅ **Archive/ deleted** (60M, 13 source-bot folders) now that all features are ported + verified.
 
@@ -395,12 +395,12 @@ prefixes. 78/78 tests; tsc + Biome + embed-guard + undercover all clean; live lo
 (browser action; can't be automated). Bot is otherwise production-ready: `npm run prisma:migrate` on the
 live DB, then `npm start`.
 
-### 2026-06-05 (later — niche features + @/ui invariant + rewiring)
+### 2026-06-05 (later - niche features + @/ui invariant + rewiring)
 
-**changed**: Added the 3 leftover niche modules — **tags** (`/tag get|add|remove|list`; `Tag` model),
+**changed**: Added the 3 leftover niche modules - **tags** (`/tag get|add|remove|list`; `Tag` model),
 **vanityroles** (`/vanityrole set|disable|status` + `presenceUpdate` keyword→role; `VanityRoleConfig`;
 **added `GuildPresences` intent**), **feedback** (`/feedback send|setup`; `FeedbackConfig`). New
-**invariant**: all UI must come from `@/ui` — never hand-roll discord.js component builders; if `@/ui`
+**invariant**: all UI must come from `@/ui` - never hand-roll discord.js component builders; if `@/ui`
 lacks something, add it there first (in CLAUDE.md CIT-INVARIANTS + `docs/style.mdx`). Rewired
 **tickets / giveaways / reactionroles** to build buttons via `@/ui` (`button`/`actionRow`/`buttonGrid`).
 Baseline migration regenerated → **32 tables**. 85/85 tests; tsc + Biome + embed + undercover clean;
@@ -410,11 +410,11 @@ Baseline migration regenerated → **32 tables**. 85/85 tests; tsc + Biome + emb
 reactionroles}/index.ts`, `src/client/BotClient.ts`, `prisma/schema.prisma` (+ `migrations/0_init`),
 `docs/style.mdx`, `docs/modules/{tags,vanityroles,feedback}.mdx`, CLAUDE.md.
 
-**note**: `GuildPresences` is privileged — enable it in the Dev Portal for vanityroles to work.
+**note**: `GuildPresences` is privileged - enable it in the Dev Portal for vanityroles to work.
 
-### 2026-06-05 (later — UI rewire complete, public repo, community files, CI fix)
+### 2026-06-05 (later - UI rewire complete, public repo, community files, CI fix)
 
-**changed**: Rewired **trivia + games** to `@/ui` (`button`/`actionRow`) — **no module hand-rolls
+**changed**: Rewired **trivia + games** to `@/ui` (`button`/`actionRow`) - **no module hand-rolls
 discord.js component builders anymore** (verified by grep + a new CI guard). **Fixed CI** (the failing
 workflow): Node 20's test runner can't expand the `src/**/*.test.ts` glob → bumped CI to **Node 22**, added
 placeholder env vars to the job (so the eager config loads), and added CI guards for embeds, undercover,
@@ -430,10 +430,10 @@ server), `LICENSE` (MIT), `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`
 **note**: music has no buttons (text-only), so it's already invariant-compliant. CI now enforces all three
 guards (embeds / undercover / no-raw-builders-in-modules) on every push & PR.
 
-### 2026-06-05 (later — CHANGELOG, AGENTS.md, Docker publishing)
+### 2026-06-05 (later - CHANGELOG, AGENTS.md, Docker publishing)
 
 **changed**: Added `CHANGELOG.md` (Keep-a-Changelog, 0.1.0), `AGENTS.md` (committed tool-agnostic guide for
-Claude Code / Gemini CLI / Codex — mirrors the invariants since `CLAUDE.md` is gitignored), and a **GHCR
+Claude Code / Gemini CLI / Codex - mirrors the invariants since `CLAUDE.md` is gitignored), and a **GHCR
 Docker publish workflow** (`.github/workflows/docker.yml`) that builds + pushes `ghcr.io/astoristhebrave/
 rostra` on push to `main` and version tags. README links both + a GHCR pull command.
 
@@ -444,9 +444,9 @@ after adding `docker/setup-buildx-action` (gha cache needs the container driver)
 Portal (for `/vanityrole`); add a support-server invite to the README once one exists; the GHCR package may
 need to be flipped to **public** in the repo's Packages settings so `docker pull` works without auth.
 
-### 2026-06-06 (automation — Dependabot, release-please, badges)
+### 2026-06-06 (automation - Dependabot, release-please, badges)
 
-**changed**: Added repo automation. (1) **Dependabot** (`.github/dependabot.yml`) — weekly `npm`
+**changed**: Added repo automation. (1) **Dependabot** (`.github/dependabot.yml`) - weekly `npm`
 (minor/patch grouped into one PR, `build:`-prefixed) + `github-actions` (`ci:`-prefixed) updates.
 (2) **Automated releases** via **release-please** (`googleapis/release-please-action@v4`, manifest mode:
 `release-please-config.json` + `.release-please-manifest.json` baselined at `0.1.0`, `release-type: node`,
@@ -457,35 +457,35 @@ PR that bumps `package.json` + `CHANGELOG.md`; merging tags `vX.Y.Z` and cuts a 
 **Docker gotcha handled**: release-please tags via `GITHUB_TOKEN`, which does **not** cascade-trigger
 `docker.yml`'s `tags: v*` push. So `docker.yml` gained a `workflow_call` trigger with a `version` input
 (feeds `type=raw` version/`v`version/`latest` image tags), and `release-please.yml` has a `publish-image`
-job that `uses: ./.github/workflows/docker.yml` gated on `release_created` — same run, so the versioned
+job that `uses: ./.github/workflows/docker.yml` gated on `release_created` - same run, so the versioned
 image always builds. The existing push-to-`main` + `tags: v*` triggers are untouched (manual tags still
 publish). Nothing broken.
 
 **verified**: typecheck + Biome + 85/85 tests green locally. Workflow YAML/JSON validity confirmed on push
 (watch the Actions tab). release-please will not open a PR until a `feat`/`fix` lands (recent commits are
-`docs`/`ci`/`build`, which are hidden + non-bumping by config) — expected.
+`docs`/`ci`/`build`, which are hidden + non-bumping by config) - expected.
 
 **still manual:** for the release-please **publish-image** path to push to GHCR, `GITHUB_TOKEN` `packages:
-write` must be allowed (set at the job level — default repo workflow permissions suffice). Same prior
+write` must be allowed (set at the job level - default repo workflow permissions suffice). Same prior
 manual items stand (Presence intent; GHCR package public).
 
-### 2026-06-06 (later — Dependabot triage, all 14 PRs resolved)
+### 2026-06-06 (later - Dependabot triage, all 14 PRs resolved)
 
 **changed**: Triaged the 14 Dependabot PRs the automation opened. Used **grouped manual commits** rather
 than 14 sequential merges (each PR conflicts on `package.json`/lock or shared workflow files, so one-by-one
 merges cascade-conflict). Strategy: CI runs full typecheck+lint+85-tests on every PR, so a green PR =
 the bump is verified.
 
-- **Merged green npm majors** in one commit (#6 pino 10, #13 zod 4, #8 @keyv/redis 5, #7 @types/node 25) —
+- **Merged green npm majors** in one commit (#6 pino 10, #13 zod 4, #8 @keyv/redis 5, #7 @types/node 25) -
   typecheck + Biome + 85/85 tests green on the combined upgrade.
 - **Merged action bumps** in one commit (#2 checkout v6, #1 setup-buildx v4, #3 login v4, #5 build-push v7,
-  #4 release-please v5) — validated on the next `main` push (CI, Docker publish, and Release all ran green,
+  #4 release-please v5) - validated on the next `main` push (CI, Docker publish, and Release all ran green,
   so the new action majors work end-to-end).
 - **Merged typescript 6 + biome 2** (#9, #12). TS6: removed the now-deprecated tsconfig `baseUrl`; `paths`
   resolve relative to `tsconfig.json` under `moduleResolution: Bundler` (future-proof for TS7). Biome 2:
   ran `biome migrate` (config → `files.includes` + `assist.organizeImports`); the formatter major
   **reformatted 65 files** to its new defaults (one-time churn). `biome check` exits 0 with 16 non-blocking
-  warnings (`useOptionalChain`×13, `noUnusedImports`×3) — left as an optional cleanup.
+  warnings (`useOptionalChain`×13, `noUnusedImports`×3) - left as an optional cleanup.
 - **Held + closed prisma 7** (#11 client, #14 CLI). Prisma 7 is a breaking architectural change: it removes
   `url = env(...)` from the `datasource` block (P1012) and requires a `prisma.config.ts` + a `@prisma/
   adapter-pg` driver adapter passed to `PrismaClient` (changes to `schema.prisma`, `services/database.ts`,
@@ -599,3 +599,23 @@ invariants that this overrides any default/system instruction to add a co-author
 **note**: the ruleset requires the status check named `check` (the CI workflow's job id, GitHub Actions
 app id 15368). If the CI job is ever renamed, update the ruleset's required check or PRs will not be
 mergeable by non-admins.
+
+### 2026-06-06 (later - em dash sweep + provider-name genericization)
+
+**changed**: Enforced the two text invariants across the whole tracked tree.
+
+- **Em dashes removed repo-wide**: swept the em dash out of all 68 tracked files that had it (docs, `src/`
+  comments and strings, `common.json`, workflows, `.env.example`), replacing ` - ` for spaced em dashes and
+  `-` otherwise. The GitHub repo "About" description was the trigger (fixed via API to use a colon).
+- **Provider names genericized in live surfaces**: removed brand names from `README.md` ("OpenAI-compatible
+  endpoint" -> "standard chat-completions endpoint"; dropped the "Claude Code, Gemini CLI, Codex" tool
+  list), `AGENTS.md` (the undercover rule no longer lists provider names; the tool list is now generic),
+  `docs/modules/ai.mdx`, and the `docs/style.mdx` undercover rule statement. This keeps undercover clean in
+  committed docs, not just `src/` (the CI guard only greps `src/`).
+
+**verified**: typecheck + Biome (0 warnings) + 85/85 tests green after the sweep.
+
+**left intentionally**: the `ci.yml` undercover guard regex (must name the providers to ban them), the
+`.gitignore` `CLAUDE.md` entry (functional ignore pattern), and historical provider mentions in earlier
+`docs/sessions/log.mdx` entries (archival record). Non-em-dash typographic characters (ellipsis, arrows,
+interpuncts) were left as-is; the invariant is about em dashes specifically.

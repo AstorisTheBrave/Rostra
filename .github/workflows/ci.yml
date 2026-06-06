@@ -37,18 +37,18 @@ jobs:
       - name: Guard against legacy embeds (Components V2 only)
         run: |
           if grep -rn "EmbedBuilder" src; then
-            echo "::error::EmbedBuilder found — this project uses Components V2 only."
+            echo "::error::EmbedBuilder found - this project uses Components V2 only."
             exit 1
           fi
       - name: Guard undercover mode (no AI provider names)
         run: |
           if grep -rinE "openai|anthropic|claude|groq|\bgpt\b|gemini|\bllama\b|mistral" src; then
-            echo "::error::AI provider reference found — undercover mode forbids this."
+            echo "::error::AI provider reference found - undercover mode forbids this."
             exit 1
           fi
       - name: Guard UI library (modules must not hand-roll component builders)
         run: |
           if grep -rnE "new (ButtonBuilder|ActionRowBuilder|ContainerBuilder|StringSelectMenuBuilder|ModalBuilder|TextInputBuilder)" src/modules; then
-            echo "::error::Module hand-rolls a component builder — use @/ui instead."
+            echo "::error::Module hand-rolls a component builder - use @/ui instead."
             exit 1
           fi

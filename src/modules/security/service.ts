@@ -123,7 +123,7 @@ export async function punish(
 	if (!member) return;
 	const me = guild.members.me;
 	if (me && member.roles.highest.position >= me.roles.highest.position) {
-		log.warn({ userId, guild: guild.id }, "cannot punish — role hierarchy");
+		log.warn({ userId, guild: guild.id }, "cannot punish - role hierarchy");
 		return;
 	}
 	log.warn({ userId, guild: guild.id, reason }, "antinuke punishing");
@@ -132,7 +132,7 @@ export async function punish(
 		else if (config.punishment === "strip") await stripRoles(member, reason);
 		else await guild.members.ban(userId, { reason: `[Antinuke] ${reason}` });
 	} catch (err) {
-		log.error({ err, userId }, "punishment failed — stripping roles");
+		log.error({ err, userId }, "punishment failed - stripping roles");
 		await stripRoles(member, reason).catch(() => {});
 	}
 	await logAction(guild, config, member.user, reason);

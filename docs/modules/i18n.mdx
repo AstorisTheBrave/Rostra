@@ -18,9 +18,9 @@ translated later without touching any feature code.
 - test: `src/i18n/index.test.ts`
 
 **exports**
-- `t(key, vars?, locale='en'): string` — resolve `namespace:key`, interpolate `{var}` placeholders;
+- `t(key, vars?, locale='en'): string` - resolve `namespace:key`, interpolate `{var}` placeholders;
   returns the key itself if missing (so gaps are visible, not crashes).
-- `registerLocale(locale, namespace, strings)` — modules register their own string bundles at boot.
+- `registerLocale(locale, namespace, strings)` - modules register their own string bundles at boot.
 
 **depends on**
 - `src/i18n/locales/en/common.json` (core strings)
@@ -31,5 +31,5 @@ translated later without touching any feature code.
 ## gotchas
 
 - Keys are `namespace:dotted.path`. The core namespace is `common`; each module uses its own namespace.
-- Unknown keys return the key string — useful for spotting untranslated text in output.
+- Unknown keys return the key string - useful for spotting untranslated text in output.
 - New modules must `registerLocale('en', '<module>', {...})` during load before their commands run.

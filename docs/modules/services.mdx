@@ -13,17 +13,17 @@ shared instance so the whole bot reuses one connection instead of making new one
 ## technical map
 
 **file paths**
-- `src/services/logger.ts` — Pino logging
-- `src/services/database.ts` — Prisma/Postgres access
-- `src/services/cache.ts` — Redis/Keyv cache
+- `src/services/logger.ts` - Pino logging
+- `src/services/database.ts` - Prisma/Postgres access
+- `src/services/cache.ts` - Redis/Keyv cache
 - tests: `src/services/logger.test.ts`, `database.test.ts`, `cache.test.ts`
 
 **exports**
-- `getLogger(scope): Logger` — cached child logger tagged with `scope`; `logger` is the root.
-- `getPrisma(): PrismaClient` — cached singleton DB client; `disconnectPrisma()` for shutdown.
-- `getCache(): Keyv` — cache (Redis-backed if `REDIS_URL`, else in-memory).
-- `getRedis(): Redis | undefined` — raw ioredis client for sorted-set ops (leaderboards); undefined w/o Redis.
-- `cacheGet/cacheSet/cacheDel/withCache` — typed convenience helpers; `disconnectCache()` for shutdown.
+- `getLogger(scope): Logger` - cached child logger tagged with `scope`; `logger` is the root.
+- `getPrisma(): PrismaClient` - cached singleton DB client; `disconnectPrisma()` for shutdown.
+- `getCache(): Keyv` - cache (Redis-backed if `REDIS_URL`, else in-memory).
+- `getRedis(): Redis | undefined` - raw ioredis client for sorted-set ops (leaderboards); undefined w/o Redis.
+- `cacheGet/cacheSet/cacheDel/withCache` - typed convenience helpers; `disconnectCache()` for shutdown.
 
 **depends on**
 - `src/config.ts` for log level, `DATABASE_URL`, `REDIS_URL`, env mode
@@ -40,5 +40,5 @@ shared instance so the whole bot reuses one connection instead of making new one
   fed from `config.database.url`. Never read `process.env` here. The CLI side (migrations) reads the URL
   from `prisma.config.ts`, which loads `.env` via `dotenv` locally and uses real env vars in CI/Docker.
 - Logger redacts token/password/auth fields and must never log provider names.
-- Without `REDIS_URL` the cache is per-process memory (not shared across shards) — fine for dev, not prod.
+- Without `REDIS_URL` the cache is per-process memory (not shared across shards) - fine for dev, not prod.
 - `getPrisma()` does not connect on construction; first query connects.

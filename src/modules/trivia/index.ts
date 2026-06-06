@@ -56,7 +56,7 @@ async function play(interaction: ChatInputCommandInteraction): Promise<void> {
 	await interaction.reply({
 		components: [
 			container(Accent.info, [
-				text(`# 🧠 Trivia — ${question.category}`),
+				text(`# 🧠 Trivia - ${question.category}`),
 				text(`*${question.difficulty}*\n\n**${question.question}**`),
 			]),
 			row,
@@ -99,7 +99,7 @@ async function execute({
 		]);
 	const medals = ["🥇", "🥈", "🥉"];
 	const lines = top.map(
-		(e, i) => `${medals[i] ?? `\`#${i + 1}\``} <@${e.userId}> — **${e.correct}** correct`,
+		(e, i) => `${medals[i] ?? `\`#${i + 1}\``} <@${e.userId}> - **${e.correct}** correct`,
 	);
 	await reply.components(interaction, [
 		container(Accent.info, [text(t("trivia:leaderboard.title")), text(lines.join("\n"))]),
@@ -151,7 +151,7 @@ const trivia: BotModule = {
 	i18n: {
 		score: "**Correct:** {correct}\n**Answered:** {total}\n**Accuracy:** {accuracy}%",
 		correct: "✅ Correct! Nice one.",
-		wrong: "❌ Not quite — the answer was **{answer}**.",
+		wrong: "❌ Not quite - the answer was **{answer}**.",
 		"leaderboard.title": "# 🧠 Trivia leaderboard",
 		"leaderboard.empty": "No one has played trivia yet.",
 		"error.fetch": "Couldn't fetch a question right now. Try again shortly.",

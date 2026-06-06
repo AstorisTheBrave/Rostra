@@ -7,7 +7,7 @@ status: stable
 ## what this is
 
 The toolkit for building every message Rostra sends. Discord has a newer "Components V2" message format
-(rich containers, text blocks, dividers, sections, image galleries) and Rostra uses it everywhere — no
+(rich containers, text blocks, dividers, sections, image galleries) and Rostra uses it everywhere - no
 old-style embeds. This kit makes building those messages quick and guarantees the correct format flag is
 always set.
 
@@ -18,13 +18,13 @@ always set.
 - test: `src/utils/components.test.ts`
 
 **exports**
-- `text(markdown): TextDisplayBuilder` — a text block
-- `divider(large?): SeparatorBuilder` — a horizontal rule
-- `container(accent, children): ContainerBuilder` — a colored container of text/dividers
-- `successContainer(msg)` / `errorContainer(msg)` — preset green/red containers
-- `buildResponse(components, { ephemeral? }): V2Response` — wraps components, always sets `IsComponentsV2`
-- `reply.success/error/components(interaction, …)` — reply or edit-reply with a V2 payload
-- `Accent` — color constants (success/error/info/warn)
+- `text(markdown): TextDisplayBuilder` - a text block
+- `divider(large?): SeparatorBuilder` - a horizontal rule
+- `container(accent, children): ContainerBuilder` - a colored container of text/dividers
+- `successContainer(msg)` / `errorContainer(msg)` - preset green/red containers
+- `buildResponse(components, { ephemeral? }): V2Response` - wraps components, always sets `IsComponentsV2`
+- `reply.success/error/components(interaction, …)` - reply or edit-reply with a V2 payload
+- `Accent` - color constants (success/error/info/warn)
 
 **depends on**
 - `discord.js` builders (`ContainerBuilder`, `TextDisplayBuilder`, `SeparatorBuilder`, `MessageFlags`)
@@ -34,7 +34,7 @@ always set.
 
 ## gotchas
 
-- **Never** use `EmbedBuilder` — all output goes through this kit (Components V2 only).
+- **Never** use `EmbedBuilder` - all output goes through this kit (Components V2 only).
 - `buildResponse` returns a plain `{ flags, components }`; `send()` casts to the discord.js reply/editReply
   option types because their `flags` unions differ (editReply can't set Ephemeral).
 - To add Section/MediaGallery/Thumbnail support, extend `ContainerChild`/`TopLevel` unions here rather

@@ -218,7 +218,7 @@ async function execute({
 			if (top.length === 0) return ok(interaction, t("economy:leaderboard.empty"), Accent.info);
 			const medals = ["🥇", "🥈", "🥉"];
 			const lines = top.map(
-				(e, i) => `${medals[i] ?? `\`#${i + 1}\``} <@${e.userId}> — ${formatCoins(e.total)}`,
+				(e, i) => `${medals[i] ?? `\`#${i + 1}\``} <@${e.userId}> - ${formatCoins(e.total)}`,
 			);
 			return void reply.components(interaction, [
 				container(Accent.info, [text(t("economy:leaderboard.title")), text(lines.join("\n"))]),
@@ -245,7 +245,7 @@ const economy: BotModule = {
 		daily: "💰 You claimed {amount}! Streak: **{streak}** days.",
 		work: "🛠️ You worked and earned {amount}.",
 		beg: "🥺 Someone gave you {amount}.",
-		"crime.success": "🦹 Crime paid off — you gained {amount}.",
+		"crime.success": "🦹 Crime paid off - you gained {amount}.",
 		"crime.fail": "🚔 You got caught and lost {amount}.",
 		"rob.invalid": "You can't rob that user.",
 		"rob.poor": "They don't have enough to rob.",

@@ -39,7 +39,7 @@ export interface SafeAckOptions {
  * Run `fn`, guaranteeing the interaction is acknowledged before Discord's 3s deadline.
  *
  * If `fn` hasn't replied or deferred within `deferAfterMs`, the interaction is deferred
- * automatically — Discord shows the native "thinking…" state and the handler's eventual reply
+ * automatically - Discord shows the native "thinking…" state and the handler's eventual reply
  * edits it. Fast handlers reply first and are unaffected. Handlers that defer themselves are
  * detected and never double-acknowledged.
  *
@@ -79,7 +79,7 @@ export async function withSafeAck(
 				const elapsedMs = Date.now() - startedAt;
 				const message =
 					elapsedMs >= TOKEN_SOFT_LIMIT_MS
-						? "⌛ This is taking unusually long — still working on it…"
+						? "⌛ This is taking unusually long - still working on it…"
 						: `⏳ Rostra is still working on it… (${Math.round(elapsedMs / 1000)}s)`;
 				const payload = buildResponse([container(Accent.info, [text(message)])], {
 					ephemeral: opts.ephemeral,

@@ -7,7 +7,7 @@ status: stable
 ## what this is
 
 Lets members ask the bot ("Rostra") questions in natural language and get a helpful reply. The fact that
-this is powered by a third-party model is a hidden implementation detail — the bot always speaks as Rostra
+this is powered by a third-party model is a hidden implementation detail - the bot always speaks as Rostra
 and never reveals what runs underneath.
 
 ## technical map
@@ -15,22 +15,23 @@ and never reveals what runs underneath.
 **file paths**
 - command: `src/modules/ai/index.ts` (`/ask <question>`)
 - backend call + persona + sanitizer: `src/modules/ai/service.ts` (+ `service.test.ts`)
-- config: `src/config.ts` → `config.ai` (`AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` — neutral env names)
+- config: `src/config.ts` → `config.ai` (`AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` - neutral env names)
 
-**exports (service.ts)** — `ask(prompt)` (single-turn chat call), `sanitizeReply(text)`,
+**exports (service.ts)** - `ask(prompt)` (single-turn chat call), `sanitizeReply(text)`,
 `AssistantNotConfiguredError`.
 
-**how it works** — `ask` POSTs to `${AI_BASE_URL}/chat/completions` (OpenAI-compatible shape) with a
-generic persona system prompt and the user's question, then runs the reply through `sanitizeReply`.
+**how it works** - `ask` POSTs to `${AI_BASE_URL}/chat/completions` (the standard chat-completions request
+shape) with a generic persona system prompt and the user's question, then runs the reply through
+`sanitizeReply`.
 
 ## gotchas
 
-- **Undercover (hard invariant):** no provider/model name appears anywhere in this module — not in the
+- **Undercover (hard invariant):** no provider/model name appears anywhere in this module - not in the
   persona, code, comments, or strings. The persona forbids the model from revealing its automated nature
   generically (without naming anything), and `sanitizeReply` strips leak phrases ("as an AI", "language
   model", etc.) as defence-in-depth. A repo-wide `grep` for provider names must stay clean.
-- The backend is any OpenAI-compatible chat endpoint; the vendor is chosen purely by `AI_BASE_URL` +
-  `AI_MODEL` at deploy.
+- The backend is any endpoint speaking the standard chat-completions API; the vendor is chosen purely by
+  `AI_BASE_URL` + `AI_MODEL` at deploy.
 - `/ask` defers the reply (the call is network-bound) and carries a 5s cooldown. If `AI_*` env is unset the
   command politely reports the assistant is unavailable.
 - No database; no migration needed.

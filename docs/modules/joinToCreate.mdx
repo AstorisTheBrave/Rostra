@@ -18,13 +18,13 @@ empties.
 - config + temp-channel tracking: `src/modules/joinToCreate/service.ts` (+ `service.test.ts`)
 - models: `prisma/schema.prisma` → `JoinToCreateConfig`, `J2CChannel`
 
-**command** — `/voicehub` (Manage Server): `set <hub> [category]`, `nametemplate <text>`, `limit <n>`,
+**command** - `/voicehub` (Manage Server): `set <hub> [category]`, `nametemplate <text>`, `limit <n>`,
 `disable`, `status`.
 
-**event** — `voiceStateUpdate`: leaving an empty tracked temp channel deletes it; joining the hub creates
+**event** - `voiceStateUpdate`: leaving an empty tracked temp channel deletes it; joining the hub creates
 a `GuildVoice` channel (owner gets Manage/Move/Mute/Deafen over it), moves the member in, and records it.
 
-**exports (service.ts)** — `getConfig/upsertConfig/invalidate`, `recordTemp/isTemp/removeTemp`,
+**exports (service.ts)** - `getConfig/upsertConfig/invalidate`, `recordTemp/isTemp/removeTemp`,
 `formatName(template, username)`.
 
 ## gotchas

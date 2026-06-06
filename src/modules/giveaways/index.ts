@@ -69,7 +69,7 @@ async function endAndAnnounce(client: Client, id: string): Promise<void> {
 		const msg = await channel.messages.fetch(giveaway.messageId).catch(() => null);
 		await msg
 			?.edit({
-				components: [container(Accent.warn, [text(`🎉 **${giveaway.prize}** — ended.`)])],
+				components: [container(Accent.warn, [text(`🎉 **${giveaway.prize}** - ended.`)])],
 				flags: MessageFlags.IsComponentsV2,
 			})
 			.catch(() => {});
@@ -219,7 +219,7 @@ async function execute({
 				]);
 			const lines = active.map(
 				(g) =>
-					`**${g.prize}** — \`${g.id}\` — ends <t:${Math.floor(g.endsAt.getTime() / 1000)}:R> — ${g.entries.length} entries`,
+					`**${g.prize}** - \`${g.id}\` - ends <t:${Math.floor(g.endsAt.getTime() / 1000)}:R> - ${g.entries.length} entries`,
 			);
 			return void reply.components(interaction, [
 				container(Accent.info, [text(t("giveaways:list.title")), text(lines.join("\n"))]),

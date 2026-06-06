@@ -71,7 +71,7 @@ export async function getBirthday(guildId: string, userId: string): Promise<Birt
 	return getPrisma().birthday.findUnique({ where: { guildId_userId: { guildId, userId } } });
 }
 
-/** All birthdays falling on a given month/day (across guilds — caller filters by shard). */
+/** All birthdays falling on a given month/day (across guilds - caller filters by shard). */
 export async function birthdaysOn(month: number, day: number): Promise<Birthday[]> {
 	return getPrisma().birthday.findMany({ where: { month, day } });
 }

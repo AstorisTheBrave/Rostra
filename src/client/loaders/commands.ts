@@ -13,7 +13,7 @@ export function registerCommands(client: BotClient, modules: BotModule[]): void 
 		for (const command of module.commands ?? []) {
 			const name = command.data.name;
 			if (client.commands.has(name)) {
-				log.warn({ command: name, module: module.name }, "duplicate command name — skipped");
+				log.warn({ command: name, module: module.name }, "duplicate command name - skipped");
 				continue;
 			}
 			client.commands.set(name, command);

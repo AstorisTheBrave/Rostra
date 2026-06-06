@@ -7,7 +7,7 @@ const log = getLogger("event");
 
 /**
  * Typed event registration factory. Keeps full `ClientEvents[K]` typing on `execute`
- * while erasing to a uniform `RegisteredEvent` for storage — avoids `any` across mixed handlers.
+ * while erasing to a uniform `RegisteredEvent` for storage - avoids `any` across mixed handlers.
  * Every handler runs inside an error boundary so a throw never crashes the shard.
  */
 export function defineEvent<K extends keyof ClientEvents>(

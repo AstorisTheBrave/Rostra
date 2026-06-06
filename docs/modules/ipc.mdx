@@ -7,7 +7,7 @@ status: in-flux
 ## what this is
 
 The bot runs as many copies ("shards") to handle lots of servers. Sometimes one shard needs information
-from all the others — e.g. the total server count, or sending a vote reward to whichever shard knows the
+from all the others - e.g. the total server count, or sending a vote reward to whichever shard knows the
 user. This module is the single, simple way to ask all shards a question, hiding the messy details so the
 sharding technology can be swapped later without changing any feature code.
 
@@ -18,12 +18,12 @@ sharding technology can be swapped later without changing any feature code.
 - test: `src/cluster/ipc.test.ts`
 
 **exports**
-- `interface Ipc` — `{ mode, broadcast(fn), fetchValues(fn) }`
-- `createIpc(client): Ipc` — returns the implementation for the current `SHARDING_MODE`
+- `interface Ipc` - `{ mode, broadcast(fn), fetchValues(fn) }`
+- `createIpc(client): Ipc` - returns the implementation for the current `SHARDING_MODE`
 
 **depends on**
 - `discord.js` `Client` (`client.shard.broadcastEval`)
-- `src/config.ts` — `config.sharding.mode`
+- `src/config.ts` - `config.sharding.mode`
 
 **imported by**
 - (later) `cluster.ts` manager (stats aggregation, vote routing) and any cross-shard feature
@@ -33,6 +33,6 @@ sharding technology can be swapped later without changing any feature code.
 - Currently only `NativeIpc` exists (discord.js `broadcastEval`). With no `ShardingManager` (single
   process) it runs the function locally and returns a one-element array.
 - A `HybridIpc` (for `discord-hybrid-sharding`) will be added with the same interface when scale needs it;
-  set `SHARDING_MODE=hybrid`. **Do not** call the sharding library directly from modules — go through `Ipc`.
-- Functions passed to `broadcast`/`fetchValues` are serialized and run in the other shard's context —
+  set `SHARDING_MODE=hybrid`. **Do not** call the sharding library directly from modules - go through `Ipc`.
+- Functions passed to `broadcast`/`fetchValues` are serialized and run in the other shard's context -
   they must be self-contained (no closures over local variables).

@@ -146,7 +146,7 @@ async function execute({
 				.slice(0, 10);
 			const lines = sorted.map(
 				({ b, days }) =>
-					`<@${b.userId}> — ${b.day} ${MONTHS[b.month - 1]} (${days === 0 ? "today!" : `in ${days}d`})`,
+					`<@${b.userId}> - ${b.day} ${MONTHS[b.month - 1]} (${days === 0 ? "today!" : `in ${days}d`})`,
 			);
 			return void reply.components(interaction, [
 				container(Accent.info, [text(t("birthday:listTitle")), text(lines.join("\n"))]),

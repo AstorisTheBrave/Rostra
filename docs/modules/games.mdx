@@ -16,12 +16,12 @@ Quick button-based mini-games: **tic-tac-toe** between two members (a live 3×3 
 - game logic + tic-tac-toe session store: `src/modules/games/service.ts` (+ `service.test.ts`)
 - no database (games are ephemeral, in-memory)
 
-**command** — `/game tictactoe <opponent>` · `/game rps`.
+**command** - `/game tictactoe <opponent>` · `/game rps`.
 
-**buttons (ComponentHandler `prefix: "game"`)** — `game:ttt:<token>:<cell>` (place a mark, turn-validated,
+**buttons (ComponentHandler `prefix: "game"`)** - `game:ttt:<token>:<cell>` (place a mark, turn-validated,
 `interaction.update` re-renders the board) and `game:rps:<choice>` (bot picks, ephemeral result).
 
-**exports (service.ts)** — pure `checkTicTacToe(board)` → winner | "draw" | null, `rpsOutcome(a, b)`,
+**exports (service.ts)** - pure `checkTicTacToe(board)` → winner | "draw" | null, `rpsOutcome(a, b)`,
 `randomRps()`, and `startTtt/getTtt` (in-memory game state, 10-min TTL).
 
 ## gotchas
@@ -29,6 +29,6 @@ Quick button-based mini-games: **tic-tac-toe** between two members (a live 3×3 
 - Tic-tac-toe state is in-memory keyed by a short token (the board message is on the creating shard);
   turn ownership is enforced by user id, and filled/finished cells disable their buttons.
 - Board updates use `interaction.update` (edits the same message) rather than a new reply.
-- No persistence — restarting the bot abandons in-progress games (acceptable for casual play).
+- No persistence - restarting the bot abandons in-progress games (acceptable for casual play).
 - Extending: connect-four / wordle would follow the same pattern (pure logic + token session + button
   grid). No migration needed.

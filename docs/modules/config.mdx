@@ -8,7 +8,7 @@ status: stable
 
 The single place Rostra reads its settings (bot token, database address, optional Redis, Lavalink music
 servers, etc.) from the environment. It checks everything is present and valid when the bot starts, and
-refuses to start with a clear error if something's wrong — so misconfiguration fails fast and loudly.
+refuses to start with a clear error if something's wrong - so misconfiguration fails fast and loudly.
 
 ## technical map
 
@@ -17,12 +17,12 @@ refuses to start with a clear error if something's wrong — so misconfiguration
 - test: `src/config.test.ts`
 
 **exports**
-- `config: Config` — frozen, validated config object, computed once at import. The only env reader.
-- `loadConfig(source?): Config` — parses a given env object (used by tests); defaults to `process.env`.
-- `type Config` — typed shape: `discord`, `database`, `redis`, `web`, `sharding`, `ai`, `lavalink`, `topgg`.
+- `config: Config` - frozen, validated config object, computed once at import. The only env reader.
+- `loadConfig(source?): Config` - parses a given env object (used by tests); defaults to `process.env`.
+- `type Config` - typed shape: `discord`, `database`, `redis`, `web`, `sharding`, `ai`, `lavalink`, `topgg`.
 
 **depends on**
-- `zod` — schema validation
+- `zod` - schema validation
 - environment variables (see `docs/infrastructure/env.mdx`)
 
 **imported by**
@@ -35,4 +35,4 @@ refuses to start with a clear error if something's wrong — so misconfiguration
 - `LAVALINK_NODES` is a JSON-array string, parsed and validated into `config.lavalink.nodes`.
 - Importing this module runs validation immediately; tests that need it must supply env via
   `--env-file=.env` (or call `loadConfig({...})` directly).
-- Optional integrations (`redis`, `ai`, `topgg`) are `undefined` when unset — callers must no-op cleanly.
+- Optional integrations (`redis`, `ai`, `topgg`) are `undefined` when unset - callers must no-op cleanly.

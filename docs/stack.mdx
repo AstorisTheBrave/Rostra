@@ -12,11 +12,11 @@ new dependency fits or why an existing one is there.
 ## technical map
 
 **runtime & language**
-- Node.js ≥ 20 (developed on v24), ESM modules only — modern, native sharding support
-- TypeScript 5.7 strict (no `any`) — safety at this codebase size
+- Node.js ≥ 20 (developed on v24), ESM modules only - modern, native sharding support
+- TypeScript 5.7 strict (no `any`) - safety at this codebase size
 
 **Discord**
-- `discord.js` ^14.16 — Discord API client; provides Components V2 builders and `ShardingManager`
+- `discord.js` ^14.16 - Discord API client; provides Components V2 builders and `ShardingManager`
 
 **data**
 - `@prisma/client` + `prisma` ^7 with **PostgreSQL**, chosen over Turso/SQLite because the economy
@@ -25,28 +25,28 @@ new dependency fits or why an existing one is there.
 - Prisma 7 is engine-less: the client is built on the `@prisma/adapter-pg` (node-postgres) driver
   adapter in `getPrisma()`. The datasource URL lives in `prisma.config.ts` (CLI/migrations), not in
   `schema.prisma`; the app runtime reads it from the validated `config` loader. See `docs/modules/services.mdx`.
-- `ioredis` + `keyv` + `@keyv/redis` — Redis for shared cache, leaderboard sorted sets, rate-limit
+- `ioredis` + `keyv` + `@keyv/redis` - Redis for shared cache, leaderboard sorted sets, rate-limit
   buckets, and BullMQ queues. Falls back to in-memory Keyv when `REDIS_URL` is unset.
 
 **cross-cutting**
-- `pino` + `pino-pretty` — structured logging (JSON in prod, pretty in dev)
-- `zod` ^3 — environment + all input validation
-- `fastify` ^5 — health/metrics endpoint and the top.gg vote webhook (no dashboard)
+- `pino` + `pino-pretty` - structured logging (JSON in prod, pretty in dev)
+- `zod` ^3 - environment + all input validation
+- `fastify` ^5 - health/metrics endpoint and the top.gg vote webhook (no dashboard)
 
 **integrations**
-- `@top-gg/sdk` + `topgg-autoposter` (added in runtime plan) — bot-list stats + vote webhooks
-- Lavalink (via a client lib chosen in the music module) — multi-node music with failover
-- `bad-words` ^4 — profanity engine for the automod module
+- `@top-gg/sdk` + `topgg-autoposter` (added in runtime plan) - bot-list stats + vote webhooks
+- Lavalink (via a client lib chosen in the music module) - multi-node music with failover
+- `bad-words` ^4 - profanity engine for the automod module
 
 **tooling**
-- `tsup` (esbuild) — fast ESM bundle of the entry files
-- `tsx` — run/typecheck TS directly (dev + tests)
-- `@biomejs/biome` — lint + format (tabs); `noExplicitAny` is an error
-- `node:test` — test runner (run via `tsx`)
+- `tsup` (esbuild) - fast ESM bundle of the entry files
+- `tsx` - run/typecheck TS directly (dev + tests)
+- `@biomejs/biome` - lint + format (tabs); `noExplicitAny` is an error
+- `node:test` - test runner (run via `tsx`)
 
 ## gotchas
 
-- `@keyv/redis` v4 takes a **connection URL**, not an ioredis instance — Rostra keeps a separate ioredis
+- `@keyv/redis` v4 takes a **connection URL**, not an ioredis instance - Rostra keeps a separate ioredis
   client only for raw sorted-set ops.
 - tsup/esbuild does not resolve tsconfig `@/*` path aliases or `.ts` import extensions by default; this
   must be handled when wiring the build entry points (runtime plan).

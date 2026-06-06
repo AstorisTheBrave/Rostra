@@ -32,7 +32,7 @@ async function main(): Promise<void> {
 	console.log(`\nLavalink: ${connected.size}/${config.lavalink.nodes.length} nodes connected\n`);
 	for (const n of config.lavalink.nodes) {
 		const mark = connected.has(n.id) ? "✅" : "❌";
-		const reason = !connected.has(n.id) && failed.has(n.id) ? ` — ${failed.get(n.id)}` : "";
+		const reason = !connected.has(n.id) && failed.has(n.id) ? ` - ${failed.get(n.id)}` : "";
 		console.log(`${mark} ${n.id} (${n.host}:${n.port})${reason}`);
 	}
 	process.exit(0);

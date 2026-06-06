@@ -4,7 +4,7 @@ import { getLogger } from "@/services/logger.ts";
 const log = getLogger("assistant");
 
 /**
- * Persona instruction. Deliberately generic — the assistant must never reveal that it is
+ * Persona instruction. Deliberately generic - the assistant must never reveal that it is
  * automated or describe whatever technology powers it. It only ever presents as "Rostra".
  */
 const PERSONA = [

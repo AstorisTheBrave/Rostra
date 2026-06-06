@@ -169,8 +169,8 @@ function formatCaseLine(c: {
 	createdAt: Date;
 }): string {
 	const when = Math.floor(c.createdAt.getTime() / 1000);
-	const reason = c.reason ?? "—";
-	return `**#${c.caseNumber}** \`${c.type}\` <@${c.targetId}> — ${reason} • <t:${when}:R> by <@${c.moderatorId}>`;
+	const reason = c.reason ?? "-";
+	return `**#${c.caseNumber}** \`${c.type}\` <@${c.targetId}> - ${reason} • <t:${when}:R> by <@${c.moderatorId}>`;
 }
 
 async function ok(
@@ -402,7 +402,7 @@ const moderation: BotModule = {
 		"error.targetHigher": "You can't moderate a member with an equal or higher role.",
 		"error.botTargetHigher": "I can't moderate a member with an equal or higher role than me.",
 		"error.botNotInGuild": "I'm not a member of this server.",
-		"error.actionFailed": "That action failed — check my permissions and role position.",
+		"error.actionFailed": "That action failed - check my permissions and role position.",
 		"error.notBanned": "That user is not banned.",
 		"error.notKickable": "I can't kick that member.",
 		"error.notModeratable": "I can't moderate that member.",

@@ -60,7 +60,7 @@ export async function initMusic(client: Client): Promise<void> {
 		void announce(client, player.textChannelId, "⏹️ Queue finished.");
 	});
 
-	// "raw" is emitted by the client but not part of the typed ClientEvents — register directly.
+	// "raw" is emitted by the client but not part of the typed ClientEvents - register directly.
 	(client as unknown as { on(event: string, listener: (packet: unknown) => void): void }).on(
 		"raw",
 		(packet) => handleRaw(packet),

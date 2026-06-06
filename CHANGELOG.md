@@ -16,7 +16,7 @@ All notable changes to Rostra are documented here. The format is based on
 
 ## [0.1.0] - 2026-06-05
 
-First release — a full all-in-one bot unifying 15 legacy bots into one sharded TypeScript platform.
+First release - a full all-in-one bot unifying 15 legacy bots into one sharded TypeScript platform.
 
 ### Added
 
@@ -25,7 +25,7 @@ First release — a full all-in-one bot unifying 15 legacy bots into one sharded
 - Cached singletons: `config` (Zod-validated env), `getPrisma()` (PostgreSQL), `getCache()`/`getRedis()`, `getLogger()`.
 - `BotClient` with auto-discovered modules and command/event/interaction/job loaders.
 - Command pipeline: permission guard → cooldown → error boundary, with a `safeAck` auto-defer (+ heartbeat) so slow handlers never miss Discord's 3s deadline.
-- `@/ui` Components-V2 library (buttons, selects, modals, layout, patterns) — the single source of truth for all UI.
+- `@/ui` Components-V2 library (buttons, selects, modals, layout, patterns) - the single source of truth for all UI.
 - i18n helper, BullMQ job queue (in-memory fallback), Fastify health endpoint + top.gg webhook/autoposter, graceful shutdown.
 
 **Feature modules**

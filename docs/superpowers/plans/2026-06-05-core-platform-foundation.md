@@ -1,14 +1,14 @@
-# Core Platform — Foundation Implementation Plan
+# Core Platform - Foundation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the tested foundation layer of the Rostra bot — project scaffold plus the four cached singletons (config, logger, database, cache), the Components-V2 UI kit, the i18n helper, and the sharding IPC abstraction — so feature modules and the runtime layer have a solid, isolated base.
+**Goal:** Build the tested foundation layer of the Rostra bot - project scaffold plus the four cached singletons (config, logger, database, cache), the Components-V2 UI kit, the i18n helper, and the sharding IPC abstraction - so feature modules and the runtime layer have a solid, isolated base.
 
 **Architecture:** Single modular ESM TypeScript package. Each concern is a small focused file under `src/` exporting a cached accessor (`config`, `getLogger`, `getPrisma`, `getCache`). UI is Components V2 only (no embeds). All env access funnels through one Zod-validated loader. The sharding IPC layer is an interface with a native implementation now and a hybrid implementation swappable by config later.
 
 **Tech Stack:** Node 20+ (ESM), TypeScript 5 strict, discord.js v14, Prisma + PostgreSQL, ioredis + Keyv, Pino, Zod, Biome, tsup, tsx, node:test (via tsx import).
 
-**Conventions (enforced as CIT invariants — see `CLAUDE.md`):** no `any`; ESM only; no `process.env` outside `config.ts`; no `new PrismaClient()` outside `database.ts`; Components V2 only; undercover mode (zero AI-provider references anywhere).
+**Conventions (enforced as CIT invariants - see `CLAUDE.md`):** no `any`; ESM only; no `process.env` outside `config.ts`; no `new PrismaClient()` outside `database.ts`; Components V2 only; undercover mode (zero AI-provider references anywhere).
 
 ---
 
@@ -168,7 +168,7 @@ LOG_LEVEL=info
 # Database (Postgres)
 DATABASE_URL=postgresql://user:pass@localhost:5432/rostra?connection_limit=5&pool_timeout=15
 
-# Cache / queues (optional — in-memory fallback if unset)
+# Cache / queues (optional - in-memory fallback if unset)
 REDIS_URL=
 
 # Web (health + webhooks)
@@ -179,12 +179,12 @@ HOST=0.0.0.0
 SHARD_COUNT=
 SHARDING_MODE=native
 
-# AI (neutral names — provider is an implementation detail)
+# AI (neutral names - provider is an implementation detail)
 AI_API_KEY=
 AI_BASE_URL=
 AI_MODEL=
 
-# Music (Lavalink — JSON array of nodes with failover)
+# Music (Lavalink - JSON array of nodes with failover)
 LAVALINK_NODES=[]
 LAVALINK_RECONNECT_TRIES=5
 LAVALINK_RESUME=true
@@ -224,7 +224,7 @@ git commit -m "chore: scaffold project tooling and config"
 
 ---
 
-## Task 1: `config.ts` — Zod env loader
+## Task 1: `config.ts` - Zod env loader
 
 **Files:**
 - Create: `src/config.ts`
@@ -274,7 +274,7 @@ test("loadConfig parses LAVALINK_NODES json array", async () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `node --import tsx --test src/config.test.ts`
-Expected: FAIL — cannot find module `./config.ts`.
+Expected: FAIL - cannot find module `./config.ts`.
 
 - [ ] **Step 3: Write `src/config.ts`**
 
@@ -377,7 +377,7 @@ export const config: Config = (cached ??= loadConfig());
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `node --import tsx --test src/config.test.ts`
-Expected: PASS (3 tests). The eager `config` export will throw if real env is missing — guard tests import only `loadConfig`, which they do.
+Expected: PASS (3 tests). The eager `config` export will throw if real env is missing - guard tests import only `loadConfig`, which they do.
 
 - [ ] **Step 5: Commit**
 
@@ -388,7 +388,7 @@ git commit -m "feat: add zod-validated cached env config loader"
 
 ---
 
-## Task 2: `services/logger.ts` — Pino singleton
+## Task 2: `services/logger.ts` - Pino singleton
 
 **Files:**
 - Create: `src/services/logger.ts`
@@ -414,7 +414,7 @@ test("getLogger returns a child logger bound to scope", async () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `node --import tsx --test src/services/logger.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Write `src/services/logger.ts`**
 
@@ -451,7 +451,7 @@ export { root as logger };
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `node --import tsx --test src/services/logger.test.ts`
-Expected: PASS. (Requires real env for the eager `config` import — set `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `DATABASE_URL` in a local `.env` or export them, or run via `node --import tsx --env-file=.env --test`.)
+Expected: PASS. (Requires real env for the eager `config` import - set `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `DATABASE_URL` in a local `.env` or export them, or run via `node --import tsx --env-file=.env --test`.)
 
 > Add `--env-file=.env` to the `test` script if env-coupled tests are run locally. Pure tests (config) don't need it.
 
@@ -576,7 +576,7 @@ test("getPrisma returns a cached singleton", async () => {
 - [ ] **Step 4: Run test to verify it fails**
 
 Run: `node --import tsx --test src/services/database.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 5: Write `src/services/database.ts`**
 
@@ -611,7 +611,7 @@ export async function disconnectPrisma(): Promise<void> {
 - [ ] **Step 6: Run test to verify it passes**
 
 Run: `node --import tsx --env-file=.env --test src/services/database.test.ts`
-Expected: PASS (does not connect to DB — only constructs the client).
+Expected: PASS (does not connect to DB - only constructs the client).
 
 - [ ] **Step 7: Commit**
 
@@ -622,7 +622,7 @@ git commit -m "feat: add prisma core schema and cached getPrisma singleton"
 
 ---
 
-## Task 4: `services/cache.ts` — Redis/Keyv with memory fallback
+## Task 4: `services/cache.ts` - Redis/Keyv with memory fallback
 
 **Files:**
 - Create: `src/services/cache.ts`
@@ -658,7 +658,7 @@ test("withCache computes once then serves cached", async () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `node --import tsx --env-file=.env --test src/services/cache.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Write `src/services/cache.ts`**
 
@@ -683,7 +683,7 @@ function init(): Keyv {
 		log.info("cache backed by redis");
 	} else {
 		keyv = new Keyv({ namespace: "rostra" });
-		log.warn("REDIS_URL unset — using in-memory cache (not shared across shards)");
+		log.warn("REDIS_URL unset - using in-memory cache (not shared across shards)");
 	}
 	keyv.on("error", (err) => log.error({ err }, "cache error"));
 	return keyv;
@@ -744,7 +744,7 @@ git commit -m "feat: add cache singleton with redis and in-memory fallback"
 
 ---
 
-## Task 5: `utils/components.ts` — Components V2 kit
+## Task 5: `utils/components.ts` - Components V2 kit
 
 **Files:**
 - Create: `src/utils/components.ts`
@@ -781,7 +781,7 @@ test("errorContainer sets a red accent and message", async () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `node --import tsx --test src/utils/components.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Write `src/utils/components.ts`**
 
@@ -829,7 +829,7 @@ export function errorContainer(message: string): ContainerBuilder {
 
 type TopLevel = ContainerBuilder | TextDisplayBuilder | SeparatorBuilder;
 
-/** Wraps components into a V2 reply payload — always sets IsComponentsV2. */
+/** Wraps components into a V2 reply payload - always sets IsComponentsV2. */
 export function buildResponse(
 	components: TopLevel[],
 	opts: { ephemeral?: boolean } = {},
@@ -875,7 +875,7 @@ git commit -m "feat: add components v2 ui kit (no legacy embeds)"
 
 ---
 
-## Task 6: `i18n/index.ts` — translation helper
+## Task 6: `i18n/index.ts` - translation helper
 
 **Files:**
 - Create: `src/i18n/locales/en/common.json`, `src/i18n/index.ts`
@@ -888,7 +888,7 @@ git commit -m "feat: add components v2 ui kit (no legacy embeds)"
 	"error.generic": "Something went wrong. Please try again.",
 	"error.missingPermissions": "You don't have permission to do that.",
 	"error.botMissingPermissions": "I'm missing the permissions needed for that.",
-	"error.cooldown": "Slow down — try again in {seconds}s.",
+	"error.cooldown": "Slow down - try again in {seconds}s.",
 	"ping.pong": "Pong! {ms}ms"
 }
 ```
@@ -919,7 +919,7 @@ test("registerLocale merges module strings under a namespace", async () => {
 - [ ] **Step 3: Run test to verify it fails**
 
 Run: `node --import tsx --test src/i18n/index.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 4: Write `src/i18n/index.ts`**
 
@@ -964,7 +964,7 @@ git commit -m "feat: add i18n helper with namespaced locale registration"
 
 ---
 
-## Task 7: `cluster/ipc.ts` — sharding abstraction
+## Task 7: `cluster/ipc.ts` - sharding abstraction
 
 **Files:**
 - Create: `src/cluster/ipc.ts`
@@ -990,7 +990,7 @@ test("createIpc returns a no-op shard context when client has no shard", async (
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `node --import tsx --test src/cluster/ipc.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Write `src/cluster/ipc.ts`**
 
@@ -1026,7 +1026,7 @@ class NativeIpc implements Ipc {
 /**
  * Returns the IPC implementation for the current sharding mode.
  * Modules use this interface only; swapping to hybrid-sharding later is a
- * config change (`SHARDING_MODE=hybrid`) plus a HybridIpc class — no module edits.
+ * config change (`SHARDING_MODE=hybrid`) plus a HybridIpc class - no module edits.
  */
 export function createIpc(client: Client): Ipc {
 	// Hybrid implementation is added in the runtime plan when the dep is introduced.
@@ -1069,7 +1069,7 @@ Expected: no errors (warnings acceptable). Fix with `npm run lint:fix` if needed
 - [ ] **Step 3: Run the full test suite**
 
 Run: `node --import tsx --env-file=.env --test "src/**/*.test.ts"`
-Expected: all tests PASS. (Create a local `.env` from `.env.example` with placeholder `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `DATABASE_URL` — no live services required for these tests.)
+Expected: all tests PASS. (Create a local `.env` from `.env.example` with placeholder `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `DATABASE_URL` - no live services required for these tests.)
 
 - [ ] **Step 4: Commit any lint fixes and push**
 
@@ -1096,7 +1096,7 @@ git push origin main
 
 **Deferred to Plan 1b (Runtime):** BotClient + loaders, command pipeline (perms/cooldown/error boundary), interaction router, jobs/BullMQ, Fastify health + top.gg webhook, top.gg autoposter + `services/topgg.ts`, `cluster.ts`/`bot.ts` entries, graceful shutdown, deploy-commands, Dockerfile/compose/README, CI (incl. `EmbedBuilder` grep guard).
 
-**Placeholder scan:** none — every step has complete code or an exact command.
+**Placeholder scan:** none - every step has complete code or an exact command.
 
 **Type consistency:** `getPrisma`, `getCache`/`getRedis`, `getLogger(scope)`, `config`, `t(key,vars,locale)`, `registerLocale`, `createIpc(client)`, `buildResponse`/`reply.*` names are consistent across tasks and match the runtime plan's expected imports.
 

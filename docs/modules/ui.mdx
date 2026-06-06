@@ -6,7 +6,7 @@ status: stable
 
 ## what this is
 
-The bot's UI toolkit — a single place that exports every reusable building block for what users see and
+The bot's UI toolkit - a single place that exports every reusable building block for what users see and
 click (buttons, menus, modals, confirm dialogs, settings toggles, pagination, layout containers). Like a
 component library (shadcn-style) but for Discord's Components V2. Future features import ready-made pieces
 instead of re-writing builder boilerplate.
@@ -20,26 +20,26 @@ instead of re-writing builder boilerplate.
 - layout primitives (re-exported): `src/utils/components.ts`
 - tests: `src/ui/ui.test.ts`
 
-**import** — `import { container, text, button, actionRow, confirmRow, settingsPanel, paginatorRow, reply } from "@/ui";`
+**import** - `import { container, text, button, actionRow, confirmRow, settingsPanel, paginatorRow, reply } from "@/ui";`
 
-**primitives (interactive.ts)** — `button(spec)`, `linkButton(label,url)`, `actionRow(...)`,
+**primitives (interactive.ts)** - `button(spec)`, `linkButton(label,url)`, `actionRow(...)`,
 `buttonGrid(buttons)` (auto-chunks to 5×5), `stringSelect(id, options, opts)`, `modal(id, title, inputs)`,
 `textInput(spec)`.
 
-**patterns (patterns.ts)** — `confirmRow(prefix)` (Confirm/Cancel), `toggleButton(prefix, key, enabled,
+**patterns (patterns.ts)** - `confirmRow(prefix)` (Confirm/Cancel), `toggleButton(prefix, key, enabled,
 label)` + `settingsPanel(prefix, items)` (on/off config grid), `paginatorRow(prefix, page, totalPages)`
 (prev/indicator/next with auto-disabled edges).
 
-**layout (from components.ts)** — `container`, `text`, `section`, `gallery`, `divider`, `Accent`,
+**layout (from components.ts)** - `container`, `text`, `section`, `gallery`, `divider`, `Accent`,
 `buildResponse`, and the `reply.*` helpers.
 
 ## gotchas
 
 - **customId convention is the contract:** patterns emit ids like `module:action:arg`. The owning module's
-  `ComponentHandler` (prefix = module name) provides the behaviour — the library gives you the Button, you
+  `ComponentHandler` (prefix = module name) provides the behaviour - the library gives you the Button, you
   wire the "onClick". Keep prefixes unique per module.
 - `button()` always sets `disabled` to a concrete boolean. Action buttons need `id`; link buttons need `url`
   (mutually exclusive).
-- `@/ui` re-exports `@/utils/components.ts`, so it's a superset — existing modules importing the latter keep
+- `@/ui` re-exports `@/utils/components.ts`, so it's a superset - existing modules importing the latter keep
   working; new code should import from `@/ui`.
-- Pure builders, no side effects — fully unit-tested.
+- Pure builders, no side effects - fully unit-tested.

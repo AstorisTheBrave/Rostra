@@ -319,7 +319,7 @@ const tickets: BotModule = {
 		"status.unconfigured": "Tickets are not set up. Use `/ticket enable` and `/ticket panel`.",
 		"error.disabled": "The ticket system is disabled here.",
 		"error.alreadyOpen": "You already have an open ticket.",
-		"error.createFailed": "Couldn't create the ticket channel — check my permissions.",
+		"error.createFailed": "Couldn't create the ticket channel - check my permissions.",
 		"error.notTicket": "This isn't a ticket channel.",
 		"error.badChannel": "Use this in a text channel.",
 	},

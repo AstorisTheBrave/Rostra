@@ -17,15 +17,15 @@ Rewards members who advertise the server: if a member's status/activity text con
 - config + matcher: `src/modules/vanityroles/service.ts` (+ `service.test.ts`)
 - model: `prisma/schema.prisma` → `VanityRoleConfig`
 
-**command** — `/vanityrole set <keyword> <role>` · `/vanityrole disable` · `/vanityrole status`
+**command** - `/vanityrole set <keyword> <role>` · `/vanityrole disable` · `/vanityrole status`
 (Manage Server).
 
-**event** — `presenceUpdate`: scans the member's activity `name`/`state`/`details` for the keyword
+**event** - `presenceUpdate`: scans the member's activity `name`/`state`/`details` for the keyword
 (`statusMatches`, tested) and adds/removes the role.
 
 ## gotchas
 
-- **Requires the `GuildPresences` privileged intent** — added to BotClient; it must also be enabled in the
+- **Requires the `GuildPresences` privileged intent** - added to BotClient; it must also be enabled in the
   Discord Developer Portal for presence events to arrive.
 - Only assigns roles the bot can manage (`role.editable`). Config is cached per guild.
 - Requires `prisma migrate` for `VanityRoleConfig`.

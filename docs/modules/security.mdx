@@ -20,31 +20,31 @@ did it (from Discord's audit log), checks whether they're trusted, and if not, p
 - config + punishment: `src/modules/security/service.ts`
 - model: `prisma/schema.prisma` → `AntinukeConfig`
 
-**command** — `/security` (Administrator-only): `enable`, `disable`, `status`, `punishment <ban|kick|
+**command** - `/security` (Administrator-only): `enable`, `disable`, `status`, `punishment <ban|kick|
 strip>`, `logchannel <channel>`, `notify <bool>`, `module <name> <bool>`, and groups `whitelist
 add|remove` and `extraowner add|remove`.
 
-**protections (gateway events → audit type)** — `antiChannel` (channelCreate/Delete),
+**protections (gateway events → audit type)** - `antiChannel` (channelCreate/Delete),
 `antiRole` (roleCreate/Delete), `antiBan` (guildBanAdd), `antiKick` (guildMemberRemove → MemberKick),
 `antiBotAdd` (guildMemberAdd for bots), `antiWebhook` (webhooksUpdate), `antiGuildUpdate` (guildUpdate).
 
 **exports (service.ts)**
-- `getConfig/upsertConfig/invalidate` — cached per-guild config
-- `isTrusted({ userId, botId, ownerId, extraOwners, whitelist })` — pure trust check
-- `punish(guild, config, userId, reason)` — hierarchy-checked ban/kick/strip + log + owner DM
+- `getConfig/upsertConfig/invalidate` - cached per-guild config
+- `isTrusted({ userId, botId, ownerId, extraOwners, whitelist })` - pure trust check
+- `punish(guild, config, userId, reason)` - hierarchy-checked ban/kick/strip + log + owner DM
 
 **depends on**
 - `@/client/defineEvent` (events), `@/services/database` (config + cache), `@/utils/components` (logs)
 
 ## gotchas
 
-- Detection relies on Discord's **audit log**, which can lag the gateway event slightly — `resolveAudit
+- Detection relies on Discord's **audit log**, which can lag the gateway event slightly - `resolveAudit
   Executor` retries once after 500ms and only matches entries within an 8s TTL.
 - An absent `AntinukeConfig` row means antinuke was never set up (treated as disabled). `getConfig`
   caches the row (including the null) per process; `upsertConfig` refreshes the cache.
-- Trusted = bot itself, guild owner, extra owners, or whitelisted users — never punished.
+- Trusted = bot itself, guild owner, extra owners, or whitelisted users - never punished.
 - Bot-vs-target role hierarchy is checked before punishing; punishment falls back to stripping roles if
   the primary action fails.
 - v1 punishes (deterrent) but does not auto-revert deleted channels/roles, and does not yet implement
-  threshold/panic mode (i-karen's advanced layer) — candidates for a later pass.
+  threshold/panic mode (i-karen's advanced layer) - candidates for a later pass.
 - Requires `prisma migrate` to create the `AntinukeConfig` table.

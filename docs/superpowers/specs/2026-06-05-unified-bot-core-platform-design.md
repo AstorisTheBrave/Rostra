@@ -1,4 +1,4 @@
-# Design Spec — Unified Discord Bot: Core Platform (Sub-project 1)
+# Design Spec - Unified Discord Bot: Core Platform (Sub-project 1)
 
 **Date:** 2026-06-05
 **Status:** Approved (architecture); pending spec review
@@ -10,11 +10,11 @@
 
 Replace 15 archived Discord bots (8 Node/discord.js, 5 Python/discord.py + variants) with one production-grade, sharded TypeScript bot. This spec defines the **shared foundation** every feature module plugs into: process topology, config, data layer, client, loaders, command framework, UI kit, i18n, cross-cutting concerns, and ops.
 
-Feature modules (moderation, security, automod, economy, leveling, tickets, music, games, ai, etc.) are **out of scope here** — each gets its own spec → plan → build cycle layered on this core.
+Feature modules (moderation, security, automod, economy, leveling, tickets, music, games, ai, etc.) are **out of scope here** - each gets its own spec → plan → build cycle layered on this core.
 
 ## 2. Hard Constraints (invariants)
 
-1. **Undercover mode:** zero references to Anthropic/Claude/OpenAI/Groq/any AI provider anywhere — code, comments, strings, status, errors, package.json, README, commits. AI replies as bot persona only; model is hidden. Neutral env names (`AI_API_KEY`, `AI_BASE_URL`).
+1. **Undercover mode:** zero references to Anthropic/Claude/OpenAI/Groq/any AI provider anywhere - code, comments, strings, status, errors, package.json, README, commits. AI replies as bot persona only; model is hidden. Neutral env names (`AI_API_KEY`, `AI_BASE_URL`).
 2. No `process.env` access outside `src/config.ts`.
 3. No `new PrismaClient()` outside `src/services/database.ts`; all access via `getPrisma()`.
 4. **Components V2 only** (`MessageFlags.IsComponentsV2`); no legacy embeds.
@@ -40,7 +40,7 @@ Feature modules (moderation, security, automod, economy, leveling, tickets, musi
 | Build | tsup (ESM bundle) |
 | Lint/format | Biome (tabs) |
 | Profanity | `bad-words` (automod module) |
-| Music | Lavalink (multi-node + failover) via a client lib (`lavalink-client`/shoukaku) — music module |
+| Music | Lavalink (multi-node + failover) via a client lib (`lavalink-client`/shoukaku) - music module |
 | Bot list | `@top-gg/sdk` (`Api`, `Webhook`) + `topgg-autoposter` |
 
 ## 4. Process Topology
@@ -60,7 +60,7 @@ cluster.ts  (manager process)
 ```
 
 - **Shard count:** `'auto'` (Discord-recommended) unless `SHARD_COUNT` env set.
-- **IPC abstraction:** `cluster/ipc.ts` exposes `broadcast(fn)`, `fetchValues(prop)`, `send(channel, payload)`, `respawnAll()`. Backed by native `ShardingManager`/`ShardClientUtil` now; a `SHARDING_MODE=hybrid` flag selects a `discord-hybrid-sharding` implementation behind the same interface later — modules never call the sharding lib directly.
+- **IPC abstraction:** `cluster/ipc.ts` exposes `broadcast(fn)`, `fetchValues(prop)`, `send(channel, payload)`, `respawnAll()`. Backed by native `ShardingManager`/`ShardClientUtil` now; a `SHARDING_MODE=hybrid` flag selects a `discord-hybrid-sharding` implementation behind the same interface later - modules never call the sharding lib directly.
 
 ## 5. Directory Layout
 
@@ -69,7 +69,7 @@ src/
   cluster/        cluster.ts (manager entry), ipc.ts (sharding abstraction)
   client/         BotClient.ts, loaders/{commands,events,interactions,jobs}.ts
   modules/        <feature>/index.ts → { commands, events, interactions, jobs, i18n }
-  commands/       (none global; commands live in modules — folder reserved for truly shared)
+  commands/       (none global; commands live in modules - folder reserved for truly shared)
   events/         core lifecycle events not owned by a module (ready, error)
   services/       database.ts (getPrisma), cache.ts (getCache), logger.ts (getLogger)
   interactions/   router.ts (customId "module:action:scope:arg" dispatch)
@@ -93,7 +93,7 @@ package.json, .env.example, README.md
 ## 6. Core Components
 
 ### 6.1 `config.ts`
-Single Zod schema for all env vars (collected from the catalogue). Parses `process.env` once at import, validates, freezes, exports typed `config`. Throws a clear aggregated error on missing/invalid vars at boot. Sections: discord (token, clientId, ownerIds, devGuildId), database (`DATABASE_URL`, pool size), redis (`REDIS_URL?`), web (`PORT`, `HOST`), sharding (`SHARD_COUNT?`, `SHARDING_MODE`), logging (`LOG_LEVEL`, `NODE_ENV`), ai (`AI_API_KEY?`, `AI_BASE_URL?`, `AI_MODEL?` — neutral names), music (`LAVALINK_NODES` JSON array, `LAVALINK_RECONNECT_TRIES?`, `LAVALINK_RESUME?`, `LAVALINK_REST_TIMEOUT?`), topgg (`TOPGG_TOKEN?`, `TOPGG_WEBHOOK_AUTH?`, `TOPGG_BOT_ID?`), feature webhooks. All optional integrations no-op when unset. No raw `process.env` elsewhere.
+Single Zod schema for all env vars (collected from the catalogue). Parses `process.env` once at import, validates, freezes, exports typed `config`. Throws a clear aggregated error on missing/invalid vars at boot. Sections: discord (token, clientId, ownerIds, devGuildId), database (`DATABASE_URL`, pool size), redis (`REDIS_URL?`), web (`PORT`, `HOST`), sharding (`SHARD_COUNT?`, `SHARDING_MODE`), logging (`LOG_LEVEL`, `NODE_ENV`), ai (`AI_API_KEY?`, `AI_BASE_URL?`, `AI_MODEL?` - neutral names), music (`LAVALINK_NODES` JSON array, `LAVALINK_RECONNECT_TRIES?`, `LAVALINK_RESUME?`, `LAVALINK_REST_TIMEOUT?`), topgg (`TOPGG_TOKEN?`, `TOPGG_WEBHOOK_AUTH?`, `TOPGG_BOT_ID?`), feature webhooks. All optional integrations no-op when unset. No raw `process.env` elsewhere.
 
 ### 6.2 `services/database.ts`
 `getPrisma()` → lazy singleton `PrismaClient` per process, cached at module scope. Configured with `connection_limit` from config (≈5/shard). Logs queries in dev. Exposes `disconnectPrisma()` for graceful shutdown.
@@ -177,12 +177,12 @@ Flat standalone reserved for high-frequency only (e.g. `/ping`, `/help`).
 ## 9a. External Integrations
 
 ### top.gg (bot listing)
-- **Stats autoposting** runs in the **manager process** (`cluster.ts`), not per-shard: a scheduled task aggregates `serverCount` across all shards via `ipc.fetchValues('guilds.cache.size')`, sums it, then `new Api(config.topgg.token).postStats({ serverCount, shardCount })`. (Per-shard `topgg-autoposter` would post partial counts — avoided.) Posts every 30 min; skipped if `TOPGG_TOKEN` unset.
+- **Stats autoposting** runs in the **manager process** (`cluster.ts`), not per-shard: a scheduled task aggregates `serverCount` across all shards via `ipc.fetchValues('guilds.cache.size')`, sums it, then `new Api(config.topgg.token).postStats({ serverCount, shardCount })`. (Per-shard `topgg-autoposter` would post partial counts - avoided.) Posts every 30 min; skipped if `TOPGG_TOKEN` unset.
 - **Vote webhook** mounted on the Fastify health server at `POST /votes/topgg`. Uses `@top-gg/sdk` `Webhook(config.topgg.webhookAuth)` verification (rejects bad/missing auth). On a valid `vote` ({ user, bot, type, isWeekend, query }), the manager forwards via IPC to the shard owning that user's mutual guilds (or broadcasts) → a `voteService` records the vote in Postgres (`UserVote` model: userId, votedAt, isWeekend, source) and emits an internal `vote` event modules can subscribe to (e.g. economy reward, perk role). Weekend votes flagged for double rewards.
 - **`hasVoted(userId)`** helper in a shared `services/topgg.ts` (lazy `Api` singleton, cached result with short Redis TTL) so any module can gate perks on a recent vote and prompt non-voters with a V2 vote button.
-- Config is optional — all of the above no-ops cleanly when top.gg env is absent.
+- Config is optional - all of the above no-ops cleanly when top.gg env is absent.
 
-### Lavalink (music) — multi-node + failover
+### Lavalink (music) - multi-node + failover
 - Music module connects to **multiple Lavalink nodes with automatic failover**. Nodes are configured as a JSON array in env: `LAVALINK_NODES` = `[{ "id","host","port","password","secure" }, ...]` (parsed + Zod-validated in `config.ts` into `config.lavalink.nodes`).
 - The music client (`lavalink-client` or shoukaku, decided in the music module spec) is initialized with all nodes; on node disconnect/error it migrates active players to the next healthy node (`moveOnDisconnect`/resume). Node health + reconnect/retry settings are env-tunable (`LAVALINK_RECONNECT_TRIES`, `LAVALINK_RESUME`, `LAVALINK_REST_TIMEOUT`).
 - Core platform only reserves the validated `config.lavalink` shape + the `cluster/ipc.ts` voice-state plumbing; actual player logic is the music module spec.
@@ -191,7 +191,7 @@ Flat standalone reserved for high-frequency only (e.g. `/ping`, `/help`).
 
 - `Dockerfile` (multi-stage, Node 20 alpine, tsup build) + `docker-compose.yml` (bot, postgres, pgbouncer, redis, lavalink optional). No provider names anywhere.
 - Scripts: `dev` (tsx watch), `build` (tsup), `start` (node dist cluster), `deploy:commands`, `lint` (biome), `migrate` (prisma), `migrate:data` (per-bot importers).
-- `README.md`: setup, env, deploy — undercover-clean.
+- `README.md`: setup, env, deploy - undercover-clean.
 - CI later: typecheck + biome + tests.
 
 ## 11. Migration / Decommission
@@ -211,6 +211,6 @@ Feature module implementations; Lavalink/music internals; AI persona/provider wi
 ## 14. Open Items
 
 - Bot name: ✅ **Rostra**. Repo: https://github.com/AstorisTheBrave/Rostra (private). AI module persona speaks as "Rostra"; exact status/activity strings TBD at deploy (undercover-clean).
-- Lavalink: ✅ multiple nodes with fallback — `LAVALINK_NODES` JSON array (§9a). Concrete node values supplied at deploy.
-- GitHub private repo: ✅ approved — created via `gh`.
-- top.gg: ✅ integrated (§9a) — autopost from manager, vote webhook on Fastify, `hasVoted` helper.
+- Lavalink: ✅ multiple nodes with fallback - `LAVALINK_NODES` JSON array (§9a). Concrete node values supplied at deploy.
+- GitHub private repo: ✅ approved - created via `gh`.
+- top.gg: ✅ integrated (§9a) - autopost from manager, vote webhook on Fastify, `hasVoted` helper.

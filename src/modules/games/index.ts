@@ -171,7 +171,7 @@ const games: BotModule = {
 		"ttt.notYourTurn": "It's not your turn.",
 		"rps.prompt": "# ✊ Rock-Paper-Scissors\nPick your move:",
 		"rps.win": "🎉 You won! **{player}** beats **{bot}**.",
-		"rps.lose": "😢 You lost — **{bot}** beats **{player}**.",
+		"rps.lose": "😢 You lost - **{bot}** beats **{player}**.",
 		"rps.draw": "🤝 Draw! You both picked **{player}**.",
 	},
 };

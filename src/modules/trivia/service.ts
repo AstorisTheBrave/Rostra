@@ -73,7 +73,7 @@ export function buildOptions(correct: string, incorrect: string[]): TriviaOption
 	return { options, correctIndex: options.indexOf(correct) };
 }
 
-// ── Active sessions (in-memory, per shard — the message lives on this shard) ──
+// ── Active sessions (in-memory, per shard - the message lives on this shard) ──
 
 export interface TriviaSession {
 	correctIndex: number;

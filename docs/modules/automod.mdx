@@ -6,8 +6,8 @@ status: stable
 
 ## what this is
 
-Auto-moderation: automatically deletes (and optionally times out for) messages that break the rules —
-server invites, disallowed links, spam, mass mentions, profanity, or excessive CAPS — without a human
+Auto-moderation: automatically deletes (and optionally times out for) messages that break the rules -
+server invites, disallowed links, spam, mass mentions, profanity, or excessive CAPS - without a human
 moderator having to watch chat. Server staff configure which filters are on and how strict they are.
 
 ## technical map
@@ -18,17 +18,17 @@ moderator having to watch chat. Server staff configure which filters are on and 
 - pure detectors: `src/modules/automod/checks.ts` (+ `checks.test.ts`)
 - model: `prisma/schema.prisma` → `AutomodConfig`
 
-**command** — `/automod` (Manage Server): `enable`, `disable`, `status`, `action <delete|warn|timeout>`,
+**command** - `/automod` (Manage Server): `enable`, `disable`, `status`, `action <delete|warn|timeout>`,
 `module <name> <bool>`, `limits [spam_count] [mention_limit] [caps_percent] [timeout_minutes]`,
 `logchannel`, groups `exempt addrole|removerole|addchannel|removechannel` and `word add|remove`.
 
-**filters** — anti-invite, anti-link (with `allowedLinks` allow-list), anti-spam (N messages per window),
+**filters** - anti-invite, anti-link (with `allowedLinks` allow-list), anti-spam (N messages per window),
 anti-mass-mention, anti-profanity (via `bad-words` + per-guild `customWords`), anti-caps.
 
 **exports (service.ts)**
-- `getConfig/upsertConfig/invalidate` — cached config (and cached `bad-words` Filter per guild)
-- `checkMessage(message, config): Violation` — first matching rule or null
-- `enforce(message, config, violation)` — delete + optional timeout + log
+- `getConfig/upsertConfig/invalidate` - cached config (and cached `bad-words` Filter per guild)
+- `checkMessage(message, config): Violation` - first matching rule or null
+- `enforce(message, config, violation)` - delete + optional timeout + log
 
 **depends on**
 - `bad-words` (profanity engine), `@/client/defineEvent` (messageCreate), `@/services/database`,
@@ -38,7 +38,7 @@ anti-mass-mention, anti-profanity (via `bad-words` + per-guild `customWords`), a
 
 - Requires the **Message Content** intent (enabled on the bot) to read message text.
 - The `bad-words` `Filter` is cached per guild and rebuilt when config changes (custom words added).
-- Spam tracking is per-process in-memory (per guild+user sliding window) — at multi-shard scale a guild's
+- Spam tracking is per-process in-memory (per guild+user sliding window) - at multi-shard scale a guild's
   messages land on one shard, so this is correct; if that changes, move the bucket to Redis.
 - Checks run in a fixed order (invite → link → mention → caps → profanity → spam); the first hit wins.
 - Exempt roles/channels short-circuit all checks. Requires `prisma migrate` for the `AutomodConfig` table.

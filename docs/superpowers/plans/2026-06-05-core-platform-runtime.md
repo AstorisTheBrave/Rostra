@@ -1,4 +1,4 @@
-# Core Platform — Runtime Implementation Plan (1b)
+# Core Platform - Runtime Implementation Plan (1b)
 
 > **For agentic workers:** Execute task-by-task; TDD where unit-testable; commit per task. Live Discord
 > behavior (login, command registration) requires a real token and is verified by build/typecheck +
@@ -110,7 +110,7 @@ export interface BotModule {
 ```
 
 ```ts
-// src/client/defineEvent.ts — typed, no `any`
+// src/client/defineEvent.ts - typed, no `any`
 import type { ClientEvents } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
@@ -146,14 +146,14 @@ export function defineEvent<K extends keyof ClientEvents>(
 ## Tasks
 
 ### Task 1: Module contract types
-- Create `src/types/module.ts` (code above). Verify: `npm run typecheck` (will fail until BotClient exists — create a minimal stub first or do Task 2 together). Commit.
+- Create `src/types/module.ts` (code above). Verify: `npm run typecheck` (will fail until BotClient exists - create a minimal stub first or do Task 2 together). Commit.
 
 ### Task 2: BotClient + defineEvent
 - Create `src/client/BotClient.ts`: extends `Client` with correct intents/partials; holds
   `commands: Collection<string, SlashCommand>`, `components: ComponentHandler[]`, `cooldowns`;
   `ipc: Ipc` (set in init); `async init()` runs module discovery + loaders.
 - Create `src/client/defineEvent.ts` (code above).
-- Test: `src/client/BotClient.test.ts` — `new BotClient()` has empty `commands` collection and expected intents bitfield includes Guilds.
+- Test: `src/client/BotClient.test.ts` - `new BotClient()` has empty `commands` collection and expected intents bitfield includes Guilds.
 - Commit.
 
 ### Task 3: Module loader + command/event/interaction/job loaders
@@ -164,7 +164,7 @@ export function defineEvent<K extends keyof ClientEvents>(
 - `interactions.ts`: push module components into `client.components`.
 - `jobs.ts`: register jobs into the queue (Task 6).
 - Each loader registers i18n via `registerLocale("en", module.name, module.i18n)`.
-- Test: `src/client/loaders/modules.test.ts` — point loader at a temp fixture dir with one module file,
+- Test: `src/client/loaders/modules.test.ts` - point loader at a temp fixture dir with one module file,
   assert it returns the module with its command. Commit.
 
 ### Task 4: Command pipeline
@@ -183,13 +183,13 @@ export function defineEvent<K extends keyof ClientEvents>(
   - ChatInput → look up `client.commands`, call `runCommand`.
   - Autocomplete → call `cmd.autocomplete`.
   - Component/Modal → split `customId` on `:`, match `client.components` by `prefix`, call with rest args.
-- Test: `router.test.ts` — `parseCustomId("mod:ban:confirm:123")` helper returns `{ prefix:"mod", args:["ban","confirm","123"] }`. Commit.
+- Test: `router.test.ts` - `parseCustomId("mod:ban:confirm:123")` helper returns `{ prefix:"mod", args:["ban","confirm","123"] }`. Commit.
 
 ### Task 6: Job queue
 - `src/jobs/queue.ts`: if `getRedis()`, create BullMQ `Queue`/`Worker` per job; else an in-memory
   scheduler (setTimeout/cron via a tiny parser or `node-cron` if added). Expose `enqueue(name, payload)`
   and `registerJob(def)`.
-- Test: `queue.test.ts` — in-memory path: `registerJob` + `enqueue` runs the handler. Commit.
+- Test: `queue.test.ts` - in-memory path: `registerJob` + `enqueue` runs the handler. Commit.
 
 ### Task 7: top.gg service + web server + autopost
 - `src/services/topgg.ts`: lazy `Api` singleton (only if `config.topgg.token`); `hasVoted(userId)` with
@@ -198,7 +198,7 @@ export function defineEvent<K extends keyof ClientEvents>(
   getter); `/metrics`; `POST /votes/topgg` → verify `Authorization` against `config.topgg.webhookAuth`,
   parse body, `recordVote`.
 - `src/web/autopost.ts`: `startAutopost(getCount)` posts every 30 min if token set.
-- Test: `topgg.test.ts` — webhook auth check rejects wrong/missing header (pure function `verifyVoteAuth`).
+- Test: `topgg.test.ts` - webhook auth check rejects wrong/missing header (pure function `verifyVoteAuth`).
   Commit.
 
 ### Task 8: Entries + shutdown + deploy + build wiring
@@ -223,7 +223,7 @@ export function defineEvent<K extends keyof ClientEvents>(
 ### Task 10: Ops
 - `Dockerfile` (multi-stage node:20-alpine: install, prisma generate, build, run `dist/cluster.js`).
 - `docker-compose.yml`: services `bot`, `postgres`, `pgbouncer`, `redis`, optional `lavalink`.
-- `README.md`: setup, env, run, deploy — undercover-clean (no provider names).
+- `README.md`: setup, env, run, deploy - undercover-clean (no provider names).
 - `.github/workflows/ci.yml`: install → prisma generate → typecheck → lint → test → `grep -r "EmbedBuilder" src && exit 1 || true` guard.
 - Commit + update `docs/sessions/log.mdx` and `memory.md`.
 

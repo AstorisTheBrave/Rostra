@@ -20,7 +20,7 @@ const manager = new ShardingManager(botPath, {
 
 manager.on("shardCreate", (shard) => {
 	log.info({ shard: shard.id }, "shard spawned");
-	shard.on("death", () => log.error({ shard: shard.id }, "shard died — manager will respawn"));
+	shard.on("death", () => log.error({ shard: shard.id }, "shard died - manager will respawn"));
 });
 
 async function shardStats(): Promise<ShardStat[]> {

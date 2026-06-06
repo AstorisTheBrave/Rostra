@@ -17,15 +17,15 @@ Messages support placeholders so each one is personalized.
 - config + templating: `src/modules/welcome/service.ts` (+ `service.test.ts`)
 - model: `prisma/schema.prisma` → `WelcomeConfig`
 
-**command** — `/welcome` (Manage Server): `channel <welcome|goodbye> <channel>`,
+**command** - `/welcome` (Manage Server): `channel <welcome|goodbye> <channel>`,
 `message <welcome|goodbye|dm> <text>`, `toggle <welcome|goodbye|dm> <bool>`, `test`, `status`, and group
 `autorole add|remove <role>`.
 
-**placeholders** — `{user}` (mention), `{username}`, `{server}`, `{membercount}` via `formatMessage`.
+**placeholders** - `{user}` (mention), `{username}`, `{server}`, `{membercount}` via `formatMessage`.
 
-**exports (service.ts)** — `getConfig/upsertConfig/invalidate`, `formatMessage(template, ctx)`.
+**exports (service.ts)** - `getConfig/upsertConfig/invalidate`, `formatMessage(template, ctx)`.
 
-**events** — `guildMemberAdd` (autorole + welcome channel post + optional welcome DM),
+**events** - `guildMemberAdd` (autorole + welcome channel post + optional welcome DM),
 `guildMemberRemove` (goodbye channel post).
 
 ## gotchas

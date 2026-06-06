@@ -17,7 +17,7 @@ export interface BotStats {
  */
 export function startAutopost(getStats: () => Promise<BotStats>): NodeJS.Timeout | undefined {
 	if (!config.topgg.token) {
-		log.info("TOPGG_TOKEN unset — stats autoposting disabled");
+		log.info("TOPGG_TOKEN unset - stats autoposting disabled");
 		return undefined;
 	}
 	const api = new Api(config.topgg.token);

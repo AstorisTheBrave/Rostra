@@ -16,12 +16,12 @@ and tracks each player's correct answers with a leaderboard.
 - question fetch, shuffle, sessions, scores: `src/modules/trivia/service.ts` (+ `service.test.ts`)
 - model: `prisma/schema.prisma` → `TriviaScore`
 
-**command** — `/trivia play | score [user] | leaderboard`.
+**command** - `/trivia play | score [user] | leaderboard`.
 
-**button (ComponentHandler `prefix: "trivia"`, `deferEphemeral`)** — `trivia:answer:<token>:<index>`;
+**button (ComponentHandler `prefix: "trivia"`, `deferEphemeral`)** - `trivia:answer:<token>:<index>`;
 checks the answer, records the score, replies privately right/wrong.
 
-**exports (service.ts)** — `fetchQuestion` (OTDB, `encode=url3986` + `decodeURIComponent`), pure
+**exports (service.ts)** - `fetchQuestion` (OTDB, `encode=url3986` + `decodeURIComponent`), pure
 `buildOptions(correct, incorrect)` (Fisher–Yates shuffle + `correctIndex`), `startSession/getSession`
 (in-memory round state), `recordAnswer/getScore/leaderboard`.
 
@@ -29,7 +29,7 @@ checks the answer, records the score, replies privately right/wrong.
 
 - Uses the OTDB `encode=url3986` option so answers decode cleanly with `decodeURIComponent` (no HTML-entity
   table needed).
-- Round state lives in an in-memory `Map` keyed by a short token, auto-expiring after 60s — correct since
+- Round state lives in an in-memory `Map` keyed by a short token, auto-expiring after 60s - correct since
   the question message is on the shard that created it. One answer per user per round.
 - Scores mirror to Redis sorted set `lb:trivia:<guild>` with a DB fallback.
 - Button labels are truncated to Discord's 80-char limit.

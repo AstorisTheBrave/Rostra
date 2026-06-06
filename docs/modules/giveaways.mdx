@@ -16,12 +16,12 @@ bot automatically picks winners when time runs out (and can reroll).
 - persistence + winner draw: `src/modules/giveaways/service.ts` (+ `service.test.ts`)
 - model: `prisma/schema.prisma` → `Giveaway`
 
-**command** — `/giveaway` (Manage Server for start/end/reroll; list open): `start <duration> <prize>
+**command** - `/giveaway` (Manage Server for start/end/reroll; list open): `start <duration> <prize>
 [winners]`, `end <id>`, `reroll <id>`, `list`.
 
-**button (ComponentHandler `prefix: "giveaway"`)** — `giveaway:enter:<id>` adds the clicker as an entry.
+**button (ComponentHandler `prefix: "giveaway"`)** - `giveaway:enter:<id>` adds the clicker as an entry.
 
-**exports (service.ts)** — `createGiveaway`, `setMessageId`, `getGiveaway`, `addEntry` (idempotent),
+**exports (service.ts)** - `createGiveaway`, `setMessageId`, `getGiveaway`, `addEntry` (idempotent),
 `endGiveaway` (draws winners), `getActive`, and pure `pickWinners(entries, count)`.
 
 ## gotchas
@@ -32,5 +32,5 @@ bot automatically picks winners when time runs out (and can reroll).
 - `setTimeout` is capped at ~24.8 days; longer giveaways re-arm on each fire (and on restart).
 - Entries are stored as a `String[]` on the row (fine for typical sizes; move to a join table if a single
   giveaway needs hundreds of thousands of entries).
-- `pickWinners` shuffles a de-duplicated pool (Fisher–Yates) and slices — unit-tested.
+- `pickWinners` shuffles a de-duplicated pool (Fisher–Yates) and slices - unit-tested.
 - Requires `prisma migrate` for the `Giveaway` table.

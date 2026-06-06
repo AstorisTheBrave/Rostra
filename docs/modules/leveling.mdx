@@ -17,15 +17,15 @@ level-ups. Includes a rank display and an XP leaderboard.
 - curve, accounts, rewards, leaderboard: `src/modules/leveling/service.ts` (+ `service.test.ts`)
 - models: `prisma/schema.prisma` → `LevelConfig`, `LevelUser`, `LevelReward`
 
-**command** — `/level`: `rank [user]`, `leaderboard`, `enable`, `disable`, `announcechannel`,
+**command** - `/level`: `rank [user]`, `leaderboard`, `enable`, `disable`, `announcechannel`,
 `set <user> <level>`, group `reward add|remove|list`. Config/set/reward-mutations require Manage Server;
 rank/leaderboard/reward-list are open.
 
-**exports (service.ts)** — `totalXpForLevel`, `levelFromXp`, `levelProgress` (pure curve),
+**exports (service.ts)** - `totalXpForLevel`, `levelFromXp`, `levelProgress` (pure curve),
 `getConfig/upsertConfig`, `getUser`, `addXp`, `setLevel`, `getRewards/setReward/removeReward`,
 `leaderboard`.
 
-**curve** — `totalXpForLevel(n) = 50·n·(n+1)` (L1=100, L2=300, L3=600…).
+**curve** - `totalXpForLevel(n) = 50·n·(n+1)` (L1=100, L2=300, L3=600…).
 
 ## gotchas
 

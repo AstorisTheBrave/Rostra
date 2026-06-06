@@ -2,7 +2,7 @@
 
 **Rostra** is an all-in-one Discord bot that unifies moderation, server security, auto-moderation,
 tickets, applications, economy, leveling, giveaways, music, trivia, games, and more into one fast,
-sharded application — built to scale to millions of users.
+sharded application - built to scale to millions of users.
 
 [![CI](https://github.com/AstorisTheBrave/Rostra/actions/workflows/ci.yml/badge.svg)](https://github.com/AstorisTheBrave/Rostra/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/AstorisTheBrave/Rostra?style=flat-square&logo=github)](https://github.com/AstorisTheBrave/Rostra/releases/latest)
@@ -13,7 +13,7 @@ sharded application — built to scale to millions of users.
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Prisma-336791?style=flat-square&logo=postgresql&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
 
-> Contributions welcome — this is an open project. See [CONTRIBUTING.md](CONTRIBUTING.md).
+> Contributions welcome - this is an open project. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Table of contents
 
@@ -136,7 +136,7 @@ All settings come from environment variables (see [`.env.example`](.env.example)
 | `TOTAL_SHARDS`, `SHARDING_MODE` | fixed shard count / `native` \| `hybrid` |
 | `LAVALINK_NODES` | JSON array of music nodes (multi-node failover) |
 | `TOPGG_TOKEN`, `TOPGG_WEBHOOK_AUTH` | bot-list stats + vote webhook |
-| `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | assistant backend (OpenAI-compatible endpoint) |
+| `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | assistant backend (a standard chat-completions endpoint) |
 
 ### Required intents
 
@@ -162,16 +162,16 @@ infrastructure lives in `src/services` (database, cache, logger), `src/ui` (the 
 
 ## Contributing
 
-PRs and issues are very welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) — it covers the module
+PRs and issues are very welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) - it covers the module
 pattern, the UI library, coding conventions, and how to run the checks. By participating you agree to the
 [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Security
 
-Found a vulnerability? Please report it privately — see [SECURITY.md](SECURITY.md). Do not open a public
+Found a vulnerability? Please report it privately - see [SECURITY.md](SECURITY.md). Do not open a public
 issue for security problems.
 
-Working with an AI coding assistant (Claude Code, Gemini CLI, Codex)? See [AGENTS.md](AGENTS.md).
+Working with an AI coding assistant? See [AGENTS.md](AGENTS.md).
 Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## License

@@ -6,15 +6,14 @@ status: stable
 
 ## what this is
 
-The conventions everyone follows in this codebase — naming, structure, and the hard "never do X" rules.
+The conventions everyone follows in this codebase - naming, structure, and the hard "never do X" rules.
 If you'd explain it to a new teammate on day one, it's here.
 
 ## technical map
 
-**hard invariants (also in `CLAUDE.md` as CIT invariants — checked on every change)**
-- **Undercover mode:** zero references to Anthropic, Claude, OpenAI, Groq, or any AI provider/model —
-  in code, comments, user strings, status, errors, package.json, README, or commits. AI replies as
-  "Rostra" only.
+**hard invariants (also in `CLAUDE.md` as CIT invariants - checked on every change)**
+- **Undercover mode:** zero references to any AI provider or model name in code, comments, user strings,
+  status, errors, package.json, README, docs, or commits. The assistant replies as "Rostra" only.
 - No `process.env` access outside `src/config.ts`.
 - No `new PrismaClient()` outside `src/services/database.ts`; use `getPrisma()`.
 - **Components V2 only** (`MessageFlags.IsComponentsV2`); never `EmbedBuilder`/legacy embeds.
@@ -23,7 +22,7 @@ If you'd explain it to a new teammate on day one, it's here.
   …) directly in a module. If `@/ui` lacks something, add it there (with a test) first, then use it. `@/ui`
   is the single source of truth for the bot's visual language.
 - Slash-only commands; no message-prefix engine.
-- Each feature is a self-contained `src/modules/<name>/`; modules never import each other's internals —
+- Each feature is a self-contained `src/modules/<name>/`; modules never import each other's internals -
   only shared `services/`, `utils/`, `types/`, `i18n/`.
 - No `any` (use `unknown` + narrow); ESM imports only.
 - Every user-facing string goes through the i18n `t()` helper.
@@ -47,7 +46,7 @@ If you'd explain it to a new teammate on day one, it's here.
 
 **formatting & lint**
 - Biome, tabs, line width 100. Run `npm run lint:fix`. `noExplicitAny` and `useNodejsImportProtocol`
-  are errors. `noAssignInExpressions` is on — no `x ??= y` used as a value.
+  are errors. `noAssignInExpressions` is on - no `x ??= y` used as a value.
 
 **commits**
 - Conventional commits (`feat:`, `chore:`, `docs:`, `fix:`). **No AI co-author trailers** (undercover).
@@ -60,5 +59,5 @@ If you'd explain it to a new teammate on day one, it's here.
 ## gotchas
 
 - Empty strings from `.env` are treated as absent by the config loader so Zod defaults apply.
-- The eager `config` export validates env at import time — a missing required var crashes any module
+- The eager `config` export validates env at import time - a missing required var crashes any module
   that transitively imports it (intended fail-fast).

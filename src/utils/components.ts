@@ -74,7 +74,7 @@ type TopLevel =
 
 export type V2Response = { flags: number; components: TopLevel[] };
 
-/** Wraps components into a V2 reply payload — always sets IsComponentsV2. */
+/** Wraps components into a V2 reply payload - always sets IsComponentsV2. */
 export function buildResponse(
 	components: TopLevel[],
 	opts: { ephemeral?: boolean } = {},

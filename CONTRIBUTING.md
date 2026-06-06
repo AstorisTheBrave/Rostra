@@ -34,16 +34,16 @@ const myModule: BotModule = {
 export default myModule;
 ```
 
-Modules are auto-discovered at boot — drop a folder in and it loads. Use `src/modules/core` (simple) and
+Modules are auto-discovered at boot - drop a folder in and it loads. Use `src/modules/core` (simple) and
 `src/modules/moderation` / `src/modules/tickets` (richer) as references.
 
 Shared code (import these; don't reinvent them):
-- `getPrisma()` — database (`src/services/database.ts`)
-- `config` — validated env (`src/config.ts`)
-- `getCache()` / `getRedis()` — cache & leaderboards (`src/services/cache.ts`)
-- `getLogger(scope)` — logging (`src/services/logger.ts`)
-- `@/ui` — all UI building blocks (buttons, selects, modals, layout, patterns)
-- `t(key, vars)` — i18n (`src/i18n`)
+- `getPrisma()` - database (`src/services/database.ts`)
+- `config` - validated env (`src/config.ts`)
+- `getCache()` / `getRedis()` - cache & leaderboards (`src/services/cache.ts`)
+- `getLogger(scope)` - logging (`src/services/logger.ts`)
+- `@/ui` - all UI building blocks (buttons, selects, modals, layout, patterns)
+- `t(key, vars)` - i18n (`src/i18n`)
 
 ## Non-negotiable conventions (the CI enforces these)
 
@@ -53,10 +53,10 @@ Shared code (import these; don't reinvent them):
 3. **UI comes from `@/ui` only.** Never instantiate discord.js component builders (`ButtonBuilder`,
    `ActionRowBuilder`, `ContainerBuilder`, `StringSelectMenuBuilder`, `ModalBuilder`, `TextInputBuilder`)
    in a module. If `@/ui` lacks something you need, **add it to `@/ui` (with a test) first**, then use it.
-4. **Components V2 only** — never `EmbedBuilder` / legacy embeds.
+4. **Components V2 only** - never `EmbedBuilder` / legacy embeds.
 5. **Slash-only commands**, namespaced under a top-level command via subcommands/groups.
 6. **Every user-facing string** goes through the i18n `t()` helper.
-7. **Modules are isolated** — don't import another module's internals; only shared `services/`, `utils/`,
+7. **Modules are isolated** - don't import another module's internals; only shared `services/`, `utils/`,
    `ui/`, `types/`, `i18n/`.
 8. **Wrap I/O in try/catch** with structured Pino logs; handle missing permissions and API errors
    gracefully.

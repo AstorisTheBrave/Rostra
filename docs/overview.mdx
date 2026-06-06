@@ -8,7 +8,7 @@ status: in-flux
 
 Rostra is a single, large Discord bot that replaces 15 separate bots. It does moderation, server
 security, auto-moderation, tickets, applications, economy, leveling, giveaways, music, trivia, games,
-utilities and more — all in one program that can run across many shards to serve very large numbers of
+utilities and more - all in one program that can run across many shards to serve very large numbers of
 servers and users. This folder is the map of how that program is built, so anyone (or any new session)
 can find their way around without reading the whole codebase.
 
@@ -22,18 +22,18 @@ UI kit, i18n, sharding IPC). The *runtime layer* (the actual bot client, command
 integrations) and *feature modules* are not built yet. See `docs/sessions/log.mdx` for progress.
 
 **where things live**
-- `src/config.ts` — environment configuration (the only place env is read)
-- `src/services/` — shared singletons: `logger.ts`, `database.ts`, `cache.ts`
-- `src/utils/` — shared helpers: `components.ts` (Components V2 UI kit)
-- `src/i18n/` — translation helper + `locales/en/`
-- `src/cluster/` — sharding/IPC abstraction (`ipc.ts`); will hold `cluster.ts` manager entry
-- `prisma/schema.prisma` — database models
-- `docs/superpowers/specs/` and `docs/superpowers/plans/` — the design spec and implementation plans
+- `src/config.ts` - environment configuration (the only place env is read)
+- `src/services/` - shared singletons: `logger.ts`, `database.ts`, `cache.ts`
+- `src/utils/` - shared helpers: `components.ts` (Components V2 UI kit)
+- `src/i18n/` - translation helper + `locales/en/`
+- `src/cluster/` - sharding/IPC abstraction (`ipc.ts`); will hold `cluster.ts` manager entry
+- `prisma/schema.prisma` - database models
+- `docs/superpowers/specs/` and `docs/superpowers/plans/` - the design spec and implementation plans
 
 ## gotchas
 
 - **Undercover rule:** nothing anywhere may reference any AI provider/model. The AI feature (built later)
-  speaks only as "Rostra". This is a hard invariant — see `CLAUDE.md`.
-- **UI is Components V2 only** — no legacy Discord embeds anywhere. Build all output via `src/utils/components.ts`.
+  speaks only as "Rostra". This is a hard invariant - see `CLAUDE.md`.
+- **UI is Components V2 only** - no legacy Discord embeds anywhere. Build all output via `src/utils/components.ts`.
 - **Config is read once** at import and frozen; never read `process.env` outside `src/config.ts`.
-- **One Prisma client** — only `src/services/database.ts` constructs it (`getPrisma()`).
+- **One Prisma client** - only `src/services/database.ts` constructs it (`getPrisma()`).

@@ -17,16 +17,16 @@ module that uses interactive **buttons**.
 - channel creation + persistence: `src/modules/tickets/service.ts`
 - models: `prisma/schema.prisma` → `TicketConfig`, `Ticket`, `GuildTicketCounter`
 
-**command** — `/ticket` (Manage Server): `enable`, `disable`, `status`, `panel`, `category`,
+**command** - `/ticket` (Manage Server): `enable`, `disable`, `status`, `panel`, `category`,
 `logchannel`, `close`, `claim`, `add <user>`, group `supportrole add|remove`.
 
-**buttons (ComponentHandler `prefix: "ticket"`)** — customIds `ticket:open`, `ticket:claim`,
+**buttons (ComponentHandler `prefix: "ticket"`)** - customIds `ticket:open`, `ticket:claim`,
 `ticket:close`. The interaction router splits the customId and dispatches the segment after the prefix as
 `args` (e.g. `["open"]`).
 
 **exports (service.ts)**
 - `getConfig/upsertConfig/invalidate`, `isSupport(member, config)`
-- `createTicket(guild, config, user)` — sequential number + private channel + `Ticket` row
+- `createTicket(guild, config, user)` - sequential number + private channel + `Ticket` row
 - `claimTicket(channelId, moderatorId)`, `closeTicket(channel)`
 
 ## gotchas

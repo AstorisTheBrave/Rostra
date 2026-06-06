@@ -96,7 +96,7 @@ const feedback: BotModule = {
 		unconfigured: "Feedback isn't set up here yet.",
 		sent: "✅ Thanks! Your feedback was sent.",
 		title: "# 📮 New feedback",
-		from: "*— {from}*",
+		from: "*- {from}*",
 		anon: "anonymous",
 	},
 };

@@ -15,4 +15,4 @@ What you'd like the bot to do (command, behavior, module).
 Any other approaches you thought about.
 
 **Additional context**
-Anything else — examples from other bots, mockups, etc.
+Anything else - examples from other bots, mockups, etc.

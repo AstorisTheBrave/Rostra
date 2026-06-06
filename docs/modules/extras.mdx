@@ -18,19 +18,19 @@ you and greets you when you return), **snipe** (show the last deleted message in
 - state + storage: `src/modules/extras/service.ts` (+ `service.test.ts`)
 - models: `prisma/schema.prisma` → `AfkStatus`, `AutoResponder`
 
-**commands** — `/afk [reason]`, `/snipe`, `/autoresponder add|remove|list` (Manage Server).
+**commands** - `/afk [reason]`, `/snipe`, `/autoresponder add|remove|list` (Manage Server).
 
-**exports (service.ts)** — AFK: `loadAfk/setAfk/getAfk/clearAfk` (in-memory authoritative + DB-backed);
+**exports (service.ts)** - AFK: `loadAfk/setAfk/getAfk/clearAfk` (in-memory authoritative + DB-backed);
 snipe: `storeSnipe/getSnipe` (in-memory only); autoresponder: `getResponders/addResponder/
 removeResponder` + pure `matchResponder(list, content)`.
 
 ## gotchas
 
-- This module exports **multiple top-level commands** from one `BotModule` — modules aren't limited to one
+- This module exports **multiple top-level commands** from one `BotModule` - modules aren't limited to one
   command.
 - AFK is kept in an in-memory Map (fast per-message checks) and mirrored to `AfkStatus`; `loadAfk` repopulates
   the map on `ready`.
-- Snipe data is purely in-memory and per-process (lost on restart, not shared across shards) — intentional.
-- AFK/autoresponder replies are **plain text** (`channel.send({ content })`), which is allowed — the
+- Snipe data is purely in-memory and per-process (lost on restart, not shared across shards) - intentional.
+- AFK/autoresponder replies are **plain text** (`channel.send({ content })`), which is allowed - the
   Components-V2-only rule bans `EmbedBuilder`, not plain content. Command replies still use the V2 kit.
 - Requires `prisma migrate` for `AfkStatus`, `AutoResponder`.

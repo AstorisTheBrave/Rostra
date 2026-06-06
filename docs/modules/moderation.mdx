@@ -18,22 +18,22 @@ It's the first full feature module and the reference example for how modules are
 - duration parsing: `src/modules/moderation/duration.ts` (+ `duration.test.ts`)
 - database models: `prisma/schema.prisma` → `ModerationCase`, `GuildCaseCounter`
 
-**command** — one top-level `/mod` with subcommands: `ban`, `unban`, `kick`, `timeout`, `untimeout`,
+**command** - one top-level `/mod` with subcommands: `ban`, `unban`, `kick`, `timeout`, `untimeout`,
 `warn`, `warnings`, `removewarn`, `cases`, `note`, `purge`, `slowmode`, `lock`, `unlock`, `nick`.
 Default member permission is `ModerateMembers`; each subcommand additionally checks the specific
 permission it needs (e.g. `BanMembers` for ban).
 
 **exports (service.ts)**
 - `banUser/unbanUser/kickUser/timeoutUser/removeTimeout/warnUser/addNote(opts): ModResult`
-- `createCase(input): Promise<number>` — assigns the next per-guild case number in a transaction
-- `getCases(guildId, targetId, type?)` — newest-first history (max 25)
-- `deactivateCase(guildId, caseNumber)` — soft-removes a case/warning
+- `createCase(input): Promise<number>` - assigns the next per-guild case number in a transaction
+- `getCases(guildId, targetId, type?)` - newest-first history (max 25)
+- `deactivateCase(guildId, caseNumber)` - soft-removes a case/warning
 - `ModResult` = `{ ok: true; caseNumber? } | { ok: false; messageKey; vars? }`
 
 **depends on**
-- `@/services/database` (`getPrisma`) — case persistence
-- `@/utils/components` — all replies are Components V2
-- `@/i18n` — every message is a `moderation:*` key
+- `@/services/database` (`getPrisma`) - case persistence
+- `@/utils/components` - all replies are Components V2
+- `@/i18n` - every message is a `moderation:*` key
 - discord.js guild/member APIs for the actual actions
 
 **imported by**
@@ -41,7 +41,7 @@ permission it needs (e.g. `BanMembers` for ban).
 
 ## gotchas
 
-- Warnings and notes are rows in `ModerationCase` (`type = "warn" | "note"`), not separate tables —
+- Warnings and notes are rows in `ModerationCase` (`type = "warn" | "note"`), not separate tables -
   unifies the history and case numbering.
 - Case numbers are per-guild sequential via `GuildCaseCounter.count` incremented inside the same
   transaction as the case insert (safe under concurrency).

@@ -16,20 +16,20 @@ by external **Lavalink** nodes (configured with failover); the bot just sends co
 - Lavalink manager + events: `src/modules/music/service.ts`, `src/modules/music/events.ts`
 - nodes: `config.lavalink.nodes` (from `LAVALINK_NODES` env)
 
-**command** — `/music play <query> | skip | stop | pause | resume | queue | nowplaying | volume <percent>
+**command** - `/music play <query> | skip | stop | pause | resume | queue | nowplaying | volume <percent>
 | loop <off|track|queue>`.
 
-**library** — `lavalink-client` v2 (Lavalink v4). `getManager(client)` builds a `LavalinkManager` from the
+**library** - `lavalink-client` v2 (Lavalink v4). `getManager(client)` builds a `LavalinkManager` from the
 configured nodes; `initMusic(client)` runs on `ready` (node connect, `trackStart`/`queueEnd` announcements)
 and registers the untyped `"raw"` gateway listener so voice state reaches Lavalink.
 
 ## gotchas
 
-- **Needs a running Lavalink node** to actually play — node creds come from `LAVALINK_NODES` (10 public
+- **Needs a running Lavalink node** to actually play - node creds come from `LAVALINK_NODES` (10 public
   nodes are in the local `.env`). Multi-node failover + auto-reconnect are configured.
 - The `"raw"` client event isn't in discord.js's typed `ClientEvents`, so it's registered directly in
   `initMusic` (localized cast) rather than via `defineEvent`.
 - The manager is built lazily and only when nodes are configured; `/music` reports "unavailable" otherwise.
-- **Not yet smoke-tested against a live node** — typechecks, lints, and loads; verify playback on a real
+- **Not yet smoke-tested against a live node** - typechecks, lints, and loads; verify playback on a real
   Lavalink connection. discord.js `GuildVoiceStates` intent is enabled.
 - No database; player/queue state lives in Lavalink + the client process.

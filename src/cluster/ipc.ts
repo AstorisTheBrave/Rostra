@@ -29,7 +29,7 @@ class NativeIpc implements Ipc {
 /**
  * Returns the IPC implementation for the current sharding mode.
  * Modules use this interface only; swapping to hybrid-sharding later is a
- * config change (`SHARDING_MODE=hybrid`) plus a HybridIpc class — no module edits.
+ * config change (`SHARDING_MODE=hybrid`) plus a HybridIpc class - no module edits.
  */
 export function createIpc(client: Client): Ipc {
 	if (config.sharding.mode === "hybrid") {

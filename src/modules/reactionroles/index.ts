@@ -151,7 +151,7 @@ async function execute({
 			const panels = await listPanels(guild.id);
 			if (panels.length === 0) return ok(interaction, "reactionroles:listEmpty");
 			const lines = panels.map(
-				(p) => `**${p.title}** — \`${p.id}\` — ${parseRoles(p).length} roles (${p.mode})`,
+				(p) => `**${p.title}** - \`${p.id}\` - ${parseRoles(p).length} roles (${p.mode})`,
 			);
 			return void reply.components(interaction, [
 				container(Accent.info, [text(t("reactionroles:listTitle")), text(lines.join("\n"))]),

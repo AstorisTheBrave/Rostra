@@ -9,9 +9,9 @@ this guide maps each old bot to its Rostra replacement and gives a safe cutover 
 2. `cp .env.example .env` and fill in: `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `OWNER_IDS`, `DATABASE_URL`,
    `REDIS_URL`, and optional integrations (`LAVALINK_NODES`, `TOPGG_*`, `AI_*`).
 3. `npm install && npm run prisma:generate`
-4. `npm run prisma:migrate` — creates every table (moderation, security, automod, logging, welcome,
+4. `npm run prisma:migrate` - creates every table (moderation, security, automod, logging, welcome,
    tickets, economy, leveling, giveaways, joinToCreate, reactionroles, birthday, extras, trivia, plus core).
-5. `npm run deploy:commands` — registers the slash commands globally.
+5. `npm run deploy:commands` - registers the slash commands globally.
 6. `npm start` (or `docker compose up --build`).
 
 ## 2. Bot → Rostra feature map
@@ -26,9 +26,9 @@ this guide maps each old bot to its Rostra replacement and gives a safe cutover 
 | Feedback-Bot | extras/utility (feedback can be added as a small module if still needed) |
 | Trivia-Bot | trivia |
 | i-karen | security/antinuke, moderation |
-| GuildTag-Bot | (guild tag — niche; add as a small module if still needed) |
+| GuildTag-Bot | (guild tag - niche; add as a small module if still needed) |
 | Join2Create-Bot | joinToCreate |
-| VanityRoles-Bot | (status-role — add as a small module if still needed) |
+| VanityRoles-Bot | (status-role - add as a small module if still needed) |
 | Reo-Bot | moderation, automod, tickets, giveaways, welcome, joinToCreate, music, ai |
 | Yuna-CV2-AIO | moderation, automod, security, economy, leveling, games, ai, extras, birthday, reactionroles |
 
@@ -48,7 +48,7 @@ this guide maps each old bot to its Rostra replacement and gives a safe cutover 
 ## 4. Data migration (optional)
 
 The archived bots used a mix of stores (LMDB, Mongo/quickmongo, better-sqlite3, raw Postgres, aiosqlite,
-quick.db). Rostra uses one Postgres schema. There is **no automatic importer** — most data (economy
+quick.db). Rostra uses one Postgres schema. There is **no automatic importer** - most data (economy
 balances, levels, warnings) is per-guild and commonly started fresh. If a specific server needs its
 balances/levels/cases preserved, write a one-off script under `scripts/migrate/<bot>.ts` that reads the old
 store and calls the relevant Rostra service (`economy.updateBalance`, `leveling.setLevel`,

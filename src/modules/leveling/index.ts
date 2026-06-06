@@ -150,7 +150,7 @@ async function execute({
 			const medals = ["🥇", "🥈", "🥉"];
 			const lines = top.map(
 				(e, i) =>
-					`${medals[i] ?? `\`#${i + 1}\``} <@${e.userId}> — level **${e.level}** (${e.xp.toLocaleString("en-US")} XP)`,
+					`${medals[i] ?? `\`#${i + 1}\``} <@${e.userId}> - level **${e.level}** (${e.xp.toLocaleString("en-US")} XP)`,
 			);
 			return void reply.components(interaction, [
 				container(Accent.info, [text(t("leveling:leaderboard.title")), text(lines.join("\n"))]),

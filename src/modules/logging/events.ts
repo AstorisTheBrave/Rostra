@@ -12,7 +12,7 @@ export const loggingEvents: RegisteredEvent[] = [
 				container(Accent.error, [
 					text("## 🗑️ Message deleted"),
 					text(
-						`**Author:** ${message.author?.tag ?? "Unknown"}\n**Channel:** <#${message.channelId}>\n**Content:** ${truncate(message.content ?? "—")}`,
+						`**Author:** ${message.author?.tag ?? "Unknown"}\n**Channel:** <#${message.channelId}>\n**Content:** ${truncate(message.content ?? "-")}`,
 					),
 				]),
 			);
@@ -27,7 +27,7 @@ export const loggingEvents: RegisteredEvent[] = [
 				container(Accent.warn, [
 					text("## ✏️ Message edited"),
 					text(
-						`**Author:** ${newMessage.author?.tag ?? "Unknown"}\n**Channel:** <#${newMessage.channelId}>\n**Before:** ${truncate(oldMessage.content ?? "—", 400)}\n**After:** ${truncate(newMessage.content ?? "—", 400)}`,
+						`**Author:** ${newMessage.author?.tag ?? "Unknown"}\n**Channel:** <#${newMessage.channelId}>\n**Before:** ${truncate(oldMessage.content ?? "-", 400)}\n**After:** ${truncate(newMessage.content ?? "-", 400)}`,
 					),
 				]),
 			);

@@ -28,7 +28,7 @@ export async function registerJob(def: JobDefinition): Promise<void> {
 	handlers.set(def.name, def);
 	const conn = getConnection();
 	if (!conn) {
-		if (def.cron) log.warn({ job: def.name }, "cron job requires REDIS_URL — not scheduled");
+		if (def.cron) log.warn({ job: def.name }, "cron job requires REDIS_URL - not scheduled");
 		return;
 	}
 	const { Queue: BullQueue, Worker } = await import("bullmq");

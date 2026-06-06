@@ -7,20 +7,20 @@ status: stable
 ## what this is
 
 Everyday info commands anyone can use: look up a user's avatar or banner, see details about a user, or
-see stats about the server. Read-only — no data is stored.
+see stats about the server. Read-only - no data is stored.
 
 ## technical map
 
 **file paths**
 - primary: `src/modules/utility/index.ts`
 
-**command** — `/util` with subcommands: `avatar`, `banner`, `userinfo`, `serverinfo`. No special
+**command** - `/util` with subcommands: `avatar`, `banner`, `userinfo`, `serverinfo`. No special
 permissions; `serverinfo` requires being in a server.
 
 **depends on**
-- `@/utils/components` — uses `gallery()` (images) and `section()` (text + thumbnail), both added with
+- `@/utils/components` - uses `gallery()` (images) and `section()` (text + thumbnail), both added with
   this module
-- `@/i18n` — `utility:*` keys
+- `@/i18n` - `utility:*` keys
 - discord.js user/guild fetch APIs
 
 **imported by**
@@ -31,4 +31,4 @@ permissions; `serverinfo` requires being in a server.
 - `banner` force-fetches the user (`users.fetch(id, { force: true })`) because banners aren't cached on
   the partial user from the interaction.
 - Timestamps render with Discord's `<t:unix:F|R>` markup so they localize per viewer.
-- No database use — safe to run without migrations.
+- No database use - safe to run without migrations.

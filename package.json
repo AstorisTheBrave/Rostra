@@ -22,6 +22,7 @@
 		"prisma:migrate": "prisma migrate deploy"
 	},
 	"dependencies": {
+		"@fastify/rate-limit": "^10.3.0",
 		"@keyv/redis": "^5.1.6",
 		"@prisma/adapter-pg": "^7.8.0",
 		"@prisma/client": "^7.8.0",

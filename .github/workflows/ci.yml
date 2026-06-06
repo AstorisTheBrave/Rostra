@@ -10,6 +10,10 @@ on:
   pull_request:
     branches: [main]
 
+# Minimal token scope: this workflow only reads the checkout.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest

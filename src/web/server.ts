@@ -1,3 +1,4 @@
+import rateLimit from "@fastify/rate-limit";
 import Fastify, { type FastifyInstance } from "fastify";
 import { config } from "@/config.ts";
 import { getLogger } from "@/services/logger.ts";
@@ -20,6 +21,14 @@ export interface WebDeps {
 export async function startWebServer(deps: WebDeps): Promise<FastifyInstance> {
 	const app = Fastify({ logger: false });
 
+	// Per-IP rate limiting. The generous global ceiling leaves room for health
+	// pollers/load balancers; the public webhook gets a tighter per-route cap.
+	await app.register(rateLimit, {
+		global: true,
+		max: 300,
+		timeWindow: "1 minute",
+	});
+
 	app.get("/health", async () => ({ status: "ok" }));
 
 	app.get("/health/shards", async () => {
@@ -32,19 +41,23 @@ export async function startWebServer(deps: WebDeps): Promise<FastifyInstance> {
 		memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
 	}));
 
-	app.post("/votes/topgg", async (request, reply) => {
-		if (!verifyVoteAuth(request.headers.authorization)) {
-			reply.code(401);
-			return { error: "unauthorized" };
-		}
-		const vote = request.body as VotePayload | undefined;
-		if (!vote?.user) {
-			reply.code(400);
-			return { error: "bad request" };
-		}
-		await recordVote(vote);
-		return { ok: true };
-	});
+	app.post(
+		"/votes/topgg",
+		{ config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+		async (request, reply) => {
+			if (!verifyVoteAuth(request.headers.authorization)) {
+				reply.code(401);
+				return { error: "unauthorized" };
+			}
+			const vote = request.body as VotePayload | undefined;
+			if (!vote?.user) {
+				reply.code(400);
+				return { error: "bad request" };
+			}
+			await recordVote(vote);
+			return { ok: true };
+		},
+	);
 
 	await app.listen({ port: config.web.port, host: config.web.host });
 	log.info({ port: config.web.port, host: config.web.host }, "web server listening");

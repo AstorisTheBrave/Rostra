@@ -619,3 +619,27 @@ mergeable by non-admins.
 `.gitignore` `CLAUDE.md` entry (functional ignore pattern), and historical provider mentions in earlier
 `docs/sessions/log.mdx` entries (archival record). Non-em-dash typographic characters (ellipsis, arrows,
 interpuncts) were left as-is; the invariant is about em dashes specifically.
+
+### 2026-06-06 (later - CodeQL alert remediation)
+
+**changed**: Resolved the 7 open CodeQL code-scanning alerts.
+
+- **js/missing-rate-limiting (high)** on the Fastify web server: registered `@fastify/rate-limit` (per-IP,
+  global 300/min to leave room for health pollers) and a tighter 30/min cap on the public `/votes/topgg`
+  webhook route. New dependency `@fastify/rate-limit ^10.3.0` (Fastify 5 compatible).
+- **actions/unpinned-tag (medium x5)**: pinned the third-party actions to commit SHAs with `# vN`
+  comments so Dependabot still tracks them (docker/setup-buildx-action, docker/login-action,
+  docker/metadata-action, docker/build-push-action, googleapis/release-please-action). First-party
+  `actions/*` and `github/codeql-action` were not flagged and stay on tags.
+- **actions/missing-workflow-permissions (medium)**: added a top-level `permissions: contents: read` to
+  `ci.yml` (the other workflows already declare explicit permissions).
+
+**verified**: typecheck + Biome + 85/85 tests green; `npm audit` clean. The alerts auto-close on the next
+CodeQL scan after this push.
+
+**how alerts are reviewed**: read them with `gh api repos/AstorisTheBrave/Rostra/code-scanning/alerts`.
+GitHub Copilot Autofix (free on public repos) can suggest fixes inline on PRs that introduce new alerts; it
+does not open PRs for pre-existing alerts, so those are fixed by hand as here.
+
+**files touched**: `src/web/server.ts`, `package.json` + `package-lock.json`,
+`.github/workflows/{ci,docker,release-please}.yml`.

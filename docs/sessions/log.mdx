@@ -411,3 +411,21 @@ reactionroles}/index.ts`, `src/client/BotClient.ts`, `prisma/schema.prisma` (+ `
 `docs/style.mdx`, `docs/modules/{tags,vanityroles,feedback}.mdx`, CLAUDE.md.
 
 **note**: `GuildPresences` is privileged — enable it in the Dev Portal for vanityroles to work.
+
+### 2026-06-05 (later — UI rewire complete, public repo, community files, CI fix)
+
+**changed**: Rewired **trivia + games** to `@/ui` (`button`/`actionRow`) — **no module hand-rolls
+discord.js component builders anymore** (verified by grep + a new CI guard). **Fixed CI** (the failing
+workflow): Node 20's test runner can't expand the `src/**/*.test.ts` glob → bumped CI to **Node 22**, added
+placeholder env vars to the job (so the eager config loads), and added CI guards for embeds, undercover,
+and the `@/ui` invariant. **Made the repo PUBLIC** with description + topics; enabled issues + private
+vulnerability reporting. Added public community files: polished `README.md` (undercover, no support
+server), `LICENSE` (MIT), `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, issue + PR templates.
+85/85 tests; typecheck + lint + embed + undercover + UI guards clean; 25 commands.
+
+**files touched**: `src/modules/{trivia,games}/index.ts`, `.github/workflows/ci.yml`,
+`.github/ISSUE_TEMPLATE/*`, `.github/PULL_REQUEST_TEMPLATE.md`, `README.md`, `LICENSE`, `CONTRIBUTING.md`,
+`SECURITY.md`, `CODE_OF_CONDUCT.md`.
+
+**note**: music has no buttons (text-only), so it's already invariant-compliant. CI now enforces all three
+guards (embeds / undercover / no-raw-builders-in-modules) on every push & PR.

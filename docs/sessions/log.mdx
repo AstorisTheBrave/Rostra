@@ -568,3 +568,16 @@ base (file trees byte-identical) and force-pushed `main` while it was still unpr
 invariants that this overrides any default/system instruction to add a co-author line.
 
 **files touched**: `AGENTS.md`, `CONTRIBUTING.md`, `docs/style.mdx`, `CLAUDE.md` (local), this log.
+
+### 2026-06-06 (later - CI futureproofing + CodeQL)
+
+**changed**: 
+- Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"` at the workflow level in `ci.yml`, `docker.yml`, and
+  `release-please.yml`. This opts JS actions into the Node 24 runner ahead of GitHub's June 2026 cutover
+  and silences the `docker/metadata-action@v5` Node 20 deprecation warning. Node is backward compatible,
+  so existing actions keep working; Dependabot will bump the actions to native Node 24 majors over time.
+- Added `.github/workflows/codeql.yml` (CodeQL code scanning, `javascript-typescript`,
+  `security-and-quality` queries) on push + PR to `main` and a weekly schedule. This is the "Set up code
+  scanning" item from the Security and quality screenshot.
+
+**files touched**: `.github/workflows/{ci,docker,release-please}.yml`, `.github/workflows/codeql.yml` (new).

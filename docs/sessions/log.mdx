@@ -429,3 +429,17 @@ server), `LICENSE` (MIT), `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`
 
 **note**: music has no buttons (text-only), so it's already invariant-compliant. CI now enforces all three
 guards (embeds / undercover / no-raw-builders-in-modules) on every push & PR.
+
+### 2026-06-05 (later — CHANGELOG, AGENTS.md, Docker publishing)
+
+**changed**: Added `CHANGELOG.md` (Keep-a-Changelog, 0.1.0), `AGENTS.md` (committed tool-agnostic guide for
+Claude Code / Gemini CLI / Codex — mirrors the invariants since `CLAUDE.md` is gitignored), and a **GHCR
+Docker publish workflow** (`.github/workflows/docker.yml`) that builds + pushes `ghcr.io/astoristhebrave/
+rostra` on push to `main` and version tags. README links both + a GHCR pull command.
+
+**verified live**: CI workflow now **passes** (was failing pre-fix). Docker publish workflow **passes**
+after adding `docker/setup-buildx-action` (gha cache needs the container driver).
+
+**still manual (can't automate):** enable the **Presence** privileged intent in the Discord Developer
+Portal (for `/vanityrole`); add a support-server invite to the README once one exists; the GHCR package may
+need to be flipped to **public** in the repo's Packages settings so `docker pull` works without auth.

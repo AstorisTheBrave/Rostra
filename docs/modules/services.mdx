@@ -24,6 +24,10 @@ shared instance so the whole bot reuses one connection instead of making new one
 - `getCache(): Keyv` - cache (Redis-backed if `REDIS_URL`, else in-memory).
 - `getRedis(): Redis | undefined` - raw ioredis client for sorted-set ops (leaderboards); undefined w/o Redis.
 - `cacheGet/cacheSet/cacheDel/withCache` - typed convenience helpers; `disconnectCache()` for shutdown.
+- `cachedConfig(key, loader)` + `invalidateConfig(key)` + `CONFIG_TTL_MS` (300_000) - the standard
+  cache-aside convention for per-guild config and other hot, rarely-changing reads (5-minute TTL). Pair
+  every write with `invalidateConfig`. This is the caching foundation the GuildTenant builds on (see
+  `docs/superpowers/specs/2026-06-06-centralized-platform-systems.md`).
 
 **depends on**
 - `src/config.ts` for log level, `DATABASE_URL`, `REDIS_URL`, env mode

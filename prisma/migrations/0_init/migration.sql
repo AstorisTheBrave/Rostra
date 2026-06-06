@@ -492,7 +492,7 @@ CREATE INDEX "LevelUser_guildId_idx" ON "LevelUser"("guildId");
 CREATE INDEX "LevelReward_guildId_idx" ON "LevelReward"("guildId");
 
 -- CreateIndex
-CREATE INDEX "Giveaway_guildId_idx" ON "Giveaway"("guildId");
+CREATE INDEX "Giveaway_guildId_ended_idx" ON "Giveaway"("guildId", "ended");
 
 -- CreateIndex
 CREATE INDEX "Giveaway_ended_idx" ON "Giveaway"("ended");

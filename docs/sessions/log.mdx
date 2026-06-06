@@ -777,3 +777,23 @@ first; each step is its own tested PR.
 (tenant ~7k refs, recovery/durable, scheduler/cron, starboard, anti-raid, sticky, verification).
 
 **files touched**: `docs/superpowers/specs/2026-06-06-centralized-platform-systems.md`, this log.
+
+### 2026-06-06 (later - platform step 1: caching/indexing pass)
+
+**changed**: First slice of the centralized-platform rollout (lowest blast radius). Added the standard
+config-cache convention to `services/cache.ts`: `CONFIG_TTL_MS` (300_000 = 5 min), `cachedConfig(key,
+loader)` (cache-aside at that TTL) and `invalidateConfig(key)` (drop on write). This is the caching
+foundation the GuildTenant (step 2) will build on; modules adopt it as their config reads migrate. Index
+audit found the schema already well-indexed (composite indexes on ModerationCase, Ticket, LevelUser/
+EconomyUser, Birthday sweep, etc.); added one genuinely-matching composite `@@index([guildId, ended])` to
+`Giveaway` for the hot `getActive({ ended:false, guildId })` query and regenerated the baseline. 3 new
+tests; typecheck + Biome + 115/115 green.
+
+**code-scanning**: dismissed alert #8 (`js/file-access-to-http` in `upload-emojis.ts`) as a false positive
+- a build-time devDep script uploading our own generated PNGs to the fixed Discord API, no untrusted input.
+
+**release**: release-please opened PR #15 (`release 0.1.1`) from the accumulated feat commits; left open to
+cut once more of the platform work lands.
+
+**files touched**: `src/services/{cache,cache.test}.ts`, `prisma/schema.prisma`,
+`prisma/migrations/0_init/migration.sql`, `docs/modules/services.mdx`.

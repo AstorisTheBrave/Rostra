@@ -294,7 +294,7 @@ model Giveaway {
   entries   String[] @default([])
   createdAt DateTime @default(now())
 
-  @@index([guildId])
+  @@index([guildId, ended])
   @@index([ended])
 }
 

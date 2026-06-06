@@ -868,3 +868,22 @@ ScheduledTask rows >7 days past `runAt` so the table never grows unbounded). Wir
 125/125 green.
 
 **files touched**: `src/services/{cron,cron.test}.ts`, `src/jobs/builtins.ts`, `src/cluster.ts`.
+
+### 2026-06-06 (later - platform step 5: /setup server wizard)
+
+**changed**: Added the `setup` module: `/setup` (Administrator) opens an interactive Components V2 panel
+(custom emoji icons) to toggle core systems, apply a recommended baseline (automod/logging/welcome/
+security), and create a `#rostra-logs` channel. Every choice writes the centralized **GuildTenant**
+(feature flags + `logChannelId`) via the tenant service, so features resolve them from cache with no raw
+lookups - the wizard is the tenant's editor. Toggles use the `@/ui` `settingsPanel`
+(`setup:toggle:<feature>`) + `setup:baseline`/`setup:logchannel` buttons; admin is checked on the command
+and each button. Added to `/help` categories + README. 2 new tests; typecheck + Biome + 127/127 green.
+
+**rollout status**: steps 1-5 of the centralized-platform spec are done (caching/indexing, GuildTenant,
+durable scheduler + first consumer `/mod temprole`, centralized cron, wizards). Remaining: migrate more
+scheduler consumers (reminders/giveaways onto `schedule`, tempban/tempmute), have modules read tenant
+feature flags, per-system wizards, and step 6 (Anastasia feature ports: starboard, anti-raid, sticky,
+verification).
+
+**files touched**: `src/modules/setup/{index,index.test}.ts`, `src/modules/core/categories.ts`,
+`README.md`, `docs/modules/setup.mdx`.

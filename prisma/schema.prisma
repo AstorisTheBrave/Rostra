@@ -439,3 +439,14 @@ model Reminder {
   @@index([guildId])
   @@index([userId])
 }
+
+// ── User profiles (image cards) ──────────────────────────────────────────────
+
+model Profile {
+  userId     String   @id
+  bio        String?
+  background String?
+  accent     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

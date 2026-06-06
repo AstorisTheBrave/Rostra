@@ -1,0 +1,43 @@
+---
+last-updated: 2026-06-06
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Custom user profile cards rendered as images: `/profile view [user]` draws an 800x300 PNG with the user's
+avatar, name, bio, accent colour, and an optional background image. `/profile bio|background|color|reset`
+edit your own card. Ported from the zyn-bot profile cog + card_generator.
+
+## technical map
+
+**file paths**
+- command: `src/modules/profile/index.ts`
+- DB helpers + pure validators: `src/modules/profile/service.ts` (+ `service.test.ts`)
+- image rendering (canvas): `src/modules/profile/card.ts` (kept separate so the test never loads the
+  native canvas module)
+- model: `Profile` in `prisma/schema.prisma`
+
+**command** - `/profile view [user]` · `/profile bio <text>` · `/profile background <url>` ·
+`/profile color <hex>` · `/profile reset`. Works in guilds and DMs.
+
+**model** - `Profile { userId @id, bio?, background?, accent?, createdAt, updatedAt }` (user-global, not
+per guild).
+
+**exports** - service: `getProfile`, `upsertProfile`, `resetProfile`, and pure `clampBio` / `isValidHex` /
+`normalizeHex` / `isValidImageUrl` (tested). card: `renderProfileCard(data)` -> PNG `Buffer`.
+
+## gotchas
+
+- Rendering uses **`@napi-rs/canvas`** (prebuilt native bindings, no system cairo). The Dockerfile installs
+  `fontconfig` + `font-dejavu` because Alpine has no fonts and canvas would otherwise draw blank text.
+  Local dev and CI use system fonts; tests do not render (they only cover the validators), so CI needs no
+  font setup.
+- The card is sent as an attachment referenced by a Components V2 media gallery
+  (`gallery(["attachment://profile.png"])` + `files: [AttachmentBuilder]`). `AttachmentBuilder` is not a
+  component builder, so the `@/ui`-only invariant is respected (components still come from `@/ui`).
+- Avatar and background images are fetched as bytes (5s timeout) and passed to `loadImage`; any failure
+  degrades gracefully (no avatar / solid background) rather than erroring.
+- Background URLs are restricted to https with an image extension; accent is validated as 6-digit hex.
+  Rendering is network + CPU bound, so safeAck auto-defers and the card replies via `editReply`.

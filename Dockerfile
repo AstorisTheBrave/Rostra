@@ -3,6 +3,10 @@ FROM node:22-alpine
 
 WORKDIR /app
 
+# Fonts for @napi-rs/canvas text rendering (profile cards). Alpine ships no fonts
+# by default, so canvas would draw blank text without these.
+RUN apk add --no-cache fontconfig font-dejavu
+
 # Install dependencies (tsx is a runtime dependency - the bot runs TypeScript directly)
 COPY package.json package-lock.json ./
 RUN npm ci

@@ -900,3 +900,14 @@ defaults never change and no per-module command rewrite is needed. Reads go thro
 
 **files touched**: `src/services/{tenant,tenant.test}.ts`, `src/modules/automod/index.ts`,
 `src/modules/logging/service.ts`, `src/modules/security/events.ts`, `src/modules/welcome/events.ts`.
+
+### 2026-06-06 (later - scheduler consumer: durable /mod tempban)
+
+**changed**: Added `/mod tempban <user> <duration>`: bans and schedules a `tempban_lift` ScheduledTask, so
+the auto-unban survives restart/crash. `liftTempBanTask` registered at moderation import alongside the
+temprole handler. (tempmute is intentionally not added - Discord's native timeout already auto-expires, so
+`/mod timeout` is the durable mute. reminders and giveaways already survive restart via their own DB + ready
+resync, so migrating them onto the central scheduler is a later consolidation, not a new capability.)
+typecheck + Biome + 128/128 green.
+
+**files touched**: `src/modules/moderation/{index,service}.ts`.

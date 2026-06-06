@@ -293,6 +293,61 @@ export async function removeTempRoleTask(payload: unknown, client: Client): Prom
 	await member?.roles.remove(p.roleId, "Temporary role expired").catch(() => {});
 }
 
+/** Ban a user and schedule a durable auto-unban after `durationMs`. */
+export async function applyTempBan(opts: {
+	guild: Guild;
+	target: User;
+	moderator: GuildMember;
+	durationMs: number;
+	reason: string;
+	deleteSeconds?: number;
+	client: Client;
+}): Promise<ModResult> {
+	const member = await opts.guild.members.fetch(opts.target.id).catch(() => null);
+	if (member) {
+		const bot = checkBotHierarchy(member);
+		if (!bot.ok) return bot;
+		const mod = checkHierarchy(opts.moderator, member);
+		if (!mod.ok) return mod;
+	}
+	try {
+		await opts.guild.members.ban(opts.target.id, {
+			reason: opts.reason,
+			deleteMessageSeconds: opts.deleteSeconds ?? 0,
+		});
+	} catch (err) {
+		log.error({ err }, "tempban failed");
+		return { ok: false, messageKey: "moderation:error.actionFailed" };
+	}
+	const caseNumber = await createCase({
+		guildId: opts.guild.id,
+		type: "ban",
+		targetId: opts.target.id,
+		moderatorId: opts.moderator.id,
+		reason: opts.reason,
+		durationMs: opts.durationMs,
+	});
+	await schedule(
+		{
+			type: "tempban_lift",
+			runAt: new Date(Date.now() + opts.durationMs),
+			guildId: opts.guild.id,
+			payload: { guildId: opts.guild.id, userId: opts.target.id },
+		},
+		opts.client,
+	);
+	return { ok: true, caseNumber };
+}
+
+/** Durable-scheduler handler: unban a user when their temp-ban expires. */
+export async function liftTempBanTask(payload: unknown, client: Client): Promise<void> {
+	const p = payload as { guildId?: string; userId?: string };
+	if (!p.guildId || !p.userId) return;
+	const guild = client.guilds.cache.get(p.guildId);
+	if (!guild) return;
+	await guild.members.unban(p.userId, "Temporary ban expired").catch(() => {});
+}
+
 /** All cases for a target (optionally filtered by type), newest first. */
 export async function getCases(guildId: string, targetId: string, type?: CaseType) {
 	const prisma = getPrisma();

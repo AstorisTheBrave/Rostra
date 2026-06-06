@@ -16,12 +16,14 @@ import { Accent, container, reply, text } from "@/utils/components.ts";
 import { formatDuration, MAX_TIMEOUT_MS, parseDuration } from "./duration.ts";
 import {
 	addNote,
+	applyTempBan,
 	applyTempRole,
 	banUser,
 	type CaseType,
 	deactivateCase,
 	getCases,
 	kickUser,
+	liftTempBanTask,
 	removeTempRoleTask,
 	removeTimeout,
 	timeoutUser,
@@ -29,9 +31,10 @@ import {
 	warnUser,
 } from "./service.ts";
 
-// Register the durable handler at module load (before the boot recovery runs),
-// so a temprole removal scheduled before a restart still fires.
+// Register durable handlers at module load (before the boot recovery runs), so
+// temp actions scheduled before a restart still fire.
 registerTaskHandler("temprole_remove", removeTempRoleTask);
+registerTaskHandler("tempban_lift", liftTempBanTask);
 
 const REASON = "reason";
 
@@ -156,6 +159,14 @@ function buildData(): SlashCommandBuilder {
 			.addStringOption((o) =>
 				o.setName("nickname").setDescription("New nickname (empty to reset)"),
 			),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("tempban")
+			.setDescription("Ban a user for a limited time (auto-unban)")
+			.addUserOption((o) => o.setName("user").setDescription("User to ban").setRequired(true))
+			.addStringOption((o) => o.setName("duration").setDescription("e.g. 1h, 7d").setRequired(true))
+			.addStringOption((o) => o.setName(REASON).setDescription("Reason")),
 	);
 	cmd.addSubcommand((s) =>
 		s
@@ -384,6 +395,19 @@ async function execute({
 			await target.setNickname(nickname ?? null).catch(() => null);
 			return ok(interaction, "moderation:nick.success", { user: target.user.tag });
 		}
+		case "tempban": {
+			if (!hasPerm(interaction, PermissionFlagsBits.BanMembers)) return denyNoPerm(interaction);
+			const target = interaction.options.getUser("user", true);
+			const durationMs = parseDuration(interaction.options.getString("duration", true));
+			if (!durationMs) return void reply.error(interaction, t("moderation:error.invalidDuration"));
+			const res = await applyTempBan({ guild, target, moderator, durationMs, reason, client });
+			if (!res.ok) return void reply.error(interaction, t(res.messageKey, res.vars));
+			return ok(interaction, "moderation:success.tempban", {
+				user: target.tag,
+				duration: formatDuration(durationMs),
+				case: res.caseNumber ?? 0,
+			});
+		}
 		case "temprole": {
 			if (!hasPerm(interaction, PermissionFlagsBits.ManageRoles)) return denyNoPerm(interaction);
 			const target = resolveMember();
@@ -430,6 +454,7 @@ const moderation: BotModule = {
 		"success.untimeout": "✅ Removed timeout from **{user}**",
 		"success.warn": "⚠️ Warned **{user}** • Case #{case}",
 		"success.note": "📝 Note added for **{user}** • Case #{case}",
+		"success.tempban": "🔨 Temp-banned **{user}** for `{duration}` • Case #{case}",
 		"success.temprole": "🎭 Gave **{user}** the **{role}** role for `{duration}` • Case #{case}",
 		"purge.success": "🧹 Deleted **{count}** messages.",
 		"slowmode.success": "🐌 Slowmode set to **{seconds}s**.",

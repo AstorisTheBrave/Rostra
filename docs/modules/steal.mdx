@@ -1,0 +1,34 @@
+---
+last-updated: 2026-06-06
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+`/steal emoji:<paste> [name]` adds one or more custom emojis to the server from pasted emoji text. Ported
+from the zyn-bot steal command, reshaped to slash-only (a slash command cannot reference a replied-to
+message, so emojis are pasted into a string option).
+
+## technical map
+
+**file paths**
+- command: `src/modules/steal/index.ts`
+- pure parsing helpers: `src/modules/steal/service.ts` (+ `service.test.ts`)
+- no database
+
+**command** - `/steal emoji:<string> [name]`. Requires `ManageGuildExpressions` (gated on the command for
+both the user and the bot, and as the default member permission). Steals up to 10 emojis per call; the
+optional `name` applies only when exactly one emoji is pasted.
+
+**exports (service.ts)** - pure `parseCustomEmojis(input)` (static + animated, de-duped by id),
+`emojiCdnUrl(id, animated)`, and `sanitizeEmojiName(name)` (Discord's 2-32 word-char rule).
+
+## gotchas
+
+- Slash commands have no message reference, so stickers and message-attachment stealing from the prior
+  prefix bot are intentionally dropped; this handles the common case (pasting custom emojis).
+- Emoji creation is network-bound (downloads from the CDN), so safeAck auto-defers. Each create is wrapped
+  in try/catch; partial success is reported (added vs could-not-add).
+- Animated emojis use the `.gif` CDN path, static use `.png`. Names are sanitised to satisfy Discord or the
+  create call would reject them.

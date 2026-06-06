@@ -677,3 +677,15 @@ in the original channel (DM fallback) via Components V2 and deletes the row. Dur
 
 **files touched**: `src/modules/reminders/{index,service,service.test}.ts`, `prisma/schema.prisma`,
 `prisma/migrations/0_init/migration.sql`, `docs/modules/reminders.mdx`, `CLAUDE.md` (room index).
+
+### 2026-06-06 (later - port zyn-bot, module 3: steal)
+
+**changed**: Added the **steal** module: `/steal emoji:<paste> [name]` adds custom emojis to the server
+from pasted emoji text (up to 10 per call; `name` applies when exactly one is pasted). Gated on
+`ManageGuildExpressions` for user and bot. Slash commands cannot reference a replied-to message, so the
+prefix bot's sticker/attachment stealing is dropped in favour of the common paste-emojis case. Pure
+helpers `parseCustomEmojis` / `emojiCdnUrl` / `sanitizeEmojiName` are tested; creation is per-emoji
+try/catch with partial-success reporting. 4 new tests; typecheck + Biome + 99/99 tests green.
+
+**files touched**: `src/modules/steal/{index,service,service.test}.ts`, `docs/modules/steal.mdx`,
+`CLAUDE.md` (room index).

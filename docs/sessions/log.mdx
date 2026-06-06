@@ -812,3 +812,19 @@ force escape hatch. 3 new tests; typecheck + Biome + 118/118 green. Baseline reg
 
 **files touched**: `src/services/{commandSync,commandSync.test}.ts`, `src/cluster.ts`,
 `src/scripts/deploy-commands.ts`, `prisma/schema.prisma`, `prisma/migrations/0_init/migration.sql`.
+
+### 2026-06-06 (later - platform step 2: GuildTenant config service)
+
+**changed**: Added the centralized per-guild config service (`src/services/tenant.ts`) + `GuildTenant`
+model. `getTenant(guildId)` reads through a two-layer cache - L1 in-process map of hot guilds, then L2
+Redis (`tenant:<guildId>` at `CONFIG_TTL_MS` = 5 min), then a lazy DB upsert. `updateTenant(guildId, patch)`
+writes typed columns (locale, log/modLog/welcome channel ids, mute role) plus JSON `features`/`settings` and
+invalidates both layers (guilds live on one shard, so L1 needs no cross-shard invalidation). Helpers:
+`isFeatureEnabled`, `getSetting`, `setFeatures`, `evictTenantL1`. The setup wizard (step 5) writes
+channel/role ids and feature flags here so features resolve them from cache, no raw lookups. Pure helpers
+tested (3 new); typecheck + Biome + 121/121 green. Baseline now 36 tables.
+
+**next**: step 3 (durable ScheduledTask scheduler), then cron, wizards, feature ports.
+
+**files touched**: `src/services/{tenant,tenant.test}.ts`, `prisma/schema.prisma`,
+`prisma/migrations/0_init/migration.sql`, `docs/modules/services.mdx`.

@@ -449,6 +449,22 @@ CREATE TABLE "BotState" (
     CONSTRAINT "BotState_pkey" PRIMARY KEY ("key")
 );
 
+-- CreateTable
+CREATE TABLE "GuildTenant" (
+    "guildId" TEXT NOT NULL,
+    "locale" TEXT NOT NULL DEFAULT 'en',
+    "logChannelId" TEXT,
+    "modLogChannelId" TEXT,
+    "welcomeChannelId" TEXT,
+    "muteRoleId" TEXT,
+    "features" JSONB NOT NULL DEFAULT '{}',
+    "settings" JSONB NOT NULL DEFAULT '{}',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "GuildTenant_pkey" PRIMARY KEY ("guildId")
+);
+
 -- CreateIndex
 CREATE INDEX "GuildModuleConfig_guildId_idx" ON "GuildModuleConfig"("guildId");
 

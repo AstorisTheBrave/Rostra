@@ -458,3 +458,22 @@ model BotState {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+// ── Centralized per-guild config (the "tenant") ──────────────────────────────
+// One cached row per guild for cross-cutting settings the setup wizard writes
+// and multiple features resolve from cache (no raw lookups on hot paths).
+
+model GuildTenant {
+  guildId          String   @id
+  locale           String   @default("en")
+  logChannelId     String?
+  modLogChannelId  String?
+  welcomeChannelId String?
+  muteRoleId       String?
+  // Feature enable flags, e.g. { "automod": true, "logging": true }.
+  features         Json     @default("{}")
+  // Free-form per-guild settings stashed by the wizard/features.
+  settings         Json     @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}

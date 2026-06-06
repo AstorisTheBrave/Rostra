@@ -29,6 +29,15 @@ shared instance so the whole bot reuses one connection instead of making new one
   every write with `invalidateConfig`. This is the caching foundation the GuildTenant builds on (see
   `docs/superpowers/specs/2026-06-06-centralized-platform-systems.md`).
 
+**`src/services/tenant.ts`** - the centralized per-guild config ("tenant", model `GuildTenant`).
+- `getTenant(guildId)` - two-layer cache: L1 in-process map of hot guilds, then L2 Redis (`tenant:<guildId>`
+  at the 5-min config TTL), then DB (lazily upserts the row). Guilds live on one shard, so L1 needs no
+  cross-shard invalidation.
+- `updateTenant(guildId, patch)` - writes the row and invalidates both layers. The setup wizard writes
+  channel/role ids and feature flags here, so features resolve them from cache (no raw lookups).
+- `isFeatureEnabled(tenant, name)`, `getSetting(tenant, key)`, `setFeatures(guildId, flags)`,
+  `evictTenantL1(guildId)`.
+
 **depends on**
 - `src/config.ts` for log level, `DATABASE_URL`, `REDIS_URL`, env mode
 - `@prisma/client` (generated from `prisma/schema.prisma`) + `@prisma/adapter-pg` (Prisma 7 driver

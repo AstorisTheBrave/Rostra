@@ -2,14 +2,10 @@ import { randomUUID } from "node:crypto";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
+import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
-	type APIMessageTopLevelComponent,
-	ActionRowBuilder,
-	ButtonBuilder,
 	ButtonStyle,
 	type ChatInputCommandInteraction,
-	type JSONEncodable,
 	MessageFlags,
 	SlashCommandBuilder,
 } from "discord.js";
@@ -25,50 +21,43 @@ import {
 
 const CELL_EMOJI = { X: "❌", O: "⭕", empty: "⬜" } as const;
 
-type TopLevelComponent = JSONEncodable<APIMessageTopLevelComponent>;
-
-function renderTtt(token: string, state: TttState): TopLevelComponent[] {
+function renderTtt(token: string, state: TttState) {
 	const result = checkTicTacToe(state.board);
 	let status: string;
 	if (result === "draw") status = "🤝 It's a draw!";
 	else if (result) status = `🎉 <@${state.players[result]}> wins!`;
 	else status = `<@${state.players[state.turn]}>'s turn (${CELL_EMOJI[state.turn]})`;
 
-	const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+	const rows = [];
 	for (let r = 0; r < 3; r++) {
-		const row = new ActionRowBuilder<ButtonBuilder>();
+		const cells = [];
 		for (let c = 0; c < 3; c++) {
 			const i = r * 3 + c;
 			const mark = state.board[i];
-			const button = new ButtonBuilder()
-				.setCustomId(`game:ttt:${token}:${i}`)
-				.setEmoji(mark ? CELL_EMOJI[mark] : CELL_EMOJI.empty)
-				.setStyle(mark ? ButtonStyle.Secondary : ButtonStyle.Primary)
-				.setDisabled(state.finished || mark !== null);
-			row.addComponents(button);
+			cells.push(
+				button({
+					id: `game:ttt:${token}:${i}`,
+					emoji: mark ? CELL_EMOJI[mark] : CELL_EMOJI.empty,
+					style: mark ? ButtonStyle.Secondary : ButtonStyle.Primary,
+					disabled: state.finished || mark !== null,
+				}),
+			);
 		}
-		rows.push(row);
+		rows.push(actionRow(...cells));
 	}
 	return [container(Accent.info, [text("# ⭕ Tic-Tac-Toe"), text(status)]), ...rows];
 }
 
-function rpsRow(): ActionRowBuilder<ButtonBuilder> {
-	return new ActionRowBuilder<ButtonBuilder>().addComponents(
-		new ButtonBuilder()
-			.setCustomId("game:rps:rock")
-			.setLabel("Rock")
-			.setEmoji("🪨")
-			.setStyle(ButtonStyle.Secondary),
-		new ButtonBuilder()
-			.setCustomId("game:rps:paper")
-			.setLabel("Paper")
-			.setEmoji("📄")
-			.setStyle(ButtonStyle.Secondary),
-		new ButtonBuilder()
-			.setCustomId("game:rps:scissors")
-			.setLabel("Scissors")
-			.setEmoji("✂️")
-			.setStyle(ButtonStyle.Secondary),
+function rpsRow() {
+	return actionRow(
+		button({ id: "game:rps:rock", label: "Rock", emoji: "🪨", style: ButtonStyle.Secondary }),
+		button({ id: "game:rps:paper", label: "Paper", emoji: "📄", style: ButtonStyle.Secondary }),
+		button({
+			id: "game:rps:scissors",
+			label: "Scissors",
+			emoji: "✂️",
+			style: ButtonStyle.Secondary,
+		}),
 	);
 }
 

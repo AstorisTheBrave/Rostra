@@ -2,10 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
+import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
-	ActionRowBuilder,
-	ButtonBuilder,
 	ButtonStyle,
 	type ChatInputCommandInteraction,
 	MessageFlags,
@@ -44,13 +42,14 @@ async function play(interaction: ChatInputCommandInteraction): Promise<void> {
 	const token = randomUUID().slice(0, 8);
 	startSession(token, { correctIndex, options, answered: new Set(), correct: question.correct });
 
-	const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+	const row = actionRow(
 		...options.map((option, i) =>
-			new ButtonBuilder()
-				.setCustomId(`trivia:answer:${token}:${i}`)
-				.setLabel(`${option}`.slice(0, 80))
-				.setEmoji(LETTERS[i] ?? "❓")
-				.setStyle(ButtonStyle.Secondary),
+			button({
+				id: `trivia:answer:${token}:${i}`,
+				label: `${option}`.slice(0, 80),
+				emoji: LETTERS[i] ?? "❓",
+				style: ButtonStyle.Secondary,
+			}),
 		),
 	);
 

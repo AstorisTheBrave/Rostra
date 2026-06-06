@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Compute image name (lowercase)
         id: img

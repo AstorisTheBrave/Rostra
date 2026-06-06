@@ -377,3 +377,16 @@ model AutoResponder {
   @@unique([guildId, trigger])
   @@index([guildId])
 }
+
+// ── Trivia ───────────────────────────────────────────────────────────────────
+
+model TriviaScore {
+  guildId   String
+  userId    String
+  correct   Int      @default(0)
+  total     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([guildId, userId])
+  @@index([guildId])
+}

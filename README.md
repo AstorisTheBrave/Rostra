@@ -117,10 +117,11 @@ docker compose up --build
 
 Brings up the bot, PostgreSQL, pgBouncer (transaction pooling), and Redis.
 
-A prebuilt image is published to the GitHub Container Registry on every push to `main` and on version tags:
+A prebuilt image is published to the GitHub Container Registry on every push to `main` (tagged `latest`,
+`main`, and the commit sha) and, on a release, the version tags:
 
 ```bash
-docker pull ghcr.io/astoristhebrave/rostra:main
+docker pull ghcr.io/astoristhebrave/rostra:latest
 ```
 
 ## Configuration

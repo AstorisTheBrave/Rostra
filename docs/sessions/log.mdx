@@ -942,3 +942,13 @@ left for a focused pass rather than rushed at the end of a long session.
 
 **files touched**: `src/modules/leveling/events.ts`, `src/modules/economy/index.ts`,
 `src/modules/{automod,logging,welcome}/index.ts`.
+
+### 2026-06-06 (later - Docker :latest tracks main)
+
+**changed**: `docker.yml` now tags the GHCR image `latest` on default-branch builds
+(`enable={{is_default_branch}}`), so `ghcr.io/astoristhebrave/rostra:latest` always reflects the newest
+`main` (previously only `:main`/`:sha` on pushes; `:latest` only on a release). The release path still also
+tags `latest` + the version. README updated to pull `:latest`. The push that lands this triggers a publish
+that creates the `:latest` image.
+
+**files touched**: `.github/workflows/docker.yml`, `README.md`.

@@ -16,7 +16,7 @@ jobs:
       DATABASE_URL: postgresql://user:pass@localhost:5432/rostra
       NODE_ENV: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           # Node 22+: the built-in test runner expands the `src/**/*.test.ts` glob.

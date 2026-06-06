@@ -113,6 +113,12 @@ docker compose up --build
 
 Brings up the bot, PostgreSQL, pgBouncer (transaction pooling), and Redis.
 
+A prebuilt image is published to the GitHub Container Registry on every push to `main` and on version tags:
+
+```bash
+docker pull ghcr.io/astoristhebrave/rostra:main
+```
+
 ## Configuration
 
 All settings come from environment variables (see [`.env.example`](.env.example)):
@@ -160,6 +166,9 @@ pattern, the UI library, coding conventions, and how to run the checks. By parti
 
 Found a vulnerability? Please report it privately — see [SECURITY.md](SECURITY.md). Do not open a public
 issue for security problems.
+
+Working with an AI coding assistant (Claude Code, Gemini CLI, Codex)? See [AGENTS.md](AGENTS.md).
+Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

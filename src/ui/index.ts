@@ -10,5 +10,6 @@
  * `module:action:arg` - the library provides the components, the module provides the "onClick".
  */
 export * from "@/utils/components.ts";
+export * from "./emojis.ts";
 export * from "./interactive.ts";
 export * from "./patterns.ts";

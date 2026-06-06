@@ -33,6 +33,19 @@ label)` + `settingsPanel(prefix, items)` (on/off config grid), `paginatorRow(pre
 **layout (from components.ts)** - `container`, `text`, `section`, `gallery`, `divider`, `Accent`,
 `buildResponse`, and the `reply.*` helpers.
 
+**emojis (emojis.ts)** - `emoji(name)` returns a custom application emoji `<:name:id>` if one has been
+uploaded, else a unicode fallback, so UI looks fine immediately. `EMOJI_FALLBACK` is the semantic registry
+(status + per-module + system/stats + controls); `EMOJI_NAMES` lists the keys. Custom art is generated and
+uploaded by two build-time scripts:
+- `npm run emojis:generate` - rasterises Lucide icons onto coloured badges (white stroke on a rounded
+  accent square, 128px) via `@resvg/resvg-js` into `assets/emojis/<name>.png`. Mapping lives in
+  `src/scripts/generate-emojis.ts`.
+- `npm run emojis:upload` - uploads those PNGs as the bot's **application emojis** (usable in every server)
+  and writes their ids into `src/ui/emoji-ids.json`. Idempotent (reuses existing by name).
+
+Both scripts and their deps (`lucide-static`, `@resvg/resvg-js`) are devDependencies; the runtime only
+reads `emoji-ids.json` (ships empty -> all unicode until uploaded).
+
 ## gotchas
 
 - **customId convention is the contract:** patterns emit ids like `module:action:arg`. The owning module's

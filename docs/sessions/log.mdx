@@ -721,3 +721,23 @@ Pure `compactNumber`/`statLine` helpers are tested. typecheck + Biome + 105/105 
 produced a valid PNG.
 
 **files touched**: `src/modules/profile/{stats,stats.test,card,index}.ts`, `docs/modules/profile.mdx`.
+
+### 2026-06-06 (later - custom application-emoji system)
+
+**changed**: Added a semantic emoji system so the UI can use polished custom icons like other top bots,
+with graceful unicode fallbacks. `@/ui` now exports `emoji(name)` (returns `<:name:id>` if uploaded, else a
+unicode fallback), `EMOJI_FALLBACK`, and `EMOJI_NAMES` (43 names: status, per-module, system/stats,
+controls). Two build-time scripts produce the art: `npm run emojis:generate` rasterises **Lucide** icons
+(MIT) onto rounded coloured badges (white stroke, 128px) via **@resvg/resvg-js** into `assets/emojis/`;
+`npm run emojis:upload` uploads them as the bot's **application emojis** (work in every server) and writes
+ids to `src/ui/emoji-ids.json`. Runtime reads only that JSON (ships empty, so unicode until uploaded);
+`lucide-static` + `@resvg/resvg-js` are devDependencies, so the production image stays lean. 3 new tests;
+typecheck + Biome + 108/108 tests green; generator produced 43 PNGs.
+
+**why**: foundation for the upcoming `/help` redesign, stats panels, and setup wizards (they will use
+`emoji()` for icons). Answers the question of where good icon art comes from: an open-source icon set
+(Lucide) rather than hand-drawn glyphs.
+
+**files touched**: `src/ui/{emojis.ts,emojis.test.ts,emoji-ids.json,index.ts}`,
+`src/scripts/{generate,upload}-emojis.ts`, `assets/emojis/*.png` (generated), `package.json`,
+`docs/modules/ui.mdx`.

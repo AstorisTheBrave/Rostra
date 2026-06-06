@@ -497,4 +497,36 @@ the bump is verified.
 
 **note**: pre-existing `npm audit` finding (not introduced here): `undici` (high+moderate) is transitive
 via `@top-gg/sdk`; `npm audit fix --force` *downgrades* top.gg (wrong). A real fix is an `overrides` pin on
-undici, but undici is shared with discord.js's HTTP stack — test before applying. Deferred.
+undici, but undici is shared with discord.js's HTTP stack, so test before applying. Deferred.
+
+### 2026-06-06 (later - Prisma 7 migration)
+
+**changed**: Upgraded `@prisma/client` + `prisma` from v6 to **v7.8.0** (the upgrade Dependabot #11/#14
+could not do). Prisma 7 is engine-less and moves the connection URL out of the schema, so the migration
+touched four things:
+
+- `prisma/schema.prisma`: removed `url = env("DATABASE_URL")` from the `datasource` block (the v7 P1012
+  blocker). Kept the `prisma-client-js` generator: it still works under v7 (verified `prisma generate`),
+  so all 22 `import type { X } from "@prisma/client"` call sites stay unchanged. No new generator/output
+  path or barrel re-export needed; the single-source import pattern is preserved.
+- New `prisma.config.ts` at repo root (`defineConfig` from `prisma/config`) supplies the datasource URL to
+  the CLI for migrations via `env("DATABASE_URL")`, with `import "dotenv/config"` to load `.env` locally.
+  Added `dotenv` as a devDependency for that.
+- `src/services/database.ts`: `getPrisma()` now builds the client on the `@prisma/adapter-pg` driver
+  adapter (`new PrismaPg({ connectionString: config.database.url })`). URL still comes from the validated
+  `config`, never raw `process.env`. Added `@prisma/adapter-pg` (bundles `pg` + `@types/pg`).
+- `Dockerfile`: copy `prisma.config.ts` before `prisma generate`; pass a build-time placeholder
+  `DATABASE_URL` on the generate step (generate is offline and `env()` is strict about the var existing,
+  but the value is unused); bumped base image to `node:22-alpine` (matches CI, engine-less client has no
+  native-binary concern on alpine).
+
+**verified**: `prisma generate` works both with config and offline (placeholder URL, no `.env`).
+`prisma migrate status` loads `prisma.config.ts`, resolves the URL, and connects (only fails on P1001 here
+because no local Postgres is running, which is environmental). typecheck + Biome (exit 0) + 85/85 tests all
+green.
+
+**files touched**: `prisma/schema.prisma`, `prisma.config.ts` (new), `src/services/database.ts`,
+`Dockerfile`, `package.json` + `package-lock.json`, `docs/stack.mdx`, `docs/modules/services.mdx`.
+
+**note**: the strict `env()` in `prisma.config.ts` is intentional (a missing `DATABASE_URL` should fail a
+real migrate). CI already injects a placeholder `DATABASE_URL`, so `npx prisma generate` there is fine.

@@ -19,9 +19,12 @@ new dependency fits or why an existing one is there.
 - `discord.js` ^14.16 — Discord API client; provides Components V2 builders and `ShardingManager`
 
 **data**
-- `@prisma/client` + `prisma` ^6 with **PostgreSQL** — chosen over Turso/SQLite because the economy
+- `@prisma/client` + `prisma` ^7 with **PostgreSQL**, chosen over Turso/SQLite because the economy
   and leveling features are write-heavy and target ~1M daily active users (single-writer SQLite would
   bottleneck). Pooling via `connection_limit` (~5/shard); pgBouncer in front at scale.
+- Prisma 7 is engine-less: the client is built on the `@prisma/adapter-pg` (node-postgres) driver
+  adapter in `getPrisma()`. The datasource URL lives in `prisma.config.ts` (CLI/migrations), not in
+  `schema.prisma`; the app runtime reads it from the validated `config` loader. See `docs/modules/services.mdx`.
 - `ioredis` + `keyv` + `@keyv/redis` — Redis for shared cache, leaderboard sorted sets, rate-limit
   buckets, and BullMQ queues. Falls back to in-memory Keyv when `REDIS_URL` is unset.
 

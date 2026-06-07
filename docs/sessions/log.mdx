@@ -1001,3 +1001,16 @@ baseline now 41 tables.
 `src/modules/core/categories.ts`, `src/ui/emojis.ts`, `assets/ship-bg.jpg`, `prisma/schema.prisma`,
 `prisma/migrations/0_init/migration.sql`, `.env.example`, `README.md`, `docs/modules/{feeds,verification}.mdx`,
 `CLAUDE.md`.
+
+### 2026-06-07 (handover - remaining-features backlog)
+
+**changed**: Context was nearly full, so wrote a handover instead of rushing builds. Added
+`docs/superpowers/plans/2026-06-07-remaining-features-backlog.md` - the authoritative backlog of every
+remaining all-in-one feature (feeds: reddit/rss, highlights, sticky messages, reputation, voice roles, bulk
+role, role menus, server stats channels, anti-raid/panic, verification depth, starboard depth, advanced
+automod, modmail, image cards, economy depth, polls/suggestions/counting, and logging/music/giveaway depth)
+with per-feature build specs and the non-negotiable patterns to follow. Updated the memory handover to point
+at it. Reference docs are in `Archive/` (yagpdb-docs, arcane-docs, zyn-bot). No code change; CI unaffected.
+
+**files touched**: `docs/superpowers/plans/2026-06-07-remaining-features-backlog.md`, `memory.md` (local),
+this log.

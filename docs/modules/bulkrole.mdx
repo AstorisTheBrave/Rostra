@@ -1,0 +1,33 @@
+---
+last-updated: 2026-06-07
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Bulk role tools: add or remove a role across the whole server in one command. `/role all add|remove <role>
+[who: everyone|humans|bots]` (Manage Roles). No model - it is a one-shot action.
+
+## technical map
+
+**file paths**
+- command: `src/modules/bulkrole/index.ts` (subcommand group `all` -> `add`/`remove`)
+- worker: `src/modules/bulkrole/service.ts` (+ `service.test.ts`)
+
+**how it works** - `applyRoleToAll(guild, roleId, action, filter)` fetches all members once, filters with
+pure `matchesFilter`, skips members already in the desired state, and adds/removes the role with a 750ms
+pause every 5 writes to stay under the role rate limit. It returns `{changed, skipped, failed, total}`. The
+command guards managed roles, `@everyone`, and roles above the bot before starting, and relies on safeAck's
+auto-defer (the fetch + loop exceeds 3s) so the final summary edits the deferred reply.
+
+**exports** - pure `matchesFilter` (tested), `applyRoleToAll`, and the `MemberFilter`/`RoleAction`/
+`BulkResult` types.
+
+## gotchas
+
+- `getRole()` returns `Role | APIRole`, so the worker takes a `roleId` string (member.roles.add/remove
+  accept a RoleResolvable) and the hierarchy/managed checks happen in the command on the union.
+- Very large guilds: this is a synchronous sweep bounded by the ~15-minute interaction token. A durable/queued
+  variant is a future option (see the backlog) but not needed at current scale.
+- Re-running is cheap: members already in the target state are skipped, not rewritten.

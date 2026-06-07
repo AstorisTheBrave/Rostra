@@ -11,6 +11,20 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (bulk role)
+
+**changed**: New `bulkrole` module (backlog item 6): `/role all add|remove <role> [who]` applies a role
+across every matching member. No model. `applyRoleToAll` fetches members once, filters via pure
+`matchesFilter` (everyone/humans/bots), skips members already in the target state, and paces writes (750ms
+every 5) to respect the role rate limit, returning a `{changed,skipped,failed,total}` summary. Guards managed
+roles, `@everyone`, and hierarchy; relies on safeAck auto-defer. Wired into the `role` emoji and `/help`
+Server Management (no `/setup` gate - it is a one-shot action).
+
+**files touched**: `src/modules/bulkrole/{index,service,service.test}.ts`, `src/ui/emojis.ts`,
+`src/modules/core/categories.ts`, `docs/modules/bulkrole.mdx`, `README.md`.
+
+**verified**: typecheck clean; bulkrole tests 3/3 (`matchesFilter`); categories test green; biome clean.
+
 ### 2026-06-07 (voice roles)
 
 **changed**: New `voicerole` module (backlog item 5): grant a role while connected to voice, remove on

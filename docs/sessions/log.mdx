@@ -11,6 +11,24 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (anti-raid / panic mode)
+
+**changed**: Extended `security` (backlog item 9) with anti-raid. New `raid.ts`: a second `guildMemberAdd`
+handler tracks an in-memory per-guild join window (pure `recordJoin`); when `raidThreshold` joins land in
+`raidWindowSec` it calls `triggerLockdown` (raise verification to Very High + alert + schedule a durable
+`raid_unlock` task that restores the prior level after `raidLockMinutes`). New `/security antiraid
+<enabled> [threshold] [window] [minutes]` and `/security panic <on|off>` (manual lockdown, no auto-lift).
+Lock state + restore level in an in-memory Map (guild single-shard owned); scheduled payload carries
+`{guildId, restoreLevel}` for restart safety. New `AntinukeConfig` columns: `antiRaid`, `raidThreshold`,
+`raidWindowSec`, `raidLockMinutes`. Gated by the existing `security` tenant flag (already in `/setup` +
+`/help` + emoji, so no extra wiring).
+
+**files touched**: `src/modules/security/{index,events,raid,raid.test}.ts`, `prisma/schema.prisma` +
+`0_init`, `docs/modules/security.mdx`.
+
+**verified**: typecheck clean; security raid tests 2/2 (`recordJoin` window logic) + existing service tests;
+biome clean; baseline includes the new columns.
+
 ### 2026-06-07 (server stats channels)
 
 **changed**: New `serverstats` module (backlog item 8): locked voice channels that show live counts.

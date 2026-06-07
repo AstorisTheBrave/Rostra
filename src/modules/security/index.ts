@@ -6,11 +6,16 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { registerTaskHandler } from "@/services/scheduler.ts";
 import { getTenant, setFeatures } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { securityEvents } from "./events.ts";
+import { isLocked, liftLockdown, raidUnlockTask, triggerLockdown } from "./raid.ts";
 import { type AntinukeModule, getConfig, upsertConfig } from "./service.ts";
+
+// Register the durable auto-lift handler at module load (before boot recovery).
+registerTaskHandler("raid_unlock", raidUnlockTask);
 
 const MODULE_KEYS: AntinukeModule[] = [
 	"antiBan",
@@ -48,6 +53,38 @@ function buildData(): SlashCommandBuilder {
 						{ name: "Kick", value: "kick" },
 						{ name: "Strip roles", value: "strip" },
 					),
+			),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("antiraid")
+			.setDescription("Configure join-flood lockdown")
+			.addBooleanOption((o) =>
+				o.setName("enabled").setDescription("Turn anti-raid on or off").setRequired(true),
+			)
+			.addIntegerOption((o) =>
+				o.setName("threshold").setDescription("Joins to trigger (default 10)").setMinValue(3),
+			)
+			.addIntegerOption((o) =>
+				o.setName("window").setDescription("Within this many seconds (default 10)").setMinValue(3),
+			)
+			.addIntegerOption((o) =>
+				o
+					.setName("minutes")
+					.setDescription("Auto-lift after this many minutes (default 10)")
+					.setMinValue(1),
+			),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("panic")
+			.setDescription("Manually lock down or release the server")
+			.addStringOption((o) =>
+				o
+					.setName("state")
+					.setDescription("Lock down or lift")
+					.setRequired(true)
+					.addChoices({ name: "on", value: "on" }, { name: "off", value: "off" }),
 			),
 	);
 	cmd.addSubcommand((s) =>
@@ -132,6 +169,7 @@ async function ok(
 
 async function execute({
 	interaction,
+	client,
 }: {
 	interaction: ChatInputCommandInteraction;
 	client: BotClient;
@@ -192,6 +230,36 @@ async function execute({
 			await upsertConfig(guild.id, { punishment: type });
 			return ok(interaction, "security:punishment.set", { type });
 		}
+		case "antiraid": {
+			const enabled = interaction.options.getBoolean("enabled", true);
+			const threshold = interaction.options.getInteger("threshold") ?? undefined;
+			const window = interaction.options.getInteger("window") ?? undefined;
+			const minutes = interaction.options.getInteger("minutes") ?? undefined;
+			await upsertConfig(guild.id, {
+				antiRaid: enabled,
+				...(threshold !== undefined ? { raidThreshold: threshold } : {}),
+				...(window !== undefined ? { raidWindowSec: window } : {}),
+				...(minutes !== undefined ? { raidLockMinutes: minutes } : {}),
+			});
+			const cfg = await getConfig(guild.id);
+			return ok(interaction, enabled ? "security:antiraid.on" : "security:antiraid.off", {
+				threshold: cfg?.raidThreshold ?? 10,
+				window: cfg?.raidWindowSec ?? 10,
+				minutes: cfg?.raidLockMinutes ?? 10,
+			});
+		}
+		case "panic": {
+			const state = interaction.options.getString("state", true);
+			const cfg = await ensureConfig(guild.id);
+			if (state === "on") {
+				if (isLocked(guild.id)) return ok(interaction, "security:panic.already");
+				await triggerLockdown(guild, cfg, client, "Manual panic lockdown by an admin.", 0);
+				return ok(interaction, "security:panic.on");
+			}
+			if (!isLocked(guild.id)) return ok(interaction, "security:panic.notLocked");
+			await liftLockdown(guild);
+			return ok(interaction, "security:panic.off");
+		}
 		case "logchannel": {
 			const channel = interaction.options.getChannel("channel", true);
 			await upsertConfig(guild.id, { logChannelId: channel.id });
@@ -248,6 +316,14 @@ const security: BotModule = {
 		enabled: "🛡️ Antinuke **enabled**.",
 		disabled: "🛡️ Antinuke **disabled**.",
 		"punishment.set": "⚙️ Punishment set to **{type}**.",
+		"antiraid.on":
+			"🚨 Anti-raid **enabled**. Lockdown triggers at **{threshold}** joins in **{window}s**, auto-lifts after **{minutes}m**.",
+		"antiraid.off": "🚨 Anti-raid **disabled**.",
+		"panic.on":
+			"🔒 Server locked down. Verification raised to Very High. Lift with `/security panic state:off`.",
+		"panic.off": "🔓 Lockdown lifted. Verification restored.",
+		"panic.already": "The server is already in lockdown.",
+		"panic.notLocked": "The server is not in lockdown.",
 		"logchannel.set": "📋 Antinuke log channel set to {channel}.",
 		"notify.on": "🔔 Owner DM alerts **enabled**.",
 		"notify.off": "🔕 Owner DM alerts **disabled**.",

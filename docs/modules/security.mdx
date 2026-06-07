@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
@@ -9,7 +9,8 @@ status: stable
 Antinuke: protects a server from a rogue admin or compromised account that tries to mass-delete channels,
 mass-ban members, add malicious bots, etc. When a destructive action happens, the bot figures out who
 did it (from Discord's audit log), checks whether they're trusted, and if not, punishes them instantly
-(ban / kick / strip roles) and alerts the owner.
+(ban / kick / strip roles) and alerts the owner. Also includes **anti-raid**: join-flood detection that
+locks the server down (raises verification) and auto-lifts.
 
 ## technical map
 
@@ -18,15 +19,24 @@ did it (from Discord's audit log), checks whether they're trusted, and if not, p
 - detection events: `src/modules/security/events.ts`
 - audit-log attribution: `src/modules/security/audit.ts`
 - config + punishment: `src/modules/security/service.ts`
+- anti-raid lockdown: `src/modules/security/raid.ts` (+ `raid.test.ts`)
 - model: `prisma/schema.prisma` → `AntinukeConfig`
 
 **command** - `/security` (Administrator-only): `enable`, `disable`, `status`, `punishment <ban|kick|
-strip>`, `logchannel <channel>`, `notify <bool>`, `module <name> <bool>`, and groups `whitelist
-add|remove` and `extraowner add|remove`.
+strip>`, `antiraid <enabled> [threshold] [window] [minutes]`, `panic <on|off>`, `logchannel <channel>`,
+`notify <bool>`, `module <name> <bool>`, and groups `whitelist add|remove` and `extraowner add|remove`.
 
 **protections (gateway events → audit type)** - `antiChannel` (channelCreate/Delete),
 `antiRole` (roleCreate/Delete), `antiBan` (guildBanAdd), `antiKick` (guildMemberRemove → MemberKick),
 `antiBotAdd` (guildMemberAdd for bots), `antiWebhook` (webhooksUpdate), `antiGuildUpdate` (guildUpdate).
+
+**anti-raid (raid.ts)** - a second `guildMemberAdd` handler tracks an in-memory join window per guild
+(`recordJoin`, pure, tested). When `raidThreshold` joins land within `raidWindowSec`, `triggerLockdown`
+raises verification to Very High, alerts the log channel/owner, and schedules a durable `raid_unlock`
+task (`registerTaskHandler` in index) that restores the prior level after `raidLockMinutes`. `/security
+panic on` is a manual lockdown with no auto-lift; `panic off` (or the timer) calls `liftLockdown`. Lock
+state + restore level live in an in-memory Map (safe: a guild is single-shard owned); the scheduled
+payload carries `{guildId, restoreLevel}` so a restart can still restore correctly.
 
 **exports (service.ts)**
 - `getConfig/upsertConfig/invalidate` - cached per-guild config
@@ -45,6 +55,9 @@ add|remove` and `extraowner add|remove`.
 - Trusted = bot itself, guild owner, extra owners, or whitelisted users - never punished.
 - Bot-vs-target role hierarchy is checked before punishing; punishment falls back to stripping roles if
   the primary action fails.
-- v1 punishes (deterrent) but does not auto-revert deleted channels/roles, and does not yet implement
-  threshold/panic mode (i-karen's advanced layer) - candidates for a later pass.
-- Requires `prisma migrate` to create the `AntinukeConfig` table.
+- Antinuke punishes (deterrent) but does not auto-revert deleted channels/roles - a candidate for a later
+  pass. Anti-raid now covers the threshold/panic layer.
+- Anti-raid raising/restoring verification needs **Manage Server**; failures are logged and swallowed so a
+  missing permission never throws on the join path.
+- Requires `prisma migrate` to create the `AntinukeConfig` table (now includes the `antiRaid`/`raid*`
+  columns).

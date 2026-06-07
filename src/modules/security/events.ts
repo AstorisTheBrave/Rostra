@@ -3,6 +3,7 @@ import { defineEvent } from "@/client/defineEvent.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { resolveAuditExecutor } from "./audit.ts";
+import { isLocked, recordJoin, triggerLockdown } from "./raid.ts";
 import { type AntinukeModule, getConfig, punish } from "./service.ts";
 
 /** Shared guard: if the module is enabled, attribute the action and punish the executor. */
@@ -93,6 +94,20 @@ export const securityEvents: RegisteredEvent[] = [
 				AuditLogEvent.BotAdd,
 				member.id,
 				"Unauthorized bot add",
+			);
+		},
+	}),
+	defineEvent("guildMemberAdd", {
+		execute: async (client, member) => {
+			if (await isFeatureBlocked(member.guild.id, "security")) return;
+			const config = await getConfig(member.guild.id);
+			if (!config?.antiRaid || isLocked(member.guild.id)) return;
+			if (!recordJoin(member.guild.id, config.raidThreshold, config.raidWindowSec)) return;
+			await triggerLockdown(
+				member.guild,
+				config,
+				client,
+				`Join flood detected (${config.raidThreshold}+ joins in ${config.raidWindowSec}s).`,
 			);
 		},
 	}),

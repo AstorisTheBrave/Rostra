@@ -119,6 +119,10 @@ model AntinukeConfig {
   antiRole        Boolean  @default(true)
   antiWebhook     Boolean  @default(true)
   antiGuildUpdate Boolean  @default(true)
+  antiRaid        Boolean  @default(false) // join-flood lockdown
+  raidThreshold   Int      @default(10) // joins...
+  raidWindowSec   Int      @default(10) // ...within this many seconds triggers lockdown
+  raidLockMinutes Int      @default(10) // auto-lift after this long
   extraOwners     String[] @default([])
   whitelist       String[] @default([])
   createdAt       DateTime @default(now())

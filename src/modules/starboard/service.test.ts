@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { effectiveStarCount, emojiDisplay, parseStarEmoji, reactionKey } from "./service.ts";
+import {
+	effectiveStarCount,
+	emojiDisplay,
+	parseEmojiList,
+	parseStarEmoji,
+	reactionKey,
+} from "./service.ts";
+
+test("parseEmojiList splits, dedupes, and normalises custom ids", () => {
+	assert.deepEqual(parseEmojiList("⭐ 🍣 ⭐"), ["⭐", "🍣"]);
+	assert.deepEqual(parseEmojiList("<:star:123>, ⭐"), ["123", "⭐"]);
+	assert.deepEqual(parseEmojiList("   "), []);
+});
 
 test("parseStarEmoji keeps unicode and extracts custom emoji ids", () => {
 	assert.equal(parseStarEmoji("⭐"), "⭐");
@@ -27,17 +39,17 @@ test("effectiveStarCount excludes bots and self-stars per config", () => {
 	];
 	// self-stars off, bots ignored: author and bot excluded -> 2
 	assert.equal(
-		effectiveStarCount(users, { authorId: "author", selfStar: false, ignoreBots: true }),
+		effectiveStarCount(users, { authorId: "author", selfStar: false, filterBots: true }),
 		2,
 	);
 	// self-stars on, bots ignored: author counts -> 3
 	assert.equal(
-		effectiveStarCount(users, { authorId: "author", selfStar: true, ignoreBots: true }),
+		effectiveStarCount(users, { authorId: "author", selfStar: true, filterBots: true }),
 		3,
 	);
 	// self-stars on, bots counted: all 4
 	assert.equal(
-		effectiveStarCount(users, { authorId: "author", selfStar: true, ignoreBots: false }),
+		effectiveStarCount(users, { authorId: "author", selfStar: true, filterBots: false }),
 		4,
 	);
 });

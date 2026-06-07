@@ -721,36 +721,67 @@ model FeedSubscription {
   @@index([guildId])
 }
 
-// ── Starboard ────────────────────────────────────────────────────────────────
+// ── Starboard (multi-board) ──────────────────────────────────────────────────
 
-model StarboardConfig {
-  guildId         String   @id
-  channelId       String?
-  threshold       Int      @default(3)
-  emoji           String   @default("⭐")
-  selfStar        Boolean  @default(false)
-  ignoreBots      Boolean  @default(true)
-  syncDeletes     Boolean  @default(true)
-  ignoredChannels String[] @default([])
-  removeThreshold Int? // hysteresis floor: only un-post when stars drop below this (null = use threshold)
-  rewardRoleId    String? // role granted to authors who reach a star milestone
-  rewardStars     Int      @default(0) // stars on a single message that earn the reward role (0 = off)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+/// One starboard channel and its settings. A guild may have many. A reaction is
+/// routed to every enabled board whose `emojis` include it and whose filters the
+/// message passes; a message can appear on several boards at once.
+model Starboard {
+  id           String   @id @default(cuid())
+  guildId      String
+  name         String // friendly handle for commands
+  channelId    String // where starred messages are posted
+  emojis       String[] @default(["⭐"]) // star emoji identifiers
+  requiredStars Int     @default(3) // stars to post
+  removeStars  Int? // hysteresis floor; null => requiredStars - 1
+  selfStar     Boolean  @default(false) // allow authors to star their own messages
+  filterBots   Boolean  @default(true) // ignore bot authors and bot reactions
+  syncDeletes  Boolean  @default(true) // remove the post if the original is deleted
+  rewardRoleId String? // role granted when a message hits rewardStars
+  rewardStars  Int      @default(0)
+  authorRoleId String? // role-based board: only accept messages by authors with this role
+  ignoredChannels String[] @default([]) // never star from these channels
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  entries StarboardEntry[]
+
+  @@unique([guildId, name])
+  @@unique([guildId, channelId])
+  @@index([guildId])
 }
 
+/// A message reposted to one starboard (a message may have one entry per board).
 model StarboardEntry {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
+  starboardId        String
   guildId            String
-  channelId          String
-  messageId          String   @unique
+  channelId          String // original channel
+  messageId          String // original message
   starboardMessageId String?
   authorId           String
-  stars              Int      @default(0)
-  createdAt          DateTime @default(now())
+  stars              Int       @default(0)
+  createdAt          DateTime  @default(now())
+  starboard          Starboard @relation(fields: [starboardId], references: [id], onDelete: Cascade)
 
+  @@unique([starboardId, messageId])
   @@index([guildId])
   @@index([guildId, authorId])
+  @@index([starboardId])
+}
+
+/// A channel where the bot auto-reacts with `emojis` on every new message
+/// (it does not auto-post; the message must still earn the required stars).
+model AutostarChannel {
+  id        String   @id @default(cuid())
+  guildId   String
+  channelId String
+  emojis    String[] @default(["⭐"])
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, channelId])
+  @@index([guildId])
 }
 
 // ── Durable scheduler ────────────────────────────────────────────────────────

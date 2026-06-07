@@ -1,3 +1,4 @@
+import type { Starboard } from "@prisma/client";
 import {
 	type Message,
 	MessageFlags,
@@ -13,13 +14,16 @@ import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { Accent, actionRow, container, gallery, linkButton, text } from "@/ui";
 import {
+	boardsForEmoji,
 	decideStarboard,
-	deleteEntry,
+	deleteEntriesForMessage,
 	earnsReward,
 	effectiveStarCount,
 	emojiDisplay,
-	getConfig,
+	getAutostar,
 	getEntry,
+	listAutostar,
+	listBoards,
 	reactionKey,
 	upsertEntry,
 } from "./service.ts";
@@ -27,8 +31,7 @@ import {
 const log = getLogger("starboard");
 
 function firstImageUrl(message: Message): string | undefined {
-	const attachment = message.attachments.find((a) => (a.contentType ?? "").startsWith("image/"));
-	return attachment?.url;
+	return message.attachments.find((a) => (a.contentType ?? "").startsWith("image/"))?.url;
 }
 
 function buildStarPost(message: Message, stars: number, emoji: string) {
@@ -44,17 +47,60 @@ function buildStarPost(message: Message, stars: number, emoji: string) {
 	];
 }
 
-/** Grant the configured reward role to the author when their message hits the milestone. */
-async function grantReward(
-	message: Message,
-	rewardRoleId: string | null,
-	rewardStars: number,
-	stars: number,
-): Promise<void> {
-	if (!rewardRoleId || !earnsReward(stars, rewardStars) || !message.guild) return;
+async function grantReward(message: Message, board: Starboard, stars: number): Promise<void> {
+	if (!board.rewardRoleId || !earnsReward(stars, board.rewardStars) || !message.guild) return;
 	const member = await message.guild.members.fetch(message.author.id).catch(() => null);
-	if (!member || member.roles.cache.has(rewardRoleId)) return;
-	await member.roles.add(rewardRoleId, "Starboard reward").catch(() => {});
+	if (!member || member.roles.cache.has(board.rewardRoleId)) return;
+	await member.roles.add(board.rewardRoleId, "Starboard reward").catch(() => {});
+}
+
+/** Process one board for a message at a known star count. */
+async function processBoard(board: Starboard, message: Message, stars: number): Promise<void> {
+	if (board.ignoredChannels.includes(message.channelId)) return;
+	// Role-based board: only accept messages whose author has the required role.
+	if (board.authorRoleId) {
+		const member = await message.guild?.members.fetch(message.author.id).catch(() => null);
+		if (!member?.roles.cache.has(board.authorRoleId)) return;
+	}
+	const board2 = await message.client.channels.fetch(board.channelId).catch(() => null);
+	if (!board2?.isTextBased() || board2.isDMBased()) return;
+
+	const entry = await getEntry(board.id, message.id);
+	const emoji = board.emojis[0] ?? "⭐";
+	const action = decideStarboard(
+		stars,
+		board.requiredStars,
+		board.removeStars,
+		Boolean(entry?.starboardMessageId),
+	);
+	if (action === "none") return;
+	const base = {
+		starboardId: board.id,
+		guildId: board.guildId,
+		channelId: message.channelId,
+		messageId: message.id,
+		authorId: message.author.id,
+		stars,
+	};
+
+	if (action === "post" || action === "keep") {
+		const components = buildStarPost(message, stars, emoji);
+		if (entry?.starboardMessageId) {
+			const existing = await board2.messages.fetch(entry.starboardMessageId).catch(() => null);
+			await existing?.edit({ components, flags: MessageFlags.IsComponentsV2 }).catch(() => {});
+			await upsertEntry({ ...base, starboardMessageId: entry.starboardMessageId });
+		} else if (action === "post") {
+			const posted = await board2
+				.send({ components, flags: MessageFlags.IsComponentsV2 })
+				.catch(() => null);
+			await upsertEntry({ ...base, starboardMessageId: posted?.id ?? null });
+		}
+		if (action === "post") await grantReward(message, board, stars);
+	} else if (action === "remove" && entry?.starboardMessageId) {
+		const existing = await board2.messages.fetch(entry.starboardMessageId).catch(() => null);
+		await existing?.delete().catch(() => {});
+		await upsertEntry({ ...base, starboardMessageId: null });
+	}
 }
 
 type AnyReaction = MessageReaction | PartialMessageReaction;
@@ -67,80 +113,54 @@ async function handleReaction(reaction: AnyReaction, _user: User | PartialUser):
 			: (reaction.message as Message);
 		if (!message.guild || !message.author) return;
 		const guildId = message.guild.id;
-
 		if (await isFeatureBlocked(guildId, "starboard")) return;
-		const config = await getConfig(guildId);
-		if (!config?.channelId) return;
-		if (reactionKey(reaction.emoji) !== config.emoji) return;
-		// Never star the starboard's own posts or ignored channels.
-		if (message.channelId === config.channelId) return;
-		if (config.ignoredChannels.includes(message.channelId)) return;
+
+		const boards = await boardsForEmoji(guildId, reactionKey(reaction.emoji));
+		if (boards.length === 0) return;
+
+		// Never star messages that live in any of this guild's starboard channels.
+		const boardChannelIds = new Set((await listBoards(guildId)).map((b) => b.channelId));
+		if (boardChannelIds.has(message.channelId)) return;
 
 		const reactors = await reaction.users.fetch().catch(() => null);
 		if (!reactors) return;
-		const stars = effectiveStarCount(
-			reactors.map((u) => ({ id: u.id, bot: u.bot })),
-			{ authorId: message.author.id, selfStar: config.selfStar, ignoreBots: config.ignoreBots },
-		);
+		const reactorList = reactors.map((u) => ({ id: u.id, bot: u.bot }));
 
-		const board = await message.client.channels.fetch(config.channelId).catch(() => null);
-		if (!board?.isTextBased() || board.isDMBased()) return;
-		const entry = await getEntry(message.id);
-		const action = decideStarboard(
-			stars,
-			config.threshold,
-			config.removeThreshold,
-			Boolean(entry?.starboardMessageId),
-		);
-		if (action === "none") return;
-
-		const base = {
-			guildId,
-			channelId: message.channelId,
-			messageId: message.id,
-			authorId: message.author.id,
-			stars,
-		};
-
-		if (action === "post") {
-			const components = buildStarPost(message, stars, config.emoji);
-			if (entry?.starboardMessageId) {
-				const existing = await board.messages.fetch(entry.starboardMessageId).catch(() => null);
-				await existing?.edit({ components, flags: MessageFlags.IsComponentsV2 }).catch(() => {});
-				await upsertEntry({ ...base, starboardMessageId: entry.starboardMessageId });
-			} else {
-				const posted = await board
-					.send({ components, flags: MessageFlags.IsComponentsV2 })
-					.catch(() => null);
-				await upsertEntry({ ...base, starboardMessageId: posted?.id ?? null });
-			}
-			await grantReward(message, config.rewardRoleId, config.rewardStars, stars);
-		} else if (action === "keep" && entry?.starboardMessageId) {
-			// Still above the removal floor: refresh the star count but keep the post.
-			const components = buildStarPost(message, stars, config.emoji);
-			const existing = await board.messages.fetch(entry.starboardMessageId).catch(() => null);
-			await existing?.edit({ components, flags: MessageFlags.IsComponentsV2 }).catch(() => {});
-			await upsertEntry({ ...base, starboardMessageId: entry.starboardMessageId });
-		} else if (action === "remove" && entry?.starboardMessageId) {
-			const existing = await board.messages.fetch(entry.starboardMessageId).catch(() => null);
-			await existing?.delete().catch(() => {});
-			await upsertEntry({ ...base, starboardMessageId: null });
+		for (const board of boards) {
+			const stars = effectiveStarCount(reactorList, {
+				authorId: message.author.id,
+				selfStar: board.selfStar,
+				filterBots: board.filterBots,
+			});
+			await processBoard(board, message, stars);
 		}
 	} catch (err) {
 		log.error({ err }, "starboard reaction handling failed");
 	}
 }
 
+async function handleAutostar(message: Message | PartialMessage): Promise<void> {
+	if (!message.guild || message.author?.bot) return;
+	if (await isFeatureBlocked(message.guild.id, "starboard")) return;
+	const config = await getAutostar(message.guild.id, message.channelId);
+	if (!config) return;
+	for (const emoji of config.emojis) {
+		await message.react(emoji).catch(() => {});
+	}
+}
+
 async function handleDelete(message: Message | PartialMessage): Promise<void> {
 	if (!message.guild) return;
-	const config = await getConfig(message.guild.id);
-	if (!config?.channelId || !config.syncDeletes) return;
-	const entry = await deleteEntry(message.id);
-	if (!entry?.starboardMessageId) return;
-	const board = await message.client.channels.fetch(config.channelId).catch(() => null);
-	if (board?.isTextBased() && !board.isDMBased()) {
-		const post = await board.messages.fetch(entry.starboardMessageId).catch(() => null);
-		await post?.delete().catch(() => {});
+	const boards = await listBoards(message.guild.id);
+	const entries = await deleteEntriesForMessage(message.id);
+	for (const entry of entries) {
+		const board = boards.find((b) => b.id === entry.starboardId);
+		if (!board?.syncDeletes || !entry.starboardMessageId) continue;
+		const channel = await message.client.channels.fetch(board.channelId).catch(() => null);
+		if (channel?.isTextBased() && !channel.isDMBased()) {
+			const post = await channel.messages.fetch(entry.starboardMessageId).catch(() => null);
+			await post?.delete().catch(() => {});
+		}
 	}
 }
 
@@ -150,6 +170,13 @@ export const starboardEvents: RegisteredEvent[] = [
 	}),
 	defineEvent("messageReactionRemove", {
 		execute: (_c, reaction, user) => handleReaction(reaction, user),
+	}),
+	defineEvent("messageCreate", {
+		execute: async (_c, message) => {
+			if (!message.inGuild() || message.author.bot) return;
+			if (await listAutostar(message.guild.id).then((l) => l.length === 0)) return;
+			await handleAutostar(message);
+		},
 	}),
 	defineEvent("messageDelete", { execute: (_c, message) => handleDelete(message) }),
 ];

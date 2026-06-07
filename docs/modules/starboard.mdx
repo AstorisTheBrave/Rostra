@@ -6,46 +6,52 @@ status: stable
 
 ## what this is
 
-A starboard: members react to a message with the star emoji, and once it passes a threshold the bot
-reposts it to a dedicated channel. Built from the official Starboard bot docs (cloned into
-`Archive/starboard-docs`), as a sensible v1 (single starboard, single emoji).
+Starboards: members react to a message with a star emoji and, once it passes a threshold, the bot reposts
+it to a starboard channel. A guild can have **many** starboards, each with its own channel, star emojis, and
+settings; a message can land on several at once. Also supports **auto-star channels** (the bot pre-reacts to
+every new message) and a cross-board leaderboard. Built from the official Starboard bot docs (cloned into
+`Archive/starboard-docs`).
 
 ## technical map
 
 **file paths**
-- command (config + leaderboard): `src/modules/starboard/index.ts`
-- reaction/delete handlers + post builder: `src/modules/starboard/events.ts`
-- config (cached) + pure helpers + entry CRUD: `src/modules/starboard/service.ts` (+ `service.test.ts`)
-- models: `StarboardConfig`, `StarboardEntry` in `prisma/schema.prisma`
+- command (board CRUD + edit + autostar + leaderboard): `src/modules/starboard/index.ts`
+- reaction/autostar/delete engine + post builder: `src/modules/starboard/events.ts`
+- board/autostar/entry data + pure helpers: `src/modules/starboard/service.ts`
+  (+ `service.test.ts`, `decide.test.ts`)
+- models: `Starboard`, `StarboardEntry` (one per board+message), `AutostarChannel`
 
-**command** - `/starboard channel|threshold|emoji|selfstar|ignorebots|ignore|removethreshold|reward|
-status|leaderboard|disable` (Manage Server). `ignore` toggles a channel in/out of the ignore list;
-`removethreshold <count>` sets a hysteresis floor (0 = off); `reward <stars> [role]` grants a role when one
-message hits a star milestone (stars 0 = off).
+**command** - `/starboard` (Manage Server): `create <name> <channel> [emojis]`, `delete <name>`, `list`,
+`edit <name> [required_stars] [remove_stars] [emojis] [self_star] [filter_bots] [sync_deletes]
+[reward_role] [reward_stars] [author_role] [enabled]`, `ignore <name> <channel>`, `leaderboard`, and the
+`autostar add|remove|list` group. `create` flips the tenant `starboard` flag.
 
-**events** - `messageReactionAdd` / `messageReactionRemove` recompute a message's valid star count, then
-`decideStarboard` returns `post|keep|remove|none`; the handler creates/updates/removes the post and grants
-the reward role on `post`. `messageDelete` removes the post when `syncDeletes` is on. Needs the
-`GuildMessageReactions` intent + `Partials.Reaction` (added to `BotClient`).
+**routing (events.ts)** - on a star reaction, `boardsForEmoji` finds every enabled board whose `emojis`
+include the reacted emoji; for each, the message is filtered (skip if in the board's `ignoredChannels`, if
+its author lacks `authorRoleId` for a role-based board, or if it lives in any board's channel), the valid
+star count is computed per board (`effectiveStarCount` honouring `selfStar`/`filterBots`), and
+`decideStarboard(stars, requiredStars, removeStars, hasPost)` returns `post|keep|remove|none`. `post` grants
+the reward role (`earnsReward`). Auto-star channels are handled on `messageCreate` (the bot reacts with the
+channel's emojis; it does **not** auto-post - the message must still earn its stars). `messageDelete` removes
+each board's post when that board has `syncDeletes`.
 
-**exports (service.ts)** - cached `getConfig` / `upsertConfig`, pure `parseStarEmoji` / `reactionKey` /
-`emojiDisplay` / `effectiveStarCount` / `decideStarboard` / `earnsReward` (the last two tested in
-`decide.test.ts`), entry CRUD, and `topStarred` (leaderboard via Prisma `groupBy`).
+**exports (service.ts)** - board CRUD (`listBoards`/`getBoard`/`createBoard`/`updateBoard`/`deleteBoard`,
+cached per guild) + `boardsForEmoji`; autostar CRUD (`listAutostar`/`getAutostar`/`addAutostar`/
+`removeAutostar`); entry ops (`getEntry`/`upsertEntry`/`entriesForMessage`/`deleteEntriesForMessage`);
+`topStarred` (groupBy across all boards); and pure, tested helpers `parseStarEmoji`, `parseEmojiList`,
+`reactionKey`, `emojiDisplay`, `effectiveStarCount`, `decideStarboard`, `earnsReward`.
 
 ## gotchas
 
-- Valid stars exclude bots (when `ignoreBots`) and the author (when `selfStar` is off); the count comes
-  from fetching the reaction's users, so very large counts cap at Discord's 100-user fetch.
-- The post is Components V2 (star count, jump-to-message link button, first image via `gallery`). Posts in
-  the starboard channel itself and ignored channels are never starred.
-- Entries are kept even when a message falls below the threshold (the post is removed, `starboardMessageId`
-  cleared) so the leaderboard still reflects total stars. `syncDeletes` removes the post if the original is
-  deleted.
-- `removeThreshold` adds hysteresis: once posted, a message only un-posts when its stars drop below the
-  floor (default = the post threshold), so a message hovering at the threshold does not flicker on/off.
-- The reward role needs Manage Roles and a role below the bot's highest; failures are swallowed. It grants
-  on a single message reaching `rewardStars` (it does not remove the role if stars later drop).
-- Gated on the tenant `starboard` feature flag (so `/setup` can toggle it). Custom star emojis are stored
-  by id; unicode emojis are stored as-is.
-- Still single-board for now: multiple starboards, per-channel/role/emoji overrides, and auto-star channels
-  remain future work (would need a `Starboard` table keyed per board instead of one config per guild).
+- Multi-board: emoji-based routing is inherent (different emoji -> different board); role-based and
+  channel-based routing are the `authorRoleId` and `ignoredChannels` filters. A message can appear on
+  multiple boards simultaneously (one `StarboardEntry` per board+message).
+- `removeStars` is the hysteresis floor (null => `requiredStars`, i.e. no hysteresis). `filterBots` ignores
+  bot authors/reactions; `selfStar` lets authors star their own messages.
+- Valid star counts come from fetching the reaction's users, so very large counts cap at Discord's 100-user
+  fetch.
+- Needs `GuildMessageReactions` intent + `Partials.Reaction`/`Partials.Message` (set on `BotClient`).
+  Gated on the tenant `starboard` flag.
+- **Not yet built** (the deepest Starboard-bot layer): the override-inheritance engine (per-context setting
+  overrides that inherit from a base), blacklists/whitelists, message-filter groups with display tiers, and
+  downvote emojis. The multi-board + per-board-settings + autostar + reward + leaderboard core is complete.

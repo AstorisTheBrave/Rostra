@@ -11,6 +11,32 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (full multi-board starboard rebuild)
+
+**changed**: Rebuilt `starboard` from a single per-guild config into a full **multi-board** system, per the
+maintainer's request and the official Starboard docs (re-cloned to `Archive/starboard-docs`, gitignored).
+Replaced `StarboardConfig` with a `Starboard` table (many per guild: own channel, `emojis[]`,
+`requiredStars`, `removeStars` hysteresis, `selfStar`, `filterBots`, `syncDeletes`, `rewardRoleId`/
+`rewardStars`, `authorRoleId` for role-based boards, `ignoredChannels`, `enabled`); re-keyed
+`StarboardEntry` to `[starboardId, messageId]` so one message can sit on several boards; added
+`AutostarChannel` (bot pre-reacts to new messages, no auto-post). Reaction engine now routes each star to
+every matching board via `boardsForEmoji` and processes per board. New command surface: `/starboard
+create|delete|list|edit|ignore|leaderboard` + `autostar add|remove|list` (was channel/threshold/emoji/...).
+Pure helpers `parseEmojiList` (multi-emoji) added; `effectiveStarCount` param `ignoreBots` -> `filterBots`.
+No external consumers of the old models (profile stats does not touch starboard), so the swap was clean;
+baseline `0_init` regenerated.
+
+**files touched**: `src/modules/starboard/{index,events,service,service.test}.ts`, `prisma/schema.prisma` +
+`0_init`, `docs/modules/starboard.mdx`, CLAUDE.md room index.
+
+**verified**: typecheck clean; starboard tests 10/10 (emoji parse/list, reactionKey, display,
+effectiveStarCount, decide); full suite 204/204; biome clean; baseline has `Starboard`/`StarboardEntry`/
+`AutostarChannel`.
+
+**still not built** (documented in starboard.mdx): the deepest Starboard-bot layer - override-inheritance
+engine, blacklists/whitelists, message-filter groups + display tiers, downvote emojis. The multi-board +
+per-board settings + autostar + reward + leaderboard core is complete.
+
 ### 2026-06-07 (giveaway entry requirements) - backlog item 17 part 2/2
 
 **changed**: Extended `giveaways` (second half of item 17) with entry requirements. `/giveaway start` gained

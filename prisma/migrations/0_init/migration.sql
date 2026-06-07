@@ -699,27 +699,32 @@ CREATE TABLE "FeedSubscription" (
 );
 
 -- CreateTable
-CREATE TABLE "StarboardConfig" (
+CREATE TABLE "Starboard" (
+    "id" TEXT NOT NULL,
     "guildId" TEXT NOT NULL,
-    "channelId" TEXT,
-    "threshold" INTEGER NOT NULL DEFAULT 3,
-    "emoji" TEXT NOT NULL DEFAULT '⭐',
+    "name" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "emojis" TEXT[] DEFAULT ARRAY['⭐']::TEXT[],
+    "requiredStars" INTEGER NOT NULL DEFAULT 3,
+    "removeStars" INTEGER,
     "selfStar" BOOLEAN NOT NULL DEFAULT false,
-    "ignoreBots" BOOLEAN NOT NULL DEFAULT true,
+    "filterBots" BOOLEAN NOT NULL DEFAULT true,
     "syncDeletes" BOOLEAN NOT NULL DEFAULT true,
-    "ignoredChannels" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "removeThreshold" INTEGER,
     "rewardRoleId" TEXT,
     "rewardStars" INTEGER NOT NULL DEFAULT 0,
+    "authorRoleId" TEXT,
+    "ignoredChannels" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "StarboardConfig_pkey" PRIMARY KEY ("guildId")
+    CONSTRAINT "Starboard_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "StarboardEntry" (
     "id" TEXT NOT NULL,
+    "starboardId" TEXT NOT NULL,
     "guildId" TEXT NOT NULL,
     "channelId" TEXT NOT NULL,
     "messageId" TEXT NOT NULL,
@@ -729,6 +734,17 @@ CREATE TABLE "StarboardEntry" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "StarboardEntry_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AutostarChannel" (
+    "id" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "emojis" TEXT[] DEFAULT ARRAY['⭐']::TEXT[],
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AutostarChannel_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -900,13 +916,31 @@ CREATE INDEX "FeedSubscription_guildId_idx" ON "FeedSubscription"("guildId");
 CREATE UNIQUE INDEX "FeedSubscription_guildId_type_sourceId_key" ON "FeedSubscription"("guildId", "type", "sourceId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "StarboardEntry_messageId_key" ON "StarboardEntry"("messageId");
+CREATE INDEX "Starboard_guildId_idx" ON "Starboard"("guildId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Starboard_guildId_name_key" ON "Starboard"("guildId", "name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Starboard_guildId_channelId_key" ON "Starboard"("guildId", "channelId");
 
 -- CreateIndex
 CREATE INDEX "StarboardEntry_guildId_idx" ON "StarboardEntry"("guildId");
 
 -- CreateIndex
 CREATE INDEX "StarboardEntry_guildId_authorId_idx" ON "StarboardEntry"("guildId", "authorId");
+
+-- CreateIndex
+CREATE INDEX "StarboardEntry_starboardId_idx" ON "StarboardEntry"("starboardId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "StarboardEntry_starboardId_messageId_key" ON "StarboardEntry"("starboardId", "messageId");
+
+-- CreateIndex
+CREATE INDEX "AutostarChannel_guildId_idx" ON "AutostarChannel"("guildId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AutostarChannel_guildId_channelId_key" ON "AutostarChannel"("guildId", "channelId");
 
 -- CreateIndex
 CREATE INDEX "ScheduledTask_runAt_idx" ON "ScheduledTask"("runAt");
@@ -931,3 +965,6 @@ ALTER TABLE "PollVote" ADD CONSTRAINT "PollVote_pollId_fkey" FOREIGN KEY ("pollI
 
 -- AddForeignKey
 ALTER TABLE "SuggestionVote" ADD CONSTRAINT "SuggestionVote_suggestionId_fkey" FOREIGN KEY ("suggestionId") REFERENCES "Suggestion"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "StarboardEntry" ADD CONSTRAINT "StarboardEntry_starboardId_fkey" FOREIGN KEY ("starboardId") REFERENCES "Starboard"("id") ON DELETE CASCADE ON UPDATE CASCADE;

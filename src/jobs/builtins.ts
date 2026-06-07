@@ -1,4 +1,5 @@
 import { pollAllFeeds } from "@/modules/feeds/service.ts";
+import { pollStatsChannels } from "@/modules/serverstats/service.ts";
 import { registerCron } from "@/services/cron.ts";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
@@ -28,5 +29,13 @@ export function registerBuiltinCron(): void {
 		name: "poll-feeds",
 		everyMs: 5 * 60_000,
 		handler: () => pollAllFeeds(),
+	});
+
+	// Rename server-stats voice channels to live counts (manager-only, REST).
+	// Channel name edits are limited to ~2 per 10 min, so a 10-min cadence is safe.
+	registerCron({
+		name: "poll-stats-channels",
+		everyMs: 10 * 60_000,
+		handler: () => pollStatsChannels(),
 	});
 }

@@ -46,6 +46,7 @@ export const EMOJI_FALLBACK = {
 	reputation: "⭐",
 	voicerole: "🎙️",
 	role: "🎭",
+	serverstats: "📊",
 	// stats / system
 	stats: "📊",
 	cpu: "🖥️",

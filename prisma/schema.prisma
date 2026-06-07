@@ -377,6 +377,17 @@ model AutoResponder {
   @@index([guildId])
 }
 
+// ── Server stats channels ────────────────────────────────────────────────────
+
+model StatsChannel {
+  channelId String @id
+  guildId   String
+  type      String // members | online | boosts | channels | roles
+  template  String // name template containing {count}
+
+  @@index([guildId])
+}
+
 // ── Voice roles ──────────────────────────────────────────────────────────────
 
 model VoiceRoleConfig {

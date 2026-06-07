@@ -1,0 +1,35 @@
+---
+last-updated: 2026-06-07
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Server stats channels: locked voice channels whose names show a live count (members, online, boosts,
+channels, roles). `/serverstats add|remove|list` (Manage Channels). A manager cron renames them every 10
+minutes.
+
+## technical map
+
+**file paths**
+- command: `src/modules/serverstats/index.ts` (creates a Connect-denied voice channel, then registers it)
+- counts + rename + DB: `src/modules/serverstats/service.ts` (+ `service.test.ts`)
+- cron registration: `src/jobs/builtins.ts` (`poll-stats-channels`, every 10 min)
+- model: `StatsChannel` (`channelId` id, `type`, `template`)
+
+**how it works** - `pollStatsChannels` runs in the **manager** process and uses REST only (no gateway
+client), like feeds. It groups rows by guild, fetches `GET /guilds/{id}?with_counts=true` once
+(approximate member/presence/boost counts) plus the channel/role lists, then PATCHes each channel name from
+`applyTemplate(template, count)`. Channel-name edits are rate-limited to ~2 per 10 min, so the cadence is
+deliberately 10 minutes.
+
+**exports** - `addStat`, `removeStat`, `listStats`, `pollStatsChannels`, and pure `applyTemplate`,
+`defaultTemplate`, `isStatType` + `STAT_TYPES` (tested).
+
+## gotchas
+
+- `remove` only drops the registration; the voice channel itself is left for the admin to delete.
+- `bots` is not offered: the REST count endpoint does not separate bots, and listing members is privileged.
+- The channel is created with `@everyone` Connect denied so it reads as a label, not a join target.
+- Not in the `/setup` kill-switch: it is an opt-in, low-frequency cosmetic feature with no hot path.

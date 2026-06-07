@@ -370,6 +370,16 @@ CREATE TABLE "AutoResponder" (
 );
 
 -- CreateTable
+CREATE TABLE "StatsChannel" (
+    "channelId" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "template" TEXT NOT NULL,
+
+    CONSTRAINT "StatsChannel_pkey" PRIMARY KEY ("channelId")
+);
+
+-- CreateTable
 CREATE TABLE "VoiceRoleConfig" (
     "guildId" TEXT NOT NULL,
     "roleId" TEXT NOT NULL,
@@ -643,6 +653,9 @@ CREATE INDEX "AutoResponder_guildId_idx" ON "AutoResponder"("guildId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AutoResponder_guildId_trigger_key" ON "AutoResponder"("guildId", "trigger");
+
+-- CreateIndex
+CREATE INDEX "StatsChannel_guildId_idx" ON "StatsChannel"("guildId");
 
 -- CreateIndex
 CREATE INDEX "RepUser_guildId_idx" ON "RepUser"("guildId");

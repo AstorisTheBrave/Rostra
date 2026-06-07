@@ -11,6 +11,24 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (server stats channels)
+
+**changed**: New `serverstats` module (backlog item 8): locked voice channels that show live counts.
+`/serverstats add|remove|list` (Manage Channels). New `StatsChannel` model (`channelId` id, `type`,
+`template`). `add` creates a Connect-denied voice channel and registers it; a new `poll-stats-channels`
+manager cron (every 10 min, REST-only like feeds) groups rows by guild, fetches
+`GET /guilds/{id}?with_counts=true` plus channel/role lists once, and PATCHes each name via pure
+`applyTemplate`. Types: members, online, boosts, channels, roles (no bots - REST cannot separate them
+without privileged member listing). Wired into the `serverstats` emoji and `/help` Server Management; no
+`/setup` flag (opt-in cosmetic, no hot path).
+
+**files touched**: `src/modules/serverstats/{index,service,service.test}.ts`, `src/jobs/builtins.ts`,
+`prisma/schema.prisma` + `0_init`, `src/ui/emojis.ts`, `src/modules/core/categories.ts`,
+`docs/modules/serverstats.mdx`, `README.md`.
+
+**verified**: typecheck clean; serverstats tests 4/4 (`applyTemplate`/`isStatType`/`defaultTemplate`);
+categories test green; biome clean; baseline includes `StatsChannel`.
+
 ### 2026-06-07 (role menus / dropdown self-roles)
 
 **changed**: Extended `reactionroles` (backlog item 7) with a string-select variant instead of a new module

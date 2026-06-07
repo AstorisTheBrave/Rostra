@@ -1,4 +1,4 @@
-import type { AutomodConfig } from "@prisma/client";
+import type { AutomodConfig, AutomodRule } from "@prisma/client";
 import { Filter } from "bad-words";
 import { type Message, MessageFlags } from "discord.js";
 import { getPrisma } from "@/services/database.ts";
@@ -10,6 +10,7 @@ const log = getLogger("automod");
 
 const configCache = new Map<string, AutomodConfig | null>();
 const filterCache = new Map<string, Filter>();
+const rulesCache = new Map<string, AutomodRule[]>();
 const spamBuckets = new Map<string, number[]>();
 
 export async function getConfig(guildId: string): Promise<AutomodConfig | null> {
@@ -42,6 +43,58 @@ export async function upsertConfig(
 export function invalidate(guildId: string): void {
 	configCache.delete(guildId);
 	filterCache.delete(guildId);
+	rulesCache.delete(guildId);
+}
+
+// ── Custom rules ─────────────────────────────────────────────────────────────
+
+/** Cached list of a guild's custom automod rules. */
+export async function getRules(guildId: string): Promise<AutomodRule[]> {
+	const cached = rulesCache.get(guildId);
+	if (cached) return cached;
+	const rows = await getPrisma()
+		.automodRule.findMany({ where: { guildId }, orderBy: { createdAt: "asc" } })
+		.catch((err) => {
+			log.error({ err, guildId }, "failed to load automod rules");
+			return [] as AutomodRule[];
+		});
+	rulesCache.set(guildId, rows);
+	return rows;
+}
+
+export async function addRule(data: {
+	guildId: string;
+	name: string;
+	trigger: string;
+	pattern: string;
+	action: string;
+}): Promise<AutomodRule> {
+	const row = await getPrisma().automodRule.upsert({
+		where: { guildId_name: { guildId: data.guildId, name: data.name } },
+		create: data,
+		update: { trigger: data.trigger, pattern: data.pattern, action: data.action, enabled: true },
+	});
+	rulesCache.delete(data.guildId);
+	return row;
+}
+
+export async function removeRule(guildId: string, name: string): Promise<boolean> {
+	const res = await getPrisma().automodRule.deleteMany({ where: { guildId, name } });
+	rulesCache.delete(guildId);
+	return res.count > 0;
+}
+
+export async function toggleRule(guildId: string, name: string): Promise<AutomodRule | null> {
+	const rule = await getPrisma().automodRule.findUnique({
+		where: { guildId_name: { guildId, name } },
+	});
+	if (!rule) return null;
+	const updated = await getPrisma().automodRule.update({
+		where: { guildId_name: { guildId, name } },
+		data: { enabled: !rule.enabled },
+	});
+	rulesCache.delete(guildId);
+	return updated;
 }
 
 function getFilter(config: AutomodConfig): Filter {
@@ -56,7 +109,7 @@ function getFilter(config: AutomodConfig): Filter {
 
 export type Violation = { type: string; reason: string } | null;
 
-function isExempt(message: Message, config: AutomodConfig): boolean {
+export function isExempt(message: Message, config: AutomodConfig): boolean {
 	if (config.exemptChannels.includes(message.channelId)) return true;
 	const roles = message.member?.roles.cache;
 	if (roles && config.exemptRoles.some((r) => roles.has(r))) return true;
@@ -100,15 +153,17 @@ export function checkMessage(message: Message, config: AutomodConfig): Violation
 	return null;
 }
 
-/** Delete the offending message, apply the configured action, and log it. */
+/** Delete the offending message, apply the action (rule override or config default), and log it. */
 export async function enforce(
 	message: Message,
 	config: AutomodConfig,
 	violation: { type: string; reason: string },
+	actionOverride?: string,
 ): Promise<void> {
+	const action = actionOverride ?? config.action;
 	if (message.deletable) await message.delete().catch(() => {});
 
-	if (config.action === "timeout" && message.member?.moderatable) {
+	if (action === "timeout" && message.member?.moderatable) {
 		await message.member.timeout(config.timeoutMs, `[Automod] ${violation.reason}`).catch(() => {});
 	}
 

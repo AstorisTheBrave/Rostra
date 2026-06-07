@@ -157,6 +157,21 @@ model AutomodConfig {
   updatedAt       DateTime @updatedAt
 }
 
+/// A custom automod rule: a content trigger (keyword/wildcard/regex) with its own action.
+model AutomodRule {
+  id        String   @id @default(cuid())
+  guildId   String
+  name      String
+  enabled   Boolean  @default(true)
+  trigger   String   @default("keyword") // keyword | wildcard | regex
+  pattern   String
+  action    String   @default("delete") // delete | warn | timeout
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, name])
+  @@index([guildId])
+}
+
 // ── Logging ──────────────────────────────────────────────────────────────────
 
 /// Per-guild audit logging configuration.

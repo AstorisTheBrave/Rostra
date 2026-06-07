@@ -10,7 +10,18 @@ import { t } from "@/i18n/index.ts";
 import { getTenant, isFeatureBlocked, setFeatures } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
-import { checkMessage, enforce, getConfig, upsertConfig } from "./service.ts";
+import { firstMatchingRule, RULE_ACTIONS, RULE_TRIGGERS, validateRuleInput } from "./rules.ts";
+import {
+	addRule,
+	checkMessage,
+	enforce,
+	getConfig,
+	getRules,
+	isExempt,
+	removeRule,
+	toggleRule,
+	upsertConfig,
+} from "./service.ts";
 
 type ModuleField = Extract<keyof AutomodConfig, `anti${string}`>;
 
@@ -132,6 +143,46 @@ function buildData(): SlashCommandBuilder {
 	);
 	cmd.addSubcommandGroup((g) =>
 		g
+			.setName("rule")
+			.setDescription("Custom content rules (keyword / wildcard / regex)")
+			.addSubcommand((s) =>
+				s
+					.setName("add")
+					.setDescription("Add or update a custom rule")
+					.addStringOption((o) => o.setName("name").setDescription("Rule name").setRequired(true))
+					.addStringOption((o) =>
+						o
+							.setName("trigger")
+							.setDescription("Match type")
+							.setRequired(true)
+							.addChoices(...RULE_TRIGGERS.map((tr) => ({ name: tr, value: tr }))),
+					)
+					.addStringOption((o) =>
+						o.setName("pattern").setDescription("Word, wildcard, or regex").setRequired(true),
+					)
+					.addStringOption((o) =>
+						o
+							.setName("action")
+							.setDescription("What to do on a match (default delete)")
+							.addChoices(...RULE_ACTIONS.map((a) => ({ name: a, value: a }))),
+					),
+			)
+			.addSubcommand((s) =>
+				s
+					.setName("remove")
+					.setDescription("Delete a custom rule")
+					.addStringOption((o) => o.setName("name").setDescription("Rule name").setRequired(true)),
+			)
+			.addSubcommand((s) =>
+				s
+					.setName("toggle")
+					.setDescription("Enable or disable a custom rule")
+					.addStringOption((o) => o.setName("name").setDescription("Rule name").setRequired(true)),
+			)
+			.addSubcommand((s) => s.setName("list").setDescription("List custom rules")),
+	);
+	cmd.addSubcommandGroup((g) =>
+		g
 			.setName("word")
 			.setDescription("Custom profanity words")
 			.addSubcommand((s) =>
@@ -202,6 +253,43 @@ async function execute({
 			`automod:exempt.${sub === "addchannel" ? "addchannel" : "removechannel"}`,
 			{ name: `<#${channel.id}>` },
 		);
+	}
+
+	if (group === "rule") {
+		if (sub === "add") {
+			const name = interaction.options.getString("name", true).slice(0, 50);
+			const trigger = interaction.options.getString("trigger", true);
+			const pattern = interaction.options.getString("pattern", true);
+			const action = interaction.options.getString("action") ?? "delete";
+			const err = validateRuleInput(trigger, pattern);
+			if (err) return void reply.error(interaction, t(`automod:rule.err.${err}`));
+			await addRule({ guildId: guild.id, name, trigger, pattern, action });
+			return ok(interaction, "automod:rule.added", { name, trigger, action });
+		}
+		if (sub === "remove") {
+			const name = interaction.options.getString("name", true);
+			const removed = await removeRule(guild.id, name);
+			return removed
+				? ok(interaction, "automod:rule.removed", { name })
+				: void reply.error(interaction, t("automod:rule.notFound"));
+		}
+		if (sub === "toggle") {
+			const name = interaction.options.getString("name", true);
+			const rule = await toggleRule(guild.id, name);
+			return rule
+				? ok(interaction, rule.enabled ? "automod:rule.on" : "automod:rule.off", { name })
+				: void reply.error(interaction, t("automod:rule.notFound"));
+		}
+		// list
+		const rules = await getRules(guild.id);
+		if (rules.length === 0) return ok(interaction, "automod:rule.empty");
+		const lines = rules.map(
+			(r) =>
+				`${r.enabled ? "✅" : "❌"} **${r.name}** - ${r.trigger} \`${r.pattern}\` -> ${r.action}`,
+		);
+		return void reply.components(interaction, [
+			container(Accent.info, [text(t("automod:rule.title")), text(lines.join("\n"))]),
+		]);
 	}
 
 	if (group === "word") {
@@ -305,7 +393,21 @@ const messageGuard = defineEvent("messageCreate", {
 		const config = await getConfig(message.guild.id);
 		if (!config?.enabled) return;
 		const violation = checkMessage(message, config);
-		if (violation) await enforce(message, config, violation);
+		if (violation) {
+			await enforce(message, config, violation);
+			return;
+		}
+		// Custom rules run after the built-in filters, respecting the same exempt list.
+		if (isExempt(message, config)) return;
+		const matched = firstMatchingRule(message.content, await getRules(message.guild.id));
+		if (matched) {
+			await enforce(
+				message,
+				config,
+				{ type: `rule:${matched.name}`, reason: `Matched custom rule "${matched.name}"` },
+				matched.action,
+			);
+		}
 	},
 });
 
@@ -328,6 +430,17 @@ const automod: BotModule = {
 		"exempt.removechannel": "➖ Channel {name} is no longer exempt.",
 		"word.add": "✅ Added **{word}** to the filter.",
 		"word.remove": "➖ Removed **{word}** from the filter.",
+		"rule.added": "✅ Rule **{name}** saved ({trigger}, action: {action}).",
+		"rule.removed": "🗑️ Rule **{name}** removed.",
+		"rule.on": "✅ Rule **{name}** enabled.",
+		"rule.off": "⏸️ Rule **{name}** disabled.",
+		"rule.notFound": "No rule with that name.",
+		"rule.empty": "No custom rules yet. Add one with `/automod rule add`.",
+		"rule.title": "# 🧩 Custom automod rules",
+		"rule.err.badTrigger": "Trigger must be keyword, wildcard, or regex.",
+		"rule.err.emptyPattern": "The pattern cannot be empty.",
+		"rule.err.tooLong": "That pattern is too long (max 200 characters).",
+		"rule.err.badPattern": "That regex did not compile. Check the syntax.",
 		"status.title": "# 🧹 Automod status",
 		"status.line":
 			"**Enabled:** {enabled} • **Action:** {action} • **Log:** {log}\n**Spam:** {spam}/window • **Mentions:** {mentions} • **Caps:** {caps}%",

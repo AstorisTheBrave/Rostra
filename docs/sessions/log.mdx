@@ -11,6 +11,24 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (advanced automod: custom rule engine)
+
+**changed**: Extended `automod` (backlog item 12) with a custom rule engine on top of the built-in filters.
+New pure `rules.ts`: `compileRule(trigger, pattern)` validates + compiles keyword (whole-word) / wildcard
+(`*` -> `.*`) / regex (case-insensitive, capped at 200 chars, bad regex returns null), `matchRule` /
+`firstMatchingRule` / `validateRuleInput`. New `AutomodRule` model (per-guild named rules, trigger,
+pattern, per-rule action). Service gained cached `getRules/addRule/removeRule/toggleRule`, `enforce` took
+an `actionOverride`, and `isExempt` is now exported. New `/automod rule add|remove|toggle|list` group;
+rules evaluate after the built-in filters in the messageCreate guard, respecting the same exempt list.
+Full YAGPDB condition matrix (channel/role/account-age conditions beyond the global exempt list) remains
+future work.
+
+**files touched**: `src/modules/automod/{index,service,rules,rules.test}.ts`, `prisma/schema.prisma` +
+`0_init`, `docs/modules/automod.mdx`.
+
+**verified**: typecheck clean; automod rules tests 7/7 (keyword/wildcard/regex/validation) + existing
+checks tests; biome clean; baseline includes the `AutomodRule` table.
+
 ### 2026-06-07 (starboard depth)
 
 **changed**: Extended `starboard` (backlog item 11, additive pass on the single-config model). New pure

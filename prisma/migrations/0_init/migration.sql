@@ -152,6 +152,20 @@ CREATE TABLE "AutomodConfig" (
 );
 
 -- CreateTable
+CREATE TABLE "AutomodRule" (
+    "id" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "trigger" TEXT NOT NULL DEFAULT 'keyword',
+    "pattern" TEXT NOT NULL,
+    "action" TEXT NOT NULL DEFAULT 'delete',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AutomodRule_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "LoggingConfig" (
     "guildId" TEXT NOT NULL,
     "logChannelId" TEXT,
@@ -623,6 +637,12 @@ CREATE INDEX "ModerationCase_guildId_type_idx" ON "ModerationCase"("guildId", "t
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ModerationCase_guildId_caseNumber_key" ON "ModerationCase"("guildId", "caseNumber");
+
+-- CreateIndex
+CREATE INDEX "AutomodRule_guildId_idx" ON "AutomodRule"("guildId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AutomodRule_guildId_name_key" ON "AutomodRule"("guildId", "name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Ticket_channelId_key" ON "Ticket"("channelId");

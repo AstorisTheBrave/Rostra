@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
@@ -8,27 +8,38 @@ status: stable
 
 Auto-moderation: automatically deletes (and optionally times out for) messages that break the rules -
 server invites, disallowed links, spam, mass mentions, profanity, or excessive CAPS - without a human
-moderator having to watch chat. Server staff configure which filters are on and how strict they are.
+moderator having to watch chat. Server staff configure which filters are on and how strict they are, plus
+their own **custom rules** (keyword / wildcard / regex with a per-rule action).
 
 ## technical map
 
 **file paths**
 - command + messageCreate guard: `src/modules/automod/index.ts`
-- detection logic + config + enforcement: `src/modules/automod/service.ts`
+- detection logic + config + enforcement + rule CRUD: `src/modules/automod/service.ts`
 - pure detectors: `src/modules/automod/checks.ts` (+ `checks.test.ts`)
-- model: `prisma/schema.prisma` → `AutomodConfig`
+- pure custom-rule engine: `src/modules/automod/rules.ts` (+ `rules.test.ts`)
+- models: `prisma/schema.prisma` → `AutomodConfig`, `AutomodRule`
 
 **command** - `/automod` (Manage Server): `enable`, `disable`, `status`, `action <delete|warn|timeout>`,
 `module <name> <bool>`, `limits [spam_count] [mention_limit] [caps_percent] [timeout_minutes]`,
-`logchannel`, groups `exempt addrole|removerole|addchannel|removechannel` and `word add|remove`.
+`logchannel`, groups `exempt addrole|removerole|addchannel|removechannel`, `rule add|remove|toggle|list`,
+and `word add|remove`.
 
 **filters** - anti-invite, anti-link (with `allowedLinks` allow-list), anti-spam (N messages per window),
 anti-mass-mention, anti-profanity (via `bad-words` + per-guild `customWords`), anti-caps.
 
+**custom rules (rules.ts)** - each `AutomodRule` has a `trigger` (keyword = whole-word, wildcard = `*`
+expands to `.*`, regex = compiled `RegExp`), a `pattern`, and its own `action`. `compileRule` validates and
+case-insensitively compiles (capped at 200 chars; bad regex returns null = skipped, never throws);
+`firstMatchingRule` returns the first hit. Rules run **after** the built-in filters in the messageCreate
+guard, respecting the same exempt list, and `enforce(..., rule.action)` applies the per-rule action.
+
 **exports (service.ts)**
-- `getConfig/upsertConfig/invalidate` - cached config (and cached `bad-words` Filter per guild)
-- `checkMessage(message, config): Violation` - first matching rule or null
-- `enforce(message, config, violation)` - delete + optional timeout + log
+- `getConfig/upsertConfig/invalidate` - cached config (and cached `bad-words` Filter + rule list per guild)
+- `getRules/addRule/removeRule/toggleRule` - cached custom-rule CRUD
+- `checkMessage(message, config): Violation` - first matching built-in filter or null
+- `isExempt(message, config)` - shared role/channel exempt check
+- `enforce(message, config, violation, actionOverride?)` - delete + optional timeout + log
 
 **depends on**
 - `bad-words` (profanity engine), `@/client/defineEvent` (messageCreate), `@/services/database`,
@@ -41,4 +52,8 @@ anti-mass-mention, anti-profanity (via `bad-words` + per-guild `customWords`), a
 - Spam tracking is per-process in-memory (per guild+user sliding window) - at multi-shard scale a guild's
   messages land on one shard, so this is correct; if that changes, move the bucket to Redis.
 - Checks run in a fixed order (invite → link → mention → caps → profanity → spam); the first hit wins.
-- Exempt roles/channels short-circuit all checks. Requires `prisma migrate` for the `AutomodConfig` table.
+  Custom rules run only if no built-in filter fired, in creation order, first match wins.
+- Custom regex is user-supplied but Manage-Server-gated, capped at 200 chars, and compiled case-insensitively;
+  there is no regex execution timeout, so avoid catastrophic-backtracking patterns.
+- Exempt roles/channels short-circuit all checks. Requires `prisma migrate` for the `AutomodConfig` and
+  `AutomodRule` tables.

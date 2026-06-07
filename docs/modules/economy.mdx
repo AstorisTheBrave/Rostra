@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
@@ -7,25 +7,40 @@ status: stable
 ## what this is
 
 A per-server virtual economy: members earn coins (daily reward, working, crime, robbing, begging), keep
-them in a wallet or bank, pay each other, gamble, and compete on a richest-members leaderboard.
+them in a wallet or bank, pay each other, gamble, compete on a richest-members leaderboard, and spend coins
+in a staff-defined **shop** (consumable items and buyable roles).
 
 ## technical map
 
 **file paths**
 - command: `src/modules/economy/index.ts`
 - accounts, cooldowns, leaderboard: `src/modules/economy/service.ts` (+ `service.test.ts`)
-- model: `prisma/schema.prisma` → `EconomyUser` (composite id `[guildId, userId]`)
+- shop + inventory + purchase logic: `src/modules/economy/shop.ts` (+ `shop.test.ts`)
+- models: `prisma/schema.prisma` → `EconomyUser` (composite id `[guildId, userId]`), `ShopItem`,
+  `InventoryItem`
 
 **command** - `/economy`: `balance`, `daily`, `work`, `beg`, `crime`, `rob <user>`, `pay <user>
-<amount>`, `deposit <amount>`, `withdraw <amount>`, `gamble <amount>`, `leaderboard`.
+<amount>`, `deposit <amount>`, `withdraw <amount>`, `gamble <amount>`, `leaderboard`, plus the shop:
+`shop`, `buy <item> [quantity]`, `inventory [user]`, `use <item>`, and `additem`/`removeitem` (Manage
+Server).
 
 **exports (service.ts)**
 - `getAccount`, `updateBalance(guildId, userId, { wallet?, bank?, extra? })` (clamped, leaderboard-synced)
 - `leaderboard(guildId, limit)` - Redis sorted set with DB fallback
 - `formatCoins(amount)`, `cooldownRemaining(last, durationMs, now?)`, `COOLDOWNS`, `CURRENCY`, `MAX_BALANCE`
 
+**exports (shop.ts)**
+- catalog: `listShop`, `getItem`, `upsertItem`, `removeItem`
+- inventory: `getInventory`, `consumeItem`
+- purchase: pure `evaluatePurchase(item, wallet, qty)` (tested), `buyItem` (deducts coins, decrements
+  stock, adds to inventory), `refundPurchase` (undo when a role grant fails)
+
 ## gotchas
 
+- Shop items with a `roleId` are **buyable roles**: buying grants the role immediately (quantity forced to
+  1) and is not stored in inventory; if the role grant fails the purchase is refunded (`refundPurchase`).
+  Items without a role go to inventory and are consumed one at a time by `/economy use`.
+- `additem` upserts by `[guildId, name]`, so re-adding the same name edits price/description/role/stock.
 - Balances are `Int`, clamped to `[0, 1_000_000_000]` to avoid 32-bit overflow.
 - Net worth (wallet+bank) is mirrored to a Redis sorted set `lb:eco:<guild>` on every balance change; the
   leaderboard reads that, falling back to a DB query when Redis is absent.

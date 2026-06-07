@@ -11,6 +11,22 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (economy depth: shop, items, buyable roles)
+
+**changed**: Extended `economy` (backlog item 15) with a shop. New `shop.ts`: catalog CRUD
+(`listShop`/`getItem`/`upsertItem`/`removeItem`), inventory (`getInventory`/`consumeItem`), and a pure
+`evaluatePurchase(item, wallet, qty)` (role items force qty 1; checks stock + wallet) that `buyItem`
+mirrors so the rules live in one tested place. Buyable roles (item with `roleId`) are granted on purchase
+and refunded if the grant fails (`refundPurchase`); other items go to inventory and are consumed by `use`.
+New subcommands `/economy shop|buy|inventory|use` + Manage-Server `additem|removeitem`. New models
+`ShopItem` + `InventoryItem`.
+
+**files touched**: new `src/modules/economy/{shop,shop.test}.ts`, `src/modules/economy/index.ts`,
+`prisma/schema.prisma` + `0_init`, `docs/modules/economy.mdx`.
+
+**verified**: typecheck clean; economy shop tests 5/5 (`evaluatePurchase` cost/stock/role/wallet); biome
+clean; baseline includes the two new tables. (Economy is already in `/setup` + `/help` + emoji.)
+
 ### 2026-06-07 (image cards: rank + welcome)
 
 **changed**: Added two `@napi-rs/canvas` image cards (backlog item 14). **Leveling rank card**

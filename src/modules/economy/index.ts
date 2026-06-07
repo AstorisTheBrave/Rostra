@@ -1,4 +1,8 @@
-import { type ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import {
+	type ChatInputCommandInteraction,
+	PermissionFlagsBits,
+	SlashCommandBuilder,
+} from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
@@ -12,6 +16,15 @@ import {
 	leaderboard,
 	updateBalance,
 } from "./service.ts";
+import {
+	buyItem,
+	consumeItem,
+	getInventory,
+	listShop,
+	refundPurchase,
+	removeItem,
+	upsertItem,
+} from "./shop.ts";
 
 const rand = (min: number, max: number): number =>
 	Math.floor(Math.random() * (max - min + 1)) + min;
@@ -72,6 +85,50 @@ function buildData(): SlashCommandBuilder {
 			),
 	);
 	cmd.addSubcommand((s) => s.setName("leaderboard").setDescription("Richest members"));
+	cmd.addSubcommand((s) => s.setName("shop").setDescription("Browse the server shop"));
+	cmd.addSubcommand((s) =>
+		s
+			.setName("buy")
+			.setDescription("Buy an item from the shop")
+			.addStringOption((o) => o.setName("item").setDescription("Item name").setRequired(true))
+			.addIntegerOption((o) =>
+				o.setName("quantity").setDescription("How many (non-role items)").setMinValue(1),
+			),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("inventory")
+			.setDescription("Show owned items")
+			.addUserOption((o) => o.setName("user").setDescription("User (defaults to you)")),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("use")
+			.setDescription("Use an item from your inventory")
+			.addStringOption((o) => o.setName("item").setDescription("Item name").setRequired(true)),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("additem")
+			.setDescription("Add or update a shop item (Manage Server)")
+			.addStringOption((o) => o.setName("name").setDescription("Item name").setRequired(true))
+			.addIntegerOption((o) =>
+				o.setName("price").setDescription("Price in coins").setRequired(true).setMinValue(1),
+			)
+			.addStringOption((o) => o.setName("description").setDescription("Short description"))
+			.addRoleOption((o) =>
+				o.setName("role").setDescription("Make it a buyable role (granted on purchase)"),
+			)
+			.addIntegerOption((o) =>
+				o.setName("stock").setDescription("Limited stock (omit for unlimited)").setMinValue(1),
+			),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("removeitem")
+			.setDescription("Remove a shop item (Manage Server)")
+			.addStringOption((o) => o.setName("name").setDescription("Item name").setRequired(true)),
+	);
 	return cmd;
 }
 
@@ -228,6 +285,96 @@ async function execute({
 				container(Accent.info, [text(t("economy:leaderboard.title")), text(lines.join("\n"))]),
 			]);
 		}
+		case "shop": {
+			const items = await listShop(gid);
+			if (items.length === 0) return ok(interaction, t("economy:shop.empty"), Accent.info);
+			const lines = items.map((i) => {
+				const tag = i.roleId ? ` <@&${i.roleId}>` : "";
+				const stock = i.stock !== null ? ` _(stock: ${i.stock})_` : "";
+				const desc = i.description ? ` - ${i.description}` : "";
+				return `**${i.name}** - ${formatCoins(i.price)}${tag}${stock}${desc}`;
+			});
+			return void reply.components(interaction, [
+				container(Accent.info, [text(t("economy:shop.title")), text(lines.join("\n"))]),
+			]);
+		}
+		case "buy": {
+			const name = interaction.options.getString("item", true);
+			const quantity = interaction.options.getInteger("quantity") ?? 1;
+			const result = await buyItem(gid, uid, name, quantity);
+			if (!result.ok) {
+				const key =
+					result.reason === "notFound"
+						? "economy:shop.notFound"
+						: result.reason === "outOfStock"
+							? "economy:shop.outOfStock"
+							: "economy:insufficient";
+				return void reply.error(interaction, t(key));
+			}
+			if (result.isRole && result.item.roleId) {
+				const member = await guild.members.fetch(uid).catch(() => null);
+				const granted = await member?.roles
+					.add(result.item.roleId, "Shop purchase")
+					.then(() => true)
+					.catch(() => false);
+				if (!granted) {
+					await refundPurchase(gid, uid, result.item.id, result.spent);
+					return void reply.error(interaction, t("economy:shop.roleFailed"));
+				}
+				return ok(
+					interaction,
+					t("economy:shop.boughtRole", {
+						role: `<@&${result.item.roleId}>`,
+						spent: formatCoins(result.spent),
+					}),
+				);
+			}
+			return ok(
+				interaction,
+				t("economy:shop.bought", { item: result.item.name, spent: formatCoins(result.spent) }),
+			);
+		}
+		case "inventory": {
+			const user = interaction.options.getUser("user") ?? interaction.user;
+			const items = await getInventory(gid, user.id);
+			if (items.length === 0)
+				return ok(interaction, t("economy:inv.empty", { user: user.username }), Accent.info);
+			const lines = items.map((i) => `**${i.itemName}** x${i.quantity}`);
+			return void reply.components(interaction, [
+				container(Accent.info, [
+					text(t("economy:inv.title", { user: user.username })),
+					text(lines.join("\n")),
+				]),
+			]);
+		}
+		case "use": {
+			const name = interaction.options.getString("item", true);
+			const used = await consumeItem(gid, uid, name);
+			if (!used) return void reply.error(interaction, t("economy:inv.dontOwn"));
+			return ok(interaction, t("economy:inv.used", { item: name }));
+		}
+		case "additem": {
+			if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
+			}
+			const name = interaction.options.getString("name", true).slice(0, 60);
+			const price = interaction.options.getInteger("price", true);
+			const description = interaction.options.getString("description");
+			const role = interaction.options.getRole("role");
+			const stock = interaction.options.getInteger("stock");
+			await upsertItem({ guildId: gid, name, price, description, roleId: role?.id, stock });
+			return ok(interaction, t("economy:shop.added", { name, price: formatCoins(price) }));
+		}
+		case "removeitem": {
+			if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
+			}
+			const name = interaction.options.getString("name", true);
+			const removed = await removeItem(gid, name);
+			return removed
+				? ok(interaction, t("economy:shop.removed", { name }))
+				: void reply.error(interaction, t("economy:shop.notFound"));
+		}
 		default:
 			await reply.error(interaction, t("common:error.generic"));
 	}
@@ -265,6 +412,20 @@ const economy: BotModule = {
 		insufficient: "You don't have enough coins for that.",
 		"leaderboard.title": "# 🏆 Richest members",
 		"leaderboard.empty": "No one has any coins yet.",
+		"shop.title": "# 🛒 Shop",
+		"shop.empty": "The shop is empty. Staff can add items with `/economy additem`.",
+		"shop.notFound": "No shop item with that name.",
+		"shop.outOfStock": "That item is out of stock.",
+		"shop.bought": "🛍️ You bought **{item}** for {spent}.",
+		"shop.boughtRole": "🎉 You bought the {role} role for {spent}.",
+		"shop.roleFailed":
+			"I took the coins back - I could not assign that role (check my permissions).",
+		"shop.added": "✅ Shop item **{name}** set at {price}.",
+		"shop.removed": "🗑️ Removed **{name}** from the shop.",
+		"inv.title": "# 🎒 {user}'s inventory",
+		"inv.empty": "**{user}** has no items.",
+		"inv.dontOwn": "You don't own that item.",
+		"inv.used": "✨ You used **{item}**.",
 	},
 };
 

@@ -266,6 +266,33 @@ model EconomyUser {
   @@index([guildId])
 }
 
+/// A purchasable shop item. If roleId is set it is a buyable role (granted on purchase).
+model ShopItem {
+  id          String   @id @default(cuid())
+  guildId     String
+  name        String
+  description String?
+  price       Int
+  roleId      String? // buyable role: granted on purchase, not stored in inventory
+  stock       Int? // null = unlimited
+  createdAt   DateTime @default(now())
+
+  @@unique([guildId, name])
+  @@index([guildId])
+}
+
+/// A non-role item a member owns and can /use.
+model InventoryItem {
+  id       String @id @default(cuid())
+  guildId  String
+  userId   String
+  itemName String
+  quantity Int    @default(1)
+
+  @@unique([guildId, userId, itemName])
+  @@index([guildId, userId])
+}
+
 // ── Leveling ─────────────────────────────────────────────────────────────────
 
 model LevelConfig {

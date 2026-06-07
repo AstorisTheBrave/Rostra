@@ -258,6 +258,31 @@ CREATE TABLE "EconomyUser" (
 );
 
 -- CreateTable
+CREATE TABLE "ShopItem" (
+    "id" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "price" INTEGER NOT NULL,
+    "roleId" TEXT,
+    "stock" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ShopItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "InventoryItem" (
+    "id" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "itemName" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL DEFAULT 1,
+
+    CONSTRAINT "InventoryItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "LevelConfig" (
     "guildId" TEXT NOT NULL,
     "enabled" BOOLEAN NOT NULL DEFAULT false,
@@ -679,6 +704,18 @@ CREATE UNIQUE INDEX "Ticket_guildId_number_key" ON "Ticket"("guildId", "number")
 
 -- CreateIndex
 CREATE INDEX "EconomyUser_guildId_idx" ON "EconomyUser"("guildId");
+
+-- CreateIndex
+CREATE INDEX "ShopItem_guildId_idx" ON "ShopItem"("guildId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ShopItem_guildId_name_key" ON "ShopItem"("guildId", "name");
+
+-- CreateIndex
+CREATE INDEX "InventoryItem_guildId_userId_idx" ON "InventoryItem"("guildId", "userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "InventoryItem_guildId_userId_itemName_key" ON "InventoryItem"("guildId", "userId", "itemName");
 
 -- CreateIndex
 CREATE INDEX "LevelUser_guildId_idx" ON "LevelUser"("guildId");

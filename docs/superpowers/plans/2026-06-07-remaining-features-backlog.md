@@ -18,12 +18,14 @@ status: active · owner: AstorisTheBrave · 2026-06-07
 - [x] 12. Advanced automod - `feat(automod)` (custom keyword/wildcard/regex rule engine + per-rule action)
 - [x] 13. Modmail - `feat(modmail)` (DM-to-staff threads; ModmailConfig + ModmailThread; DirectMessages intent)
 - [x] 14. Image cards - `feat(cards)` (leveling rank card + optional welcome card via `@napi-rs/canvas`)
-- [ ] 15. Economy depth (next)
-- [ ] 16-17. see below
+- [x] 15. Economy depth - `feat(economy)` (shop + inventory + buyable roles; ShopItem + InventoryItem)
+- [ ] 16. Polls, suggestions, counting (next)
+- [ ] 17. Logging + music + giveaway depth
 
-Done in the 2026-06-07 build session: items 1-14 (each its own commit + tests + docs; 179 tests, all
-green). Next session: start at item 15 (economy depth - shop + items + buyable roles; models `ShopItem`,
-`Inventory`; `/shop`, `/buy`, `/inventory`, `/use`).
+Done in the 2026-06-07 build session: items 1-15 (each its own commit + tests + docs; 184 tests, all
+green). Shop added as `/economy` subcommands (one-command-per-module convention) rather than separate
+`/shop` etc. Next session: start at item 16 (polls, suggestions, counting - likely a new `community`
+module or three small modules; models `Suggestion`, `CountingConfig`; polls can be stateless buttons).
 
 The maintainer wants **every** remaining all-in-one feature built (no dashboard, no custom commands, no
 deferring). This doc is the authoritative backlog + the patterns to follow. Reference material lives in

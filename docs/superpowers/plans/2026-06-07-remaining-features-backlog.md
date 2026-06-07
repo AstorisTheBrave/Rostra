@@ -14,12 +14,14 @@ status: active · owner: AstorisTheBrave · 2026-06-07
 - [x] 8. Server stats channels - `feat(serverstats)` beb4942
 - [x] 9. Anti-raid / panic mode - `feat(security)` 91a8def
 - [x] 10. Verification depth - `feat(verification)` (captcha + auto-kick)
-- [ ] 11. Starboard depth (next)
-- [ ] 12-17. see below
+- [x] 11. Starboard depth - `feat(starboard)` (remove-threshold hysteresis + reward roles; multi-board deferred)
+- [ ] 12. Advanced automod (next)
+- [ ] 13-17. see below
 
-Done in the 2026-06-07 build session: items 1-10 (each its own commit + tests + docs; 164 tests, all
-green). Next session: start at item 11 (starboard depth - multiple starboards, per-channel/emoji
-overrides, NSFW/self-star rules, separate remove-threshold; extend the `starboard` module).
+Done in the 2026-06-07 build session: items 1-11 (each its own commit + tests + docs; 169 tests, all
+green). Item 11 was an additive pass (remove-threshold + reward roles) on the single-config model;
+multiple starboards + per-board overrides remain (would need a per-board `Starboard` table). Next session:
+start at item 12 (advanced automod - YAGPDB trigger/condition/effect rule engine, model `AutomodRule`).
 
 The maintainer wants **every** remaining all-in-one feature built (no dashboard, no custom commands, no
 deferring). This doc is the authoritative backlog + the patterns to follow. Reference material lives in

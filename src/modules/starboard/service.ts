@@ -57,6 +57,31 @@ export function effectiveStarCount(
 	}).length;
 }
 
+export type StarboardAction = "post" | "remove" | "keep" | "none";
+
+/**
+ * Decide what to do with a message given its current star count. `post` covers
+ * both first-post and count updates; `remove` un-posts. A separate (lower)
+ * `removeThreshold` adds hysteresis so a post hovering at the threshold does not
+ * flicker on and off - once posted it only drops when stars fall below the floor.
+ */
+export function decideStarboard(
+	stars: number,
+	threshold: number,
+	removeThreshold: number | null,
+	hasPost: boolean,
+): StarboardAction {
+	if (stars >= threshold) return "post";
+	if (!hasPost) return "none";
+	const floor = removeThreshold ?? threshold;
+	return stars < floor ? "remove" : "keep";
+}
+
+/** Whether a single message's star count earns the reward role. */
+export function earnsReward(stars: number, rewardStars: number): boolean {
+	return rewardStars > 0 && stars >= rewardStars;
+}
+
 export async function getEntry(messageId: string): Promise<StarboardEntry | null> {
 	return getPrisma().starboardEntry.findUnique({ where: { messageId } });
 }

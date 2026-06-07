@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-06
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
@@ -18,15 +18,19 @@ reposts it to a dedicated channel. Built from the official Starboard bot docs (c
 - config (cached) + pure helpers + entry CRUD: `src/modules/starboard/service.ts` (+ `service.test.ts`)
 - models: `StarboardConfig`, `StarboardEntry` in `prisma/schema.prisma`
 
-**command** - `/starboard channel|threshold|emoji|selfstar|ignorebots|ignore|status|leaderboard|disable`
-(Manage Server). `ignore` toggles a channel in/out of the ignore list.
+**command** - `/starboard channel|threshold|emoji|selfstar|ignorebots|ignore|removethreshold|reward|
+status|leaderboard|disable` (Manage Server). `ignore` toggles a channel in/out of the ignore list;
+`removethreshold <count>` sets a hysteresis floor (0 = off); `reward <stars> [role]` grants a role when one
+message hits a star milestone (stars 0 = off).
 
-**events** - `messageReactionAdd` / `messageReactionRemove` recompute a message's valid star count and
-create / update / remove its starboard post; `messageDelete` removes the post when `syncDeletes` is on.
-Needs the `GuildMessageReactions` intent + `Partials.Reaction` (added to `BotClient`).
+**events** - `messageReactionAdd` / `messageReactionRemove` recompute a message's valid star count, then
+`decideStarboard` returns `post|keep|remove|none`; the handler creates/updates/removes the post and grants
+the reward role on `post`. `messageDelete` removes the post when `syncDeletes` is on. Needs the
+`GuildMessageReactions` intent + `Partials.Reaction` (added to `BotClient`).
 
 **exports (service.ts)** - cached `getConfig` / `upsertConfig`, pure `parseStarEmoji` / `reactionKey` /
-`emojiDisplay` / `effectiveStarCount`, entry CRUD, and `topStarred` (leaderboard via Prisma `groupBy`).
+`emojiDisplay` / `effectiveStarCount` / `decideStarboard` / `earnsReward` (the last two tested in
+`decide.test.ts`), entry CRUD, and `topStarred` (leaderboard via Prisma `groupBy`).
 
 ## gotchas
 
@@ -37,7 +41,11 @@ Needs the `GuildMessageReactions` intent + `Partials.Reaction` (added to `BotCli
 - Entries are kept even when a message falls below the threshold (the post is removed, `starboardMessageId`
   cleared) so the leaderboard still reflects total stars. `syncDeletes` removes the post if the original is
   deleted.
+- `removeThreshold` adds hysteresis: once posted, a message only un-posts when its stars drop below the
+  floor (default = the post threshold), so a message hovering at the threshold does not flicker on/off.
+- The reward role needs Manage Roles and a role below the bot's highest; failures are swallowed. It grants
+  on a single message reaching `rewardStars` (it does not remove the role if stars later drop).
 - Gated on the tenant `starboard` feature flag (so `/setup` can toggle it). Custom star emojis are stored
   by id; unicode emojis are stored as-is.
-- Not in v1 (the docs cover them as future work): multiple starboards, per-channel/role/emoji overrides,
-  auto-star channels, separate remove-threshold, reward roles, hall of fame.
+- Still single-board for now: multiple starboards, per-channel/role/emoji overrides, and auto-star channels
+  remain future work (would need a `Starboard` table keyed per board instead of one config per guild).

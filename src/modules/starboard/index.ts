@@ -53,6 +53,31 @@ function buildData(): SlashCommandBuilder {
 			.setDescription("Ignore (or un-ignore) a channel")
 			.addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true)),
 	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("removethreshold")
+			.setDescription("Stars a post may drop to before it is removed (0 = same as threshold)")
+			.addIntegerOption((o) =>
+				o
+					.setName("count")
+					.setDescription("Removal floor (0 to disable)")
+					.setRequired(true)
+					.setMinValue(0),
+			),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("reward")
+			.setDescription("Grant a role when one of a member's messages hits a star milestone")
+			.addIntegerOption((o) =>
+				o
+					.setName("stars")
+					.setDescription("Stars on a single message to earn the role (0 to disable)")
+					.setRequired(true)
+					.setMinValue(0),
+			)
+			.addRoleOption((o) => o.setName("role").setDescription("Role to grant")),
+	);
 	cmd.addSubcommand((s) => s.setName("status").setDescription("Show starboard settings"));
 	cmd.addSubcommand((s) => s.setName("leaderboard").setDescription("Top star earners"));
 	cmd.addSubcommand((s) => s.setName("disable").setDescription("Turn the starboard off"));
@@ -115,6 +140,24 @@ async function execute({
 				channel: `<#${channel.id}>`,
 			});
 		}
+		case "removethreshold": {
+			const count = interaction.options.getInteger("count", true);
+			await upsertConfig(guild.id, { removeThreshold: count === 0 ? null : count });
+			return count === 0
+				? ok(interaction, "starboard:removeOff")
+				: ok(interaction, "starboard:removeSet", { count });
+		}
+		case "reward": {
+			const stars = interaction.options.getInteger("stars", true);
+			const role = interaction.options.getRole("role");
+			if (stars === 0) {
+				await upsertConfig(guild.id, { rewardStars: 0, rewardRoleId: null });
+				return ok(interaction, "starboard:rewardOff");
+			}
+			if (!role) return void reply.error(interaction, t("starboard:rewardNeedsRole"));
+			await upsertConfig(guild.id, { rewardStars: stars, rewardRoleId: role.id });
+			return ok(interaction, "starboard:rewardSet", { role: `<@&${role.id}>`, stars });
+		}
 		case "disable": {
 			await upsertConfig(guild.id, { channelId: null });
 			return ok(interaction, "starboard:disabled");
@@ -128,6 +171,15 @@ async function execute({
 				t("starboard:status.threshold", { count: config?.threshold ?? 3 }),
 				t("starboard:status.emoji", { emoji: emojiDisplay(config?.emoji ?? "⭐") }),
 				t("starboard:status.selfstar", { state: config?.selfStar ? "on" : "off" }),
+				t("starboard:status.remove", {
+					count: config?.removeThreshold ? String(config.removeThreshold) : "off",
+				}),
+				t("starboard:status.reward", {
+					reward:
+						config?.rewardStars && config.rewardRoleId
+							? `<@&${config.rewardRoleId}> at ${config.rewardStars}⭐`
+							: "off",
+				}),
 			];
 			return void reply.components(interaction, [
 				container(Accent.warn, [text(t("starboard:status.title")), text(lines.join("\n"))]),
@@ -170,12 +222,19 @@ const starboard: BotModule = {
 		botsCounted: "⭐ Bot stars now count.",
 		ignored: "🙈 Now ignoring {channel} for the starboard.",
 		unignored: "👀 No longer ignoring {channel}.",
+		removeSet: "⭐ Posts now stay until they drop below **{count}** stars.",
+		removeOff: "⭐ Removal floor cleared (posts drop at the main threshold).",
+		rewardSet: "🏅 {role} will be granted when a message hits **{stars}** stars.",
+		rewardOff: "🏅 Star reward role disabled.",
+		rewardNeedsRole: "Pick a role to grant, or set stars to 0 to disable the reward.",
 		disabled: "⭐ Starboard turned off.",
 		"status.title": "# ⭐ Starboard settings",
 		"status.channel": "Channel: {channel}",
 		"status.threshold": "Required stars: **{count}**",
 		"status.emoji": "Emoji: {emoji}",
 		"status.selfstar": "Self-stars: **{state}**",
+		"status.remove": "Removal floor: **{count}**",
+		"status.reward": "Star reward: **{reward}**",
 		"lb.title": "# ⭐ Starboard leaderboard",
 		"lb.empty": "No starred messages yet.",
 	},

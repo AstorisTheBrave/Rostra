@@ -576,6 +576,9 @@ model StarboardConfig {
   ignoreBots      Boolean  @default(true)
   syncDeletes     Boolean  @default(true)
   ignoredChannels String[] @default([])
+  removeThreshold Int? // hysteresis floor: only un-post when stars drop below this (null = use threshold)
+  rewardRoleId    String? // role granted to authors who reach a star milestone
+  rewardStars     Int      @default(0) // stars on a single message that earn the reward role (0 = off)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

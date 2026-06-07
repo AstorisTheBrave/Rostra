@@ -556,6 +556,9 @@ CREATE TABLE "StarboardConfig" (
     "ignoreBots" BOOLEAN NOT NULL DEFAULT true,
     "syncDeletes" BOOLEAN NOT NULL DEFAULT true,
     "ignoredChannels" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "removeThreshold" INTEGER,
+    "rewardRoleId" TEXT,
+    "rewardStars" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

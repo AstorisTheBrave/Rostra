@@ -11,6 +11,22 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (starboard depth)
+
+**changed**: Extended `starboard` (backlog item 11, additive pass on the single-config model). New pure
+`decideStarboard(stars, threshold, removeThreshold, hasPost) -> post|keep|remove|none` adds a hysteresis
+floor so posts at the threshold do not flicker; `earnsReward(stars, rewardStars)` gates a star-reward role.
+Events reworked around the decision result and grant the reward role on `post`. New subcommands
+`/starboard removethreshold <count>` and `/starboard reward <stars> [role]`; richer status. New
+`StarboardConfig` columns: `removeThreshold`, `rewardRoleId`, `rewardStars`. Multiple starboards / per-board
+overrides deferred (need a new per-board table) and noted in the module doc.
+
+**files touched**: `src/modules/starboard/{index,events,service,decide.test}.ts`, `prisma/schema.prisma` +
+`0_init`, `docs/modules/starboard.mdx`.
+
+**verified**: typecheck clean; starboard decide tests 5/5 + existing service tests; biome clean; baseline
+includes the new columns.
+
 ### 2026-06-07 (verification depth)
 
 **changed**: Extended `verification` (backlog item 10) with a captcha and auto-kick. New `captcha.ts` (pure

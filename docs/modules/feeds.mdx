@@ -1,13 +1,15 @@
 ---
-last-updated: 2026-06-06
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
 
 ## what this is
 
-Notification feeds: announce a YouTube channel's new uploads and a Twitch streamer going live to a Discord
-channel. `/feeds youtube|twitch|list|remove` (Manage Server). Built from the YAGPDB/Arcane feed feature set.
+Notification feeds: announce a YouTube channel's new uploads, a Twitch streamer going live, a subreddit's
+new posts, and new items from any RSS/Atom feed to a Discord channel.
+`/feeds youtube|twitch|reddit|rss|list|remove` (Manage Server). Built from the YAGPDB/Arcane feed feature
+set.
 
 ## technical map
 
@@ -20,11 +22,16 @@ channel. `/feeds youtube|twitch|list|remove` (Manage Server). Built from the YAG
 **how it polls** - the `poll-feeds` cron runs in the **manager** process and posts via REST
 (`Routes.channelMessages`), so it needs no gateway client. YouTube uses the keyless RSS feed
 (`/feeds/videos.xml?channel_id=`); Twitch uses Helix `/streams` with an app token (client-credentials),
-gated on `TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET` (no-op without them).
+gated on `TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET` (no-op without them). Reddit uses the keyless
+`/r/<sub>/new/.rss` Atom feed; `rss` accepts any RSS 2.0 or Atom URL. Both go through one
+`parseGenericFeed` (handles `<entry>` and `<item>`, CDATA, and XML entities) with a `User-Agent` header
+(Reddit rejects the default UA).
 
-**exports (service.ts)** - DB ops, pure `parseYouTubeFeed` / `extractYouTubeChannelId` (tested),
-`resolveYouTubeChannelId` (id / URL / @handle best-effort), `youtubePreview`, `twitchConfigured`, and
-`pollAllFeeds`.
+**exports (service.ts)** - DB ops, pure `parseYouTubeFeed` / `extractYouTubeChannelId` / `parseGenericFeed`
+(all tested), `resolveYouTubeChannelId` (id / URL / @handle best-effort), `youtubePreview`, `redditPreview`,
+`rssPreview`, `redditFeedUrl`, `twitchConfigured`, and `pollAllFeeds`. `FeedType` is the type union
+(`youtube|twitch|reddit|rss`); `FeedSubscription.type`/`sourceId` are free strings so no schema change was
+needed.
 
 ## gotchas
 
@@ -32,4 +39,5 @@ gated on `TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET` (no-op without them).
   than `lastItemId` are announced. Twitch stores the live stream id and clears it when the stream ends, so
   the next stream notifies once.
 - Twitch feeds require app credentials; without them `/feeds twitch` replies that it is not configured.
+- Reddit/RSS seed `lastItemId` from the newest item on add, so subscribing never replays history.
 - Posting is plain content with the link (YouTube/Twitch links auto-embed), with an optional role mention.

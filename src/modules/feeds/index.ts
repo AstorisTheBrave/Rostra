@@ -10,8 +10,10 @@ import { Accent, container, reply, text } from "@/ui";
 import {
 	createSub,
 	listSubs,
+	redditPreview,
 	removeSub,
 	resolveYouTubeChannelId,
+	rssPreview,
 	twitchConfigured,
 	youtubePreview,
 } from "./service.ts";
@@ -40,6 +42,28 @@ function buildData(): SlashCommandBuilder {
 			.addStringOption((o) =>
 				o.setName("streamer").setDescription("Twitch username").setRequired(true),
 			)
+			.addChannelOption((o) =>
+				o.setName("post_to").setDescription("Where to announce").setRequired(true),
+			)
+			.addRoleOption((o) => o.setName("mention").setDescription("Role to ping (optional)")),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("reddit")
+			.setDescription("Announce a subreddit's new posts")
+			.addStringOption((o) =>
+				o.setName("subreddit").setDescription("Subreddit name (without r/)").setRequired(true),
+			)
+			.addChannelOption((o) =>
+				o.setName("post_to").setDescription("Where to announce").setRequired(true),
+			)
+			.addRoleOption((o) => o.setName("mention").setDescription("Role to ping (optional)")),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("rss")
+			.setDescription("Announce new items from any RSS or Atom feed")
+			.addStringOption((o) => o.setName("url").setDescription("Feed URL").setRequired(true))
 			.addChannelOption((o) =>
 				o.setName("post_to").setDescription("Where to announce").setRequired(true),
 			)
@@ -108,6 +132,51 @@ async function execute({
 				true,
 			);
 		}
+		case "reddit": {
+			const subreddit = interaction.options
+				.getString("subreddit", true)
+				.trim()
+				.replace(/^\/?r\//i, "");
+			const postTo = interaction.options.getChannel("post_to", true);
+			const preview = await redditPreview(subreddit);
+			if (!preview) return void reply.error(interaction, t("feeds:error.redditNotFound"));
+			await createSub({
+				guildId: guild.id,
+				channelId: postTo.id,
+				type: "reddit",
+				sourceId: subreddit,
+				sourceName: preview.name,
+				mention,
+				lastItemId: preview.latestId,
+			});
+			return void reply.success(
+				interaction,
+				t("feeds:redditAdded", { name: preview.name, channel: `<#${postTo.id}>` }),
+				true,
+			);
+		}
+		case "rss": {
+			const url = interaction.options.getString("url", true).trim();
+			if (!/^https?:\/\//i.test(url))
+				return void reply.error(interaction, t("feeds:error.rssBadUrl"));
+			const postTo = interaction.options.getChannel("post_to", true);
+			const preview = await rssPreview(url);
+			if (!preview) return void reply.error(interaction, t("feeds:error.rssNotFound"));
+			await createSub({
+				guildId: guild.id,
+				channelId: postTo.id,
+				type: "rss",
+				sourceId: url,
+				sourceName: preview.name,
+				mention,
+				lastItemId: preview.latestId,
+			});
+			return void reply.success(
+				interaction,
+				t("feeds:rssAdded", { name: preview.name, channel: `<#${postTo.id}>` }),
+				true,
+			);
+		}
 		case "list": {
 			const subs = await listSubs(guild.id);
 			if (subs.length === 0) {
@@ -147,6 +216,8 @@ const feeds: BotModule = {
 	i18n: {
 		youtubeAdded: "📺 Now announcing new videos from **{name}** in {channel}.",
 		twitchAdded: "🎮 Now announcing when **{name}** goes live in {channel}.",
+		redditAdded: "👽 Now announcing new posts from **{name}** in {channel}.",
+		rssAdded: "📰 Now announcing new items from **{name}** in {channel}.",
 		removed: "🗑️ Feed removed.",
 		"list.title": "# 📡 Feeds",
 		"list.empty": "No feeds set up yet.",
@@ -154,6 +225,10 @@ const feeds: BotModule = {
 			"Could not find that YouTube channel. Try the channel id (UC...) or URL.",
 		"error.twitchOff":
 			"Twitch feeds are not configured on this instance (missing API credentials).",
+		"error.redditNotFound": "Could not reach that subreddit. Check the name and that it is public.",
+		"error.rssBadUrl":
+			"That does not look like a valid URL. It must start with http:// or https://.",
+		"error.rssNotFound": "Could not read a feed at that URL. Make sure it is an RSS or Atom feed.",
 		"error.notFound": "No feed with that ID here.",
 	},
 };

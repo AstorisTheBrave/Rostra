@@ -8,10 +8,12 @@ const log = getLogger("feeds");
 
 // ── DB ───────────────────────────────────────────────────────────────────────
 
+export type FeedType = "youtube" | "twitch" | "reddit" | "rss";
+
 export async function createSub(data: {
 	guildId: string;
 	channelId: string;
-	type: "youtube" | "twitch";
+	type: FeedType;
 	sourceId: string;
 	sourceName?: string;
 	mention?: string | null;
@@ -170,6 +172,97 @@ async function fetchTwitchStream(login: string): Promise<TwitchStream | null> {
 	}
 }
 
+// ── Generic feeds: Reddit + RSS/Atom (keyless) ───────────────────────────────
+
+const FEED_UA = "Rostra/1.0 (+https://github.com/AstorisTheBrave/Rostra)";
+
+/** Unwrap CDATA and decode the handful of XML entities that appear in titles. */
+function decodeXml(raw: string | undefined): string {
+	if (!raw) return "";
+	const text = raw.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
+	return text
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&quot;/g, '"')
+		.replace(/&#0?39;|&apos;/g, "'")
+		.replace(/&amp;/g, "&")
+		.trim();
+}
+
+export interface FeedItem {
+	id: string;
+	title: string;
+	url: string;
+}
+
+/** Parse the newest item out of an Atom (`<entry>`) or RSS 2.0 (`<item>`) feed. */
+export function parseGenericFeed(xml: string): FeedItem | null {
+	const atom = xml.match(/<entry[\s>]([\s\S]*?)<\/entry>/)?.[1];
+	if (atom) {
+		const id = atom.match(/<id>([^<]+)<\/id>/)?.[1]?.trim();
+		const title = decodeXml(atom.match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1]);
+		const url = atom.match(/<link[^>]*href="([^"]+)"/)?.[1]?.trim();
+		if (id) return { id, title: title || "New post", url: url ?? "" };
+	}
+	const item = xml.match(/<item[\s>]([\s\S]*?)<\/item>/)?.[1];
+	if (item) {
+		const link = item.match(/<link>([^<]+)<\/link>/)?.[1]?.trim();
+		const guid = item.match(/<guid[^>]*>([^<]+)<\/guid>/)?.[1]?.trim();
+		const title = decodeXml(item.match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1]);
+		const id = guid ?? link;
+		if (id) return { id, title: title || "New post", url: link ?? "" };
+	}
+	return null;
+}
+
+/** Pull the feed-level title (channel/feed name) from Atom or RSS. */
+function parseFeedTitle(xml: string): string | null {
+	const channel = xml.match(/<channel>[\s\S]*?<title[^>]*>([\s\S]*?)<\/title>/)?.[1];
+	if (channel) return decodeXml(channel) || null;
+	const feed = xml.match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1];
+	return feed ? decodeXml(feed) || null : null;
+}
+
+async function fetchFeedXml(url: string): Promise<string | null> {
+	try {
+		const res = await fetch(url, {
+			headers: { "User-Agent": FEED_UA },
+			signal: AbortSignal.timeout(7000),
+		});
+		if (!res.ok) return null;
+		return await res.text();
+	} catch {
+		return null;
+	}
+}
+
+export function redditFeedUrl(sub: string): string {
+	return `https://www.reddit.com/r/${encodeURIComponent(sub)}/new/.rss`;
+}
+
+/** Validate a subreddit and seed the latest post id. */
+export async function redditPreview(
+	sub: string,
+): Promise<{ name: string; latestId: string | null } | null> {
+	const xml = await fetchFeedXml(redditFeedUrl(sub));
+	if (!xml) return null;
+	return { name: `r/${sub}`, latestId: parseGenericFeed(xml)?.id ?? null };
+}
+
+/** Validate any RSS/Atom URL and seed the latest item id. */
+export async function rssPreview(
+	url: string,
+): Promise<{ name: string; latestId: string | null } | null> {
+	const xml = await fetchFeedXml(url);
+	if (!xml) return null;
+	return { name: parseFeedTitle(xml) ?? url, latestId: parseGenericFeed(xml)?.id ?? null };
+}
+
+async function fetchLatestGeneric(url: string): Promise<FeedItem | null> {
+	const xml = await fetchFeedXml(url);
+	return xml ? parseGenericFeed(xml) : null;
+}
+
 // ── Polling (runs in the manager cron; posts via REST, no gateway client) ─────
 
 function mentionText(mention: string | null): string {
@@ -206,6 +299,20 @@ export async function pollAllFeeds(): Promise<void> {
 						`${mentionText(sub.mention)}**${sub.sourceName ?? "A channel"}** posted a new video: ${latest.title}\n${latest.url}`,
 					);
 					await setLastItem(sub.id, latest.videoId);
+				}
+			} else if (sub.type === "reddit" || sub.type === "rss") {
+				const url = sub.type === "reddit" ? redditFeedUrl(sub.sourceId) : sub.sourceId;
+				const latest = await fetchLatestGeneric(url);
+				if (!latest) continue;
+				if (sub.lastItemId === null) {
+					await setLastItem(sub.id, latest.id); // seed without spamming history
+				} else if (latest.id !== sub.lastItemId) {
+					const label = sub.type === "reddit" ? `r/${sub.sourceId}` : (sub.sourceName ?? "A feed");
+					await post(
+						sub.channelId,
+						`${mentionText(sub.mention)}**${label}**: ${latest.title}${latest.url ? `\n${latest.url}` : ""}`,
+					);
+					await setLastItem(sub.id, latest.id);
 				}
 			} else if (sub.type === "twitch") {
 				const stream = await fetchTwitchStream(sub.sourceId);

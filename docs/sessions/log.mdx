@@ -11,6 +11,21 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (feeds: reddit + rss)
+
+**changed**: Extended the `feeds` module with two keyless sources, working the backlog top-down (item 1 of
+`docs/superpowers/plans/2026-06-07-remaining-features-backlog.md`). `/feeds reddit <subreddit>` polls
+`/r/<sub>/new/.rss`; `/feeds rss <url>` polls any RSS 2.0 or Atom feed. Added a single `parseGenericFeed`
+(handles `<entry>` and `<item>`, CDATA, XML entities) plus `redditPreview`/`rssPreview` and a `User-Agent`
+header (Reddit rejects the default UA). No schema change: `FeedSubscription.type`/`sourceId` are free
+strings, so `FeedType` just gained `reddit|rss`. Seeds `lastItemId` on add so subscribing never replays
+history.
+
+**files touched**: `src/modules/feeds/{index,service,service.test}.ts`, `docs/modules/feeds.mdx`.
+
+**verified**: typecheck clean; feeds tests 6/6 (3 new `parseGenericFeed` cases); biome clean on the module
+(repo-wide `biome check .` noise is only from the gitignored `Archive/` JS, not in CI scope).
+
 ### 2026-06-05
 
 **changed**: Project created. Phase 1 audit of 15 archived bots completed. Architecture designed and

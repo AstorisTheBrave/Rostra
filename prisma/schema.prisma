@@ -619,6 +619,49 @@ model PollVote {
   @@index([pollId])
 }
 
+// ── Suggestions ──────────────────────────────────────────────────────────────
+
+model SuggestionConfig {
+  guildId   String   @id
+  channelId String?
+  enabled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Suggestion {
+  id        String           @id @default(cuid())
+  guildId   String
+  number    Int
+  channelId String
+  messageId String?
+  userId    String
+  text      String
+  status    String           @default("open") // open | approved | denied
+  reason    String?
+  createdAt DateTime         @default(now())
+  votes     SuggestionVote[]
+
+  @@unique([guildId, number])
+  @@index([guildId])
+}
+
+model SuggestionVote {
+  id           String     @id @default(cuid())
+  suggestionId String
+  userId       String
+  value        Int // 1 (up) or -1 (down)
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+
+  @@unique([suggestionId, userId])
+  @@index([suggestionId])
+}
+
+model GuildSuggestionCounter {
+  guildId String @id
+  count   Int    @default(0)
+}
+
 // ── Counting game ────────────────────────────────────────────────────────────
 
 model CountingConfig {

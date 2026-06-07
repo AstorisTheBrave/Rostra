@@ -597,6 +597,51 @@ CREATE TABLE "PollVote" (
 );
 
 -- CreateTable
+CREATE TABLE "SuggestionConfig" (
+    "guildId" TEXT NOT NULL,
+    "channelId" TEXT,
+    "enabled" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SuggestionConfig_pkey" PRIMARY KEY ("guildId")
+);
+
+-- CreateTable
+CREATE TABLE "Suggestion" (
+    "id" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "number" INTEGER NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "messageId" TEXT,
+    "userId" TEXT NOT NULL,
+    "text" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'open',
+    "reason" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Suggestion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SuggestionVote" (
+    "id" TEXT NOT NULL,
+    "suggestionId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "value" INTEGER NOT NULL,
+
+    CONSTRAINT "SuggestionVote_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "GuildSuggestionCounter" (
+    "guildId" TEXT NOT NULL,
+    "count" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "GuildSuggestionCounter_pkey" PRIMARY KEY ("guildId")
+);
+
+-- CreateTable
 CREATE TABLE "CountingConfig" (
     "channelId" TEXT NOT NULL,
     "guildId" TEXT NOT NULL,
@@ -819,6 +864,18 @@ CREATE INDEX "PollVote_pollId_idx" ON "PollVote"("pollId");
 CREATE UNIQUE INDEX "PollVote_pollId_userId_key" ON "PollVote"("pollId", "userId");
 
 -- CreateIndex
+CREATE INDEX "Suggestion_guildId_idx" ON "Suggestion"("guildId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Suggestion_guildId_number_key" ON "Suggestion"("guildId", "number");
+
+-- CreateIndex
+CREATE INDEX "SuggestionVote_suggestionId_idx" ON "SuggestionVote"("suggestionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SuggestionVote_suggestionId_userId_key" ON "SuggestionVote"("suggestionId", "userId");
+
+-- CreateIndex
 CREATE INDEX "CountingConfig_guildId_idx" ON "CountingConfig"("guildId");
 
 -- CreateIndex
@@ -865,3 +922,6 @@ ALTER TABLE "UserVote" ADD CONSTRAINT "UserVote_userId_fkey" FOREIGN KEY ("userI
 
 -- AddForeignKey
 ALTER TABLE "PollVote" ADD CONSTRAINT "PollVote_pollId_fkey" FOREIGN KEY ("pollId") REFERENCES "Poll"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SuggestionVote" ADD CONSTRAINT "SuggestionVote_suggestionId_fkey" FOREIGN KEY ("suggestionId") REFERENCES "Suggestion"("id") ON DELETE CASCADE ON UPDATE CASCADE;

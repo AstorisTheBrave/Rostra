@@ -19,13 +19,14 @@ status: active · owner: AstorisTheBrave · 2026-06-07
 - [x] 13. Modmail - `feat(modmail)` (DM-to-staff threads; ModmailConfig + ModmailThread; DirectMessages intent)
 - [x] 14. Image cards - `feat(cards)` (leveling rank card + optional welcome card via `@napi-rs/canvas`)
 - [x] 15. Economy depth - `feat(economy)` (shop + inventory + buyable roles; ShopItem + InventoryItem)
-- [ ] 16. Polls, suggestions, counting (next)
-- [ ] 17. Logging + music + giveaway depth
+- [x] 16. Polls, suggestions, counting - three modules: `feat(counting)`, `feat(poll)`, `feat(suggest)`
+- [ ] 17. Logging + music + giveaway depth (next - the final item)
 
-Done in the 2026-06-07 build session: items 1-15 (each its own commit + tests + docs; 184 tests, all
-green). Shop added as `/economy` subcommands (one-command-per-module convention) rather than separate
-`/shop` etc. Next session: start at item 16 (polls, suggestions, counting - likely a new `community`
-module or three small modules; models `Suggestion`, `CountingConfig`; polls can be stateless buttons).
+Done in the 2026-06-07 build session: items 1-16 (each its own commit + tests + docs; 198 tests, all
+green). Item 16 shipped as three small self-contained modules (counting, poll, suggest) rather than one
+`community` module. Next session: start at item 17 (depth items - more logging event types: bulk delete /
+voice / nickname; music filters/autoplay/playlists; giveaway entry requirements role/level/account-age).
+This is the LAST backlog item - after it, the "build everything" backlog is complete.
 
 The maintainer wants **every** remaining all-in-one feature built (no dashboard, no custom commands, no
 deferring). This doc is the authoritative backlog + the patterns to follow. Reference material lives in

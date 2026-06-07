@@ -39,6 +39,7 @@ const FEATURES: { key: string; label: string; emoji: EmojiName }[] = [
 	{ key: "voicerole", label: "Voice role", emoji: "voicerole" },
 	{ key: "modmail", label: "Modmail", emoji: "modmail" },
 	{ key: "counting", label: "Counting", emoji: "counting" },
+	{ key: "suggestions", label: "Suggestions", emoji: "suggest" },
 ];
 
 /** Systems enabled by the one-click recommended baseline. */

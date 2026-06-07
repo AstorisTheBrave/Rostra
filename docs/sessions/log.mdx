@@ -11,6 +11,23 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (suggestions) - backlog item 16 part 3/3 (item 16 COMPLETE)
+
+**changed**: New `suggest` module (final part of item 16). `/suggest add` posts a numbered card to a
+configured channel with 👍/👎 toggle-vote buttons; `/suggest setup` (Manage Server) sets the channel +
+flips the `suggestions` flag; `/suggest approve|deny <number> [reason]` (Manage Server) updates status and
+re-renders the card. The `sug` component handler edits in place via `interaction.update`; pressing the same
+vote side clears it, the opposite flips it. New models `SuggestionConfig`, `Suggestion` (per-guild
+`number`), `SuggestionVote`, `GuildSuggestionCounter`. Wired into `/setup`, emojis (💡 `suggest`), `/help`
+community category, README. This completes backlog item 16 (counting + polls + suggestions).
+
+**files touched**: new `src/modules/suggest/{index,service,service.test}.ts`,
+`src/modules/setup/index.ts`, `src/ui/emojis.ts`, `src/modules/core/categories.ts`,
+`prisma/schema.prisma` + `0_init`, `docs/modules/suggest.mdx`, README.
+
+**verified**: typecheck clean; suggest tests 5/5 (vote toggle/tally logic); biome clean; baseline includes
+the four new tables.
+
 ### 2026-06-07 (button polls) - backlog item 16 part 2/3
 
 **changed**: New `poll` module (second of three for item 16). `/poll create <question> <option1> <option2>

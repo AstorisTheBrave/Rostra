@@ -162,7 +162,7 @@ Commands are slash-only and grouped under top-level commands with subcommands (w
 `/setup` · `/mod` · `/security` · `/automod` · `/verification` · `/logging` · `/welcome` · `/ticket` · `/modmail` · `/economy` · `/level` ·
 `/giveaway` · `/starboard` · `/rep` · `/voicehub` · `/voicerole` · `/role` · `/serverstats` · `/reactionrole` · `/birthday` · `/tag` · `/vanityrole` · `/feedback` ·
 `/trivia` · `/game` · `/roleplay` · `/profile` · `/music` · `/ask` · `/afk` · `/snipe` · `/steal` ·
-`/reminder` · `/feeds` · `/highlight` · `/sticky` · `/counting` · `/poll` · `/autoresponder` · `/util` · `/help` · `/stats` · `/shards` · `/ping`
+`/reminder` · `/feeds` · `/highlight` · `/sticky` · `/counting` · `/poll` · `/suggest` · `/autoresponder` · `/util` · `/help` · `/stats` · `/shards` · `/ping`
 
 ## Architecture
 

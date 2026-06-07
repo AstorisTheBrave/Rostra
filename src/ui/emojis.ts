@@ -49,6 +49,7 @@ export const EMOJI_FALLBACK = {
 	serverstats: "📊",
 	modmail: "📬",
 	counting: "🔢",
+	suggest: "💡",
 	// stats / system
 	stats: "📊",
 	cpu: "🖥️",

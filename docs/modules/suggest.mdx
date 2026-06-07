@@ -1,0 +1,38 @@
+---
+last-updated: 2026-06-07
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Suggestions: members submit ideas with `/suggest add`, which posts a numbered card to a configured channel
+with 👍/👎 vote buttons. Staff approve or deny by number, which updates the card's status and colour.
+
+## technical map
+
+**file paths**
+- command + render + vote handler: `src/modules/suggest/index.ts`
+- config + suggestions + vote tally: `src/modules/suggest/service.ts` (+ `service.test.ts`)
+- models: `SuggestionConfig`, `Suggestion` (per-guild `number`), `SuggestionVote` (one per user, cascade),
+  `GuildSuggestionCounter` (sequential numbers)
+
+**command** - `/suggest add <text>` (members) · `setup <channel>` · `approve <number> [reason]` ·
+`deny <number> [reason]` (Manage Server). `setup` flips the tenant `suggestions` flag.
+
+**flow** - `add` allocates the next per-guild number, posts the card, and stores its message id. The `sug`
+component handler edits the card in place via `interaction.update`: `sug:up:<id>` / `sug:down:<id>` toggle
+the voter's up/down vote (pressing the same side clears it; the opposite flips it). `approve`/`deny` set the
+status + staff note and re-render the card (buttons drop once decided).
+
+**exports (service.ts)** - `getConfig`/`upsertConfig`, `createSuggestion`, `setMessageId`,
+`getSuggestion`/`getByNumber`, `castVote` (toggle), `tally` (up/down counts), `decide` (status change).
+
+## gotchas
+
+- One vote per user per suggestion; voting is disabled once a suggestion is approved/denied.
+- `interaction.update` acknowledges within Discord's 3s window, so `safeAck` never auto-defers; the card is
+  edited in place.
+- Numbers are sequential per guild via `GuildSuggestionCounter` (same pattern as tickets), so `approve 3`
+  is stable and human-friendly.
+- Gated on the tenant `suggestions` flag (in `/setup`); `setup` enables it.

@@ -14,7 +14,9 @@ status: active · owner: AstorisTheBrave · 2026-06-07
 - [x] 8. Server stats channels - `feat(serverstats)` beb4942
 - [x] 9. Anti-raid / panic mode - `feat(security)` 91a8def
 - [x] 10. Verification depth - `feat(verification)` (captcha + auto-kick)
-- [x] 11. Starboard depth - `feat(starboard)` (remove-threshold hysteresis + reward roles; multi-board deferred)
+- [x] 11. Starboard depth - `feat(starboard)` + full multi-board rebuild (many boards, autostar channels,
+  per-board emojis/settings/routing, reward roles, leaderboard). Remaining: override-inheritance engine +
+  blacklists + filter tiers + downvotes (deepest Starboard-bot layer; noted in starboard.mdx).
 - [x] 12. Advanced automod - `feat(automod)` (custom keyword/wildcard/regex rule engine + per-rule action)
 - [x] 13. Modmail - `feat(modmail)` (DM-to-staff threads; ModmailConfig + ModmailThread; DirectMessages intent)
 - [x] 14. Image cards - `feat(cards)` (leveling rank card + optional welcome card via `@napi-rs/canvas`)

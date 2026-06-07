@@ -466,6 +466,17 @@ CREATE TABLE "GuildTenant" (
 );
 
 -- CreateTable
+CREATE TABLE "VerificationConfig" (
+    "guildId" TEXT NOT NULL,
+    "roleId" TEXT,
+    "enabled" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "VerificationConfig_pkey" PRIMARY KEY ("guildId")
+);
+
+-- CreateTable
 CREATE TABLE "FeedSubscription" (
     "id" TEXT NOT NULL,
     "guildId" TEXT NOT NULL,

@@ -39,6 +39,8 @@ export const EMOJI_FALLBACK = {
 	assistant: "💡",
 	steal: "😼",
 	starboard: "⭐",
+	verification: "🔓",
+	feeds: "📡",
 	// stats / system
 	stats: "📊",
 	cpu: "🖥️",

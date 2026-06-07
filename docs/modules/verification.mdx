@@ -1,0 +1,31 @@
+---
+last-updated: 2026-06-06
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+A verification gate: post a panel with a Verify button, and members who click it get a "verified" role
+that unlocks the server. Adapted from YAGPDB's verification feature, button-based (no web captcha).
+
+## technical map
+
+**file paths**
+- command + verify button handler: `src/modules/verification/index.ts` (+ `index.test.ts`)
+- cached config: `src/modules/verification/service.ts`
+- model: `VerificationConfig`
+
+**command** - `/verification setup <role>` · `/verification panel` · `/verification disable` ·
+`/verification status` (Manage Server). `panel` posts the Components V2 verify button (customId
+`verify:go`).
+
+**component (`verify`)** - on click, grants the configured role (ephemeral reply); reports already-verified
+or a permissions failure. Gated on the tenant `verification` flag (so `/setup` can toggle it).
+
+## gotchas
+
+- The bot needs Manage Roles and the verified role must sit below the bot's highest role.
+- The button reply is ephemeral; `deferEphemeral` is set so a slow role add still acknowledges.
+- Pair with channel permissions that hide everything until the verified role is granted (the gate grants
+  the role; the server's permission setup decides what that role unlocks).

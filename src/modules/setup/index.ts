@@ -27,6 +27,7 @@ import {
 /** Core systems the wizard can toggle (key = tenant feature flag). */
 const FEATURES: { key: string; label: string; emoji: EmojiName }[] = [
 	{ key: "automod", label: "Auto-mod", emoji: "automod" },
+	{ key: "verification", label: "Verification", emoji: "verification" },
 	{ key: "logging", label: "Logging", emoji: "logging" },
 	{ key: "welcome", label: "Welcome", emoji: "welcome" },
 	{ key: "security", label: "Antinuke", emoji: "security" },

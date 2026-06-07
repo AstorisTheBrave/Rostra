@@ -478,6 +478,16 @@ model GuildTenant {
   updatedAt        DateTime @updatedAt
 }
 
+// ── Verification gate ────────────────────────────────────────────────────────
+
+model VerificationConfig {
+  guildId   String   @id
+  roleId    String?
+  enabled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // ── Notification feeds (YouTube / Twitch) ────────────────────────────────────
 
 model FeedSubscription {

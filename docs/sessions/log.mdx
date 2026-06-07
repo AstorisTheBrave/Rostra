@@ -974,3 +974,30 @@ channels, separate remove-threshold, reward roles, hall of fame.
 `src/client/BotClient.ts`, `src/modules/setup/index.ts`, `src/modules/core/categories.ts`,
 `src/ui/emojis.ts`, `prisma/schema.prisma`, `prisma/migrations/0_init/migration.sql`, `README.md`,
 `docs/modules/starboard.mdx`, `CLAUDE.md`.
+
+### 2026-06-06 (later - ship card + feeds + verification; archive housekeeping)
+
+**archive**: cloned the YAGPDB v2 docs and the Arcane docs into `Archive/` (gitignored) for reference, and
+deleted `Archive/starboard-docs` now that starboard is built.
+
+**roleplay ship card**: copied the zyn `ship_bg.jpg` to `assets/ship-bg.jpg` and added `shipCard.ts`
+(`@napi-rs/canvas`): the background, two circular avatars, a centre heart with the compatibility %, and the
+couple names. `/roleplay ship` now replies with the rendered card instead of plain text.
+
+**feeds module**: `/feeds youtube|twitch|list|remove` (Manage Server). New `FeedSubscription` model; a
+`poll-feeds` cron in the manager polls each subscription every 5 min and posts via REST (no gateway client).
+YouTube uses the keyless RSS feed; Twitch uses Helix gated on `TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET`
+(config added; no-op without them). Subscribing seeds the latest item so old uploads are not announced.
+
+**verification module**: `/verification setup|panel|disable|status` + a `verify:go` button that grants the
+configured role. New `VerificationConfig` model; gated on the tenant `verification` flag; added to `/setup`.
+
+**integration**: feeds + verification + starboard added to `/help` categories, the emoji registry, `/setup`
+(verification, starboard), README, and `.env.example` (Twitch). typecheck + Biome + 137/137 tests green;
+baseline now 41 tables.
+
+**files touched**: `src/modules/{feeds,verification,roleplay}/*`, `src/jobs/builtins.ts`, `src/config.ts`,
+`src/client/BotClient.ts` (starboard intent earlier), `src/modules/setup/index.ts`,
+`src/modules/core/categories.ts`, `src/ui/emojis.ts`, `assets/ship-bg.jpg`, `prisma/schema.prisma`,
+`prisma/migrations/0_init/migration.sql`, `.env.example`, `README.md`, `docs/modules/{feeds,verification}.mdx`,
+`CLAUDE.md`.

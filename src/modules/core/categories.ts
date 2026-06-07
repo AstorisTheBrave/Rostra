@@ -16,7 +16,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
 		label: "Moderation & Security",
 		description: "Keep the server safe",
 		emoji: "security",
-		commands: ["mod", "security", "automod", "logging"],
+		commands: ["mod", "security", "automod", "verification", "logging"],
 	},
 	{
 		id: "management",

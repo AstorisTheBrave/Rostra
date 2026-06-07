@@ -17,12 +17,13 @@ status: active · owner: AstorisTheBrave · 2026-06-07
 - [x] 11. Starboard depth - `feat(starboard)` (remove-threshold hysteresis + reward roles; multi-board deferred)
 - [x] 12. Advanced automod - `feat(automod)` (custom keyword/wildcard/regex rule engine + per-rule action)
 - [x] 13. Modmail - `feat(modmail)` (DM-to-staff threads; ModmailConfig + ModmailThread; DirectMessages intent)
-- [ ] 14. Image cards (next)
-- [ ] 15-17. see below
+- [x] 14. Image cards - `feat(cards)` (leveling rank card + optional welcome card via `@napi-rs/canvas`)
+- [ ] 15. Economy depth (next)
+- [ ] 16-17. see below
 
-Done in the 2026-06-07 build session: items 1-13 (each its own commit + tests + docs; 179 tests, all
-green). Next session: start at item 14 (image cards - leveling rank card + welcome card image via
-`@napi-rs/canvas`, mirror `profile/card.ts`).
+Done in the 2026-06-07 build session: items 1-14 (each its own commit + tests + docs; 179 tests, all
+green). Next session: start at item 15 (economy depth - shop + items + buyable roles; models `ShopItem`,
+`Inventory`; `/shop`, `/buy`, `/inventory`, `/use`).
 
 The maintainer wants **every** remaining all-in-one feature built (no dashboard, no custom commands, no
 deferring). This doc is the authoritative backlog + the patterns to follow. Reference material lives in

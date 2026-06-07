@@ -11,6 +11,23 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (image cards: rank + welcome)
+
+**changed**: Added two `@napi-rs/canvas` image cards (backlog item 14). **Leveling rank card**
+(`leveling/card.ts`, `renderRankCard`): `/level rank` now sends an 800x240 PNG (avatar, level, rank, XP
+progress bar) instead of text; new `rankPosition(guildId, userId)` service helper (Redis ZREVRANK, Prisma
+count fallback). **Welcome card** (`welcome/card.ts`, `renderWelcomeCard`): optional 800x280 greeting
+image attached on join when the new `WelcomeConfig.welcomeCard` flag is on; toggle via `/welcome card
+<bool>`; render failure falls back to text. Both mirror `profile/card.ts` (AttachmentBuilder + Components
+V2 gallery). Removed the old ASCII `progressBar` from leveling (rank card replaces it).
+
+**files touched**: new `src/modules/leveling/card.ts`, `src/modules/welcome/card.ts`;
+`src/modules/leveling/{index,service}.ts`, `src/modules/welcome/{index,events}.ts`,
+`prisma/schema.prisma` + `0_init`, `docs/modules/{leveling,welcome}.mdx`.
+
+**verified**: typecheck clean; full suite 179/179 (no new pure logic to unit-test; canvas rendering is not
+headless-testable, consistent with profile/card.ts); biome clean; baseline includes `welcomeCard`.
+
 ### 2026-06-07 (modmail)
 
 **changed**: New `modmail` module (backlog item 13) - DM-to-staff threads. Members DM the bot; the first

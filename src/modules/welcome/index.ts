@@ -64,6 +64,12 @@ function buildData(): SlashCommandBuilder {
 			.addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true)),
 	);
 	cmd.addSubcommand((s) =>
+		s
+			.setName("card")
+			.setDescription("Attach a rendered welcome image to the greeting")
+			.addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true)),
+	);
+	cmd.addSubcommand((s) =>
 		s.setName("setup").setDescription("One-click welcome setup (uses this channel)"),
 	);
 	cmd.addSubcommand((s) => s.setName("test").setDescription("Preview the welcome message"));
@@ -158,6 +164,11 @@ async function execute({
 			await upsertConfig(guild.id, { [field]: enabled });
 			return ok(interaction, "welcome:toggle.set", { type, state: enabled ? "on" : "off" });
 		}
+		case "card": {
+			const enabled = interaction.options.getBoolean("enabled", true);
+			await upsertConfig(guild.id, { welcomeCard: enabled });
+			return ok(interaction, enabled ? "welcome:card.on" : "welcome:card.off");
+		}
 		case "test": {
 			const cfg = await ensureConfig(guild.id);
 			const ctx: MessageContext = {
@@ -184,6 +195,7 @@ async function execute({
 					goodbye: cfg.goodbyeEnabled ? "on" : "off",
 					goodbyeChannel: cfg.goodbyeChannelId ? `<#${cfg.goodbyeChannelId}>` : "none",
 					dm: cfg.dmEnabled ? "on" : "off",
+					card: cfg.welcomeCard ? "on" : "off",
 					autoroles: cfg.autoroleIds.length,
 				}),
 			];
@@ -209,12 +221,14 @@ const welcome: BotModule = {
 		"channel.set": "📍 {type} channel set to {channel}.",
 		"message.set": "✏️ {type} message updated.",
 		"toggle.set": "⚙️ **{type}** turned **{state}**.",
+		"card.on": "🖼️ Welcome image card **enabled**.",
+		"card.off": "🖼️ Welcome image card **disabled**.",
 		"autorole.add": "✅ **{role}** will be assigned on join.",
 		"autorole.remove": "➖ **{role}** removed from autoroles.",
 		"test.title": "# 👋 Welcome preview",
 		"status.title": "# 👋 Welcome settings",
 		"status.line":
-			"**Welcome:** {welcome} → {welcomeChannel}\n**Goodbye:** {goodbye} → {goodbyeChannel}\n**Welcome DM:** {dm} • **Autoroles:** {autoroles}",
+			"**Welcome:** {welcome} → {welcomeChannel}\n**Goodbye:** {goodbye} → {goodbyeChannel}\n**Welcome DM:** {dm} • **Card:** {card} • **Autoroles:** {autoroles}",
 		"status.unconfigured": "Not set up yet. Use `/welcome channel` and `/welcome toggle` to start.",
 	},
 };

@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
@@ -7,7 +7,8 @@ status: stable
 ## what this is
 
 Greets new members and says goodbye to leavers, and can automatically hand out roles when someone joins.
-Messages support placeholders so each one is personalized.
+Messages support placeholders so each one is personalized, and the welcome greeting can include a rendered
+**image card**.
 
 ## technical map
 
@@ -15,13 +16,18 @@ Messages support placeholders so each one is personalized.
 - command + wiring: `src/modules/welcome/index.ts`
 - join/leave handlers: `src/modules/welcome/events.ts`
 - config + templating: `src/modules/welcome/service.ts` (+ `service.test.ts`)
-- model: `prisma/schema.prisma` → `WelcomeConfig`
+- welcome card renderer (`@napi-rs/canvas`): `src/modules/welcome/card.ts`
+- model: `prisma/schema.prisma` → `WelcomeConfig` (adds `welcomeCard`)
 
 **command** - `/welcome` (Manage Server): `channel <welcome|goodbye> <channel>`,
-`message <welcome|goodbye|dm> <text>`, `toggle <welcome|goodbye|dm> <bool>`, `test`, `status`, and group
-`autorole add|remove <role>`.
+`message <welcome|goodbye|dm> <text>`, `toggle <welcome|goodbye|dm> <bool>`, `card <bool>`, `test`,
+`status`, and group `autorole add|remove <role>`.
 
 **placeholders** - `{user}` (mention), `{username}`, `{server}`, `{membercount}` via `formatMessage`.
+
+**welcome card** - when `welcomeCard` is on, `guildMemberAdd` renders an 800x280 PNG (avatar + "Welcome,
+name!" + member count) via `renderWelcomeCard` and attaches it to the greeting as a Components V2 gallery.
+Rendering failures fall back to the text-only greeting.
 
 **exports (service.ts)** - `getConfig/upsertConfig/invalidate`, `formatMessage(template, ctx)`.
 

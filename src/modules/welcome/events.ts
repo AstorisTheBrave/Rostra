@@ -1,8 +1,9 @@
-import { MessageFlags } from "discord.js";
+import { AttachmentBuilder, MessageFlags } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
-import { Accent, container, text } from "@/utils/components.ts";
+import { Accent, container, gallery, text } from "@/ui";
+import { renderWelcomeCard } from "./card.ts";
 import { formatMessage, getConfig, type MessageContext } from "./service.ts";
 
 export const welcomeEvents: RegisteredEvent[] = [
@@ -27,11 +28,26 @@ export const welcomeEvents: RegisteredEvent[] = [
 					.fetch(config.welcomeChannelId)
 					.catch(() => null);
 				if (channel?.isTextBased()) {
+					const body: Array<ReturnType<typeof text> | ReturnType<typeof gallery>> = [
+						text(formatMessage(config.welcomeMessage, ctx)),
+					];
+					const files: AttachmentBuilder[] = [];
+					if (config.welcomeCard) {
+						const buffer = await renderWelcomeCard({
+							username: member.user.username,
+							avatarUrl: member.user.displayAvatarURL({ extension: "png", size: 256 }),
+							serverName: member.guild.name,
+							memberCount: member.guild.memberCount,
+						}).catch(() => null);
+						if (buffer) {
+							files.push(new AttachmentBuilder(buffer, { name: "welcome.png" }));
+							body.push(gallery(["attachment://welcome.png"]));
+						}
+					}
 					await channel
 						.send({
-							components: [
-								container(Accent.success, [text(formatMessage(config.welcomeMessage, ctx))]),
-							],
+							components: [container(Accent.success, body)],
+							files,
 							flags: MessageFlags.IsComponentsV2,
 						})
 						.catch(() => {});

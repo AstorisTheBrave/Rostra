@@ -1,27 +1,58 @@
 import {
+	AttachmentBuilder,
 	type ChatInputCommandInteraction,
+	type InteractionEditReplyOptions,
+	type InteractionReplyOptions,
+	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
+import { Accent, container, gallery, reply, text } from "@/ui";
+import { renderRankCard } from "./card.ts";
 import { levelingEvents } from "./events.ts";
 import {
 	getRewards,
 	getUser,
 	leaderboard,
 	levelProgress,
+	rankPosition,
 	removeReward,
 	setLevel,
 	setReward,
 	upsertConfig,
 } from "./service.ts";
 
-function progressBar(into: number, needed: number, size = 12): string {
-	const filled = needed > 0 ? Math.round((into / needed) * size) : 0;
-	return `${"█".repeat(filled)}${"░".repeat(Math.max(0, size - filled))}`;
+const DEFAULT_ACCENT = "#5865f2";
+
+async function showRankCard(interaction: ChatInputCommandInteraction, gid: string): Promise<void> {
+	const user = interaction.options.getUser("user") ?? interaction.user;
+	const [account, rank] = await Promise.all([getUser(gid, user.id), rankPosition(gid, user.id)]);
+	const p = levelProgress(account.xp);
+	const buffer = await renderRankCard({
+		username: user.username,
+		displayName: user.displayName,
+		avatarUrl: user.displayAvatarURL({ extension: "png", size: 256 }),
+		accent: DEFAULT_ACCENT,
+		level: p.level,
+		rank,
+		xp: account.xp,
+		into: p.into,
+		needed: p.needed,
+	});
+	const file = new AttachmentBuilder(buffer, { name: "rank.png" });
+	const payload = {
+		components: [container(Accent.info, [gallery(["attachment://rank.png"])])],
+		files: [file],
+		flags: MessageFlags.IsComponentsV2,
+	};
+	if (interaction.deferred || interaction.replied) {
+		await interaction.editReply(payload as unknown as InteractionEditReplyOptions);
+	} else {
+		await interaction.reply(payload as unknown as InteractionReplyOptions);
+	}
 }
 
 function isManager(interaction: ChatInputCommandInteraction): boolean {
@@ -131,19 +162,8 @@ async function execute({
 	}
 
 	switch (sub) {
-		case "rank": {
-			const user = interaction.options.getUser("user") ?? interaction.user;
-			const account = await getUser(gid, user.id);
-			const p = levelProgress(account.xp);
-			return void reply.components(interaction, [
-				container(Accent.info, [
-					text(`# ${user.username}`),
-					text(
-						`**Level:** ${p.level}\n**XP:** ${account.xp.toLocaleString("en-US")}\n${progressBar(p.into, p.needed)} ${p.into}/${p.needed}`,
-					),
-				]),
-			]);
-		}
+		case "rank":
+			return void showRankCard(interaction, gid);
 		case "leaderboard": {
 			const top = await leaderboard(gid, 10);
 			if (top.length === 0) return ok(interaction, t("leveling:leaderboard.empty"), Accent.info);

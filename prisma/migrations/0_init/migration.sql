@@ -190,6 +190,7 @@ CREATE TABLE "WelcomeConfig" (
     "welcomeEnabled" BOOLEAN NOT NULL DEFAULT false,
     "welcomeChannelId" TEXT,
     "welcomeMessage" TEXT NOT NULL DEFAULT 'Welcome {user} to **{server}**! You''re member #{membercount}.',
+    "welcomeCard" BOOLEAN NOT NULL DEFAULT false,
     "goodbyeEnabled" BOOLEAN NOT NULL DEFAULT false,
     "goodbyeChannelId" TEXT,
     "goodbyeMessage" TEXT NOT NULL DEFAULT '**{username}** has left the server.',

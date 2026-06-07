@@ -199,6 +199,7 @@ model WelcomeConfig {
   welcomeEnabled   Boolean  @default(false)
   welcomeChannelId String?
   welcomeMessage   String   @default("Welcome {user} to **{server}**! You're member #{membercount}.")
+  welcomeCard      Boolean  @default(false) // attach a rendered welcome image
   goodbyeEnabled   Boolean  @default(false)
   goodbyeChannelId String?
   goodbyeMessage   String   @default("**{username}** has left the server.")

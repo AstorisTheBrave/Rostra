@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
@@ -7,7 +7,8 @@ status: stable
 ## what this is
 
 Members earn XP for chatting and level up over time; staff can reward levels with roles and announce
-level-ups. Includes a rank display and an XP leaderboard.
+level-ups. `/level rank` renders an image **rank card** (avatar, level, rank, XP progress bar); there is
+also an XP leaderboard.
 
 ## technical map
 
@@ -15,15 +16,16 @@ level-ups. Includes a rank display and an XP leaderboard.
 - command: `src/modules/leveling/index.ts`
 - XP-on-message handler: `src/modules/leveling/events.ts`
 - curve, accounts, rewards, leaderboard: `src/modules/leveling/service.ts` (+ `service.test.ts`)
+- rank card renderer (`@napi-rs/canvas`): `src/modules/leveling/card.ts`
 - models: `prisma/schema.prisma` → `LevelConfig`, `LevelUser`, `LevelReward`
 
-**command** - `/level`: `rank [user]`, `leaderboard`, `enable`, `disable`, `announcechannel`,
+**command** - `/level`: `rank [user]` (image card), `leaderboard`, `enable`, `disable`, `announcechannel`,
 `set <user> <level>`, group `reward add|remove|list`. Config/set/reward-mutations require Manage Server;
 rank/leaderboard/reward-list are open.
 
 **exports (service.ts)** - `totalXpForLevel`, `levelFromXp`, `levelProgress` (pure curve),
 `getConfig/upsertConfig`, `getUser`, `addXp`, `setLevel`, `getRewards/setReward/removeReward`,
-`leaderboard`.
+`leaderboard`, `rankPosition` (Redis ZREVRANK with a Prisma count fallback for the card's rank number).
 
 **curve** - `totalXpForLevel(n) = 50·n·(n+1)` (L1=100, L2=300, L3=600…).
 

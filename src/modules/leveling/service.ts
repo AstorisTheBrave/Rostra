@@ -123,6 +123,23 @@ export interface LevelEntry {
 	level: number;
 }
 
+/** 1-based leaderboard position for a user (Redis ZREVRANK, Prisma count fallback). */
+export async function rankPosition(guildId: string, userId: string): Promise<number> {
+	const redis = getRedis();
+	if (redis) {
+		const rank = await redis.zrevrank(`lb:level:${guildId}`, userId).catch(() => null);
+		if (rank !== null && rank !== undefined) return rank + 1;
+	}
+	const me = await getPrisma().levelUser.findUnique({
+		where: { guildId_userId: { guildId, userId } },
+	});
+	if (!me) return 0;
+	const ahead = await getPrisma().levelUser.count({
+		where: { guildId, xp: { gt: me.xp } },
+	});
+	return ahead + 1;
+}
+
 export async function leaderboard(guildId: string, limit = 10): Promise<LevelEntry[]> {
 	const redis = getRedis();
 	if (redis) {

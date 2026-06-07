@@ -72,6 +72,7 @@ sharded application - built to scale to millions of users.
 ### Engagement
 - Birthdays, reaction-role panels, join-to-create voice
 - Trivia, tic-tac-toe, rock-paper-scissors
+- Reputation points with a leaderboard
 
 ### Utility & Extras
 - avatar / userinfo / serverinfo
@@ -153,7 +154,7 @@ Commands are slash-only and grouped under top-level commands with subcommands (w
 100-command limit):
 
 `/setup` · `/mod` · `/security` · `/automod` · `/verification` · `/logging` · `/welcome` · `/ticket` · `/economy` · `/level` ·
-`/giveaway` · `/starboard` · `/voicehub` · `/reactionrole` · `/birthday` · `/tag` · `/vanityrole` · `/feedback` ·
+`/giveaway` · `/starboard` · `/rep` · `/voicehub` · `/reactionrole` · `/birthday` · `/tag` · `/vanityrole` · `/feedback` ·
 `/trivia` · `/game` · `/roleplay` · `/profile` · `/music` · `/ask` · `/afk` · `/snipe` · `/steal` ·
 `/reminder` · `/feeds` · `/highlight` · `/sticky` · `/autoresponder` · `/util` · `/help` · `/stats` · `/shards` · `/ping`
 

@@ -1,0 +1,32 @@
+---
+last-updated: 2026-06-07
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Reputation points: members thank each other and climb a leaderboard. `/rep give @user` (1 point, no self,
+24h cooldown), `/rep view [user]`, `/rep leaderboard`. Open to any member - no Manage perms.
+
+## technical map
+
+**file paths**
+- command: `src/modules/reputation/index.ts`
+- service: `src/modules/reputation/service.ts` (+ `service.test.ts`)
+- model: `RepUser` (composite id `guildId+userId`; `points` received, `lastGiven` for the giver cooldown)
+- leaderboard: Redis sorted set `lb:rep:<guildId>` (DB fallback), same shape as economy/leveling
+
+**how it works** - `giveRep` enforces self-give and a 24h cooldown (`cooldownRemaining` on the giver's
+`lastGiven`), then in one transaction stamps the giver and increments the receiver's `points`, and syncs the
+sorted set. `leaderboard` reads the sorted set with a `repUser.findMany` fallback when Redis is cold/empty.
+
+**exports** - `getRep`, `giveRep` (`GiveResult` discriminated union), `leaderboard`, pure
+`cooldownRemaining` (tested) + `GIVE_COOLDOWN_MS`.
+
+## gotchas
+
+- The cooldown lives on the giver's own `RepUser` row (`lastGiven`), so a single row per user covers both
+  what they received (`points`) and when they last gave.
+- Cooldown is surfaced to the user as a Discord relative timestamp (`<t:unix:R>`), not a formatted duration.
+- Not in the `/setup` kill-switch grid: it is a low-risk social command with no hot event path to gate.

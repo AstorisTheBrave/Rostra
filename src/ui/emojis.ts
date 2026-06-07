@@ -43,6 +43,7 @@ export const EMOJI_FALLBACK = {
 	feeds: "📡",
 	highlight: "🔔",
 	sticky: "📌",
+	reputation: "⭐",
 	// stats / system
 	stats: "📊",
 	cpu: "🖥️",

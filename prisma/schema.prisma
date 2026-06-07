@@ -377,6 +377,18 @@ model AutoResponder {
   @@index([guildId])
 }
 
+// ── Reputation ───────────────────────────────────────────────────────────────
+
+model RepUser {
+  guildId   String
+  userId    String
+  points    Int       @default(0) // reputation received
+  lastGiven DateTime? // when this user last gave rep (24h cooldown)
+
+  @@id([guildId, userId])
+  @@index([guildId])
+}
+
 // ── Sticky messages ──────────────────────────────────────────────────────────
 
 model StickyMessage {

@@ -11,6 +11,19 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (reputation)
+
+**changed**: New `reputation` module (backlog item 4): `/rep give|view|leaderboard`. New `RepUser` model
+(composite id; `points` received, `lastGiven` giver cooldown). `giveRep` enforces no-self + 24h cooldown,
+then increments the receiver and syncs a Redis sorted set `lb:rep:<guild>` (DB fallback), mirroring
+economy/leveling. Wired into the `reputation` emoji and the `/help` Economy & Levels category; not added to
+the `/setup` kill-switch (low-risk social command, no hot path).
+
+**files touched**: `src/modules/reputation/{index,service,service.test}.ts`, `prisma/schema.prisma` +
+`0_init`, `src/ui/emojis.ts`, `src/modules/core/categories.ts`, `docs/modules/reputation.mdx`, `README.md`.
+
+**verified**: typecheck clean; reputation tests 3/3 (`cooldownRemaining`); categories test green; biome clean.
+
 ### 2026-06-07 (sticky messages)
 
 **changed**: New `sticky` module (backlog item 3): keep a message pinned to the bottom of a channel.

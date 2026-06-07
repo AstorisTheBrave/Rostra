@@ -47,6 +47,7 @@ export const EMOJI_FALLBACK = {
 	voicerole: "🎙️",
 	role: "🎭",
 	serverstats: "📊",
+	modmail: "📬",
 	// stats / system
 	stats: "📊",
 	cpu: "🖥️",

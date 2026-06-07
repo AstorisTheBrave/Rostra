@@ -11,6 +11,24 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (modmail)
+
+**changed**: New `modmail` module (backlog item 13) - DM-to-staff threads. Members DM the bot; the first
+mutual guild (on this shard) with modmail enabled opens/continues a public thread in a staff channel via
+`createThread`, and the DM is relayed in. Staff replies in the thread relay back to the user's DMs, with
+`//`-prefixed lines kept internal (`isStaffNote`). `relayBody` formats labelled lines + attachment URLs
+(both pure, tested). New models `ModmailConfig` + `ModmailThread`; `/modmail setup|disable|status|close`.
+Added `GatewayIntentBits.DirectMessages` to `BotClient` (Partials.Channel/Message already present). Wired
+the `modmail` feature into `/setup` FEATURES, `src/ui/emojis.ts` (📬), and `/help` management category.
+
+**files touched**: new `src/modules/modmail/{index,events,service,service.test}.ts`,
+`src/client/BotClient.ts`, `src/modules/setup/index.ts`, `src/ui/emojis.ts`,
+`src/modules/core/categories.ts`, `prisma/schema.prisma` + `0_init`, `docs/modules/modmail.mdx`, README.
+
+**verified**: typecheck clean; modmail service tests 3/3 (`relayBody`/`isStaffNote`); biome clean; baseline
+includes the two new tables. Known limit (documented): DMs route to shard 0, so multi-shard deploys only
+match shard-0 mutual guilds.
+
 ### 2026-06-07 (advanced automod: custom rule engine)
 
 **changed**: Extended `automod` (backlog item 12) with a custom rule engine on top of the built-in filters.

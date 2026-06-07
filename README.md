@@ -52,6 +52,10 @@ sharded application - built to scale to millions of users.
 - Button panel → private channels
 - Claim, add users, close with logging
 
+### Modmail
+- Members DM the bot to reach staff privately
+- Each user gets a thread in a staff channel; replies relay back to their DMs (`//` lines stay internal)
+
 ### Economy
 - Daily / work / crime / rob / beg / gamble
 - Wallet & bank, pay, leaderboard
@@ -155,7 +159,7 @@ Enable these for the bot in the Discord Developer Portal: Server Members, Messag
 Commands are slash-only and grouped under top-level commands with subcommands (well under Discord's
 100-command limit):
 
-`/setup` · `/mod` · `/security` · `/automod` · `/verification` · `/logging` · `/welcome` · `/ticket` · `/economy` · `/level` ·
+`/setup` · `/mod` · `/security` · `/automod` · `/verification` · `/logging` · `/welcome` · `/ticket` · `/modmail` · `/economy` · `/level` ·
 `/giveaway` · `/starboard` · `/rep` · `/voicehub` · `/voicerole` · `/role` · `/serverstats` · `/reactionrole` · `/birthday` · `/tag` · `/vanityrole` · `/feedback` ·
 `/trivia` · `/game` · `/roleplay` · `/profile` · `/music` · `/ask` · `/afk` · `/snipe` · `/steal` ·
 `/reminder` · `/feeds` · `/highlight` · `/sticky` · `/autoresponder` · `/util` · `/help` · `/stats` · `/shards` · `/ping`

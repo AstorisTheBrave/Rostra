@@ -35,6 +35,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
 			"autoresponder",
 			"sticky",
 			"ticket",
+			"modmail",
 		],
 	},
 	{

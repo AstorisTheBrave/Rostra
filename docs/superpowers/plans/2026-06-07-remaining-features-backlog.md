@@ -16,14 +16,13 @@ status: active · owner: AstorisTheBrave · 2026-06-07
 - [x] 10. Verification depth - `feat(verification)` (captcha + auto-kick)
 - [x] 11. Starboard depth - `feat(starboard)` (remove-threshold hysteresis + reward roles; multi-board deferred)
 - [x] 12. Advanced automod - `feat(automod)` (custom keyword/wildcard/regex rule engine + per-rule action)
-- [ ] 13. Modmail (next)
-- [ ] 14-17. see below
+- [x] 13. Modmail - `feat(modmail)` (DM-to-staff threads; ModmailConfig + ModmailThread; DirectMessages intent)
+- [ ] 14. Image cards (next)
+- [ ] 15-17. see below
 
-Done in the 2026-06-07 build session: items 1-12 (each its own commit + tests + docs; 176 tests, all
-green). Item 12 shipped the custom rule engine (trigger + per-rule effect, `AutomodRule`); the full YAGPDB
-condition matrix (per-rule channel/role/account-age conditions beyond the global exempt list) remains.
-Next session: start at item 13 (modmail - DM-to-staff threads; new module + `Modmail` model, reuse the
-tickets channel/overwrite pattern).
+Done in the 2026-06-07 build session: items 1-13 (each its own commit + tests + docs; 179 tests, all
+green). Next session: start at item 14 (image cards - leveling rank card + welcome card image via
+`@napi-rs/canvas`, mirror `profile/card.ts`).
 
 The maintainer wants **every** remaining all-in-one feature built (no dashboard, no custom commands, no
 deferring). This doc is the authoritative backlog + the patterns to follow. Reference material lives in

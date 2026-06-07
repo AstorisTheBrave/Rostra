@@ -563,6 +563,28 @@ model VerificationConfig {
   updatedAt   DateTime @updatedAt
 }
 
+// ── Modmail (DM-to-staff threads) ────────────────────────────────────────────
+
+model ModmailConfig {
+  guildId   String   @id
+  channelId String? // staff parent channel where modmail threads are created
+  enabled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ModmailThread {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  channelId String   @unique // the staff thread id
+  open      Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+  @@index([userId])
+}
+
 // ── Notification feeds (YouTube / Twitch) ────────────────────────────────────
 
 model FeedSubscription {

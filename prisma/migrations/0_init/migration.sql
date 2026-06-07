@@ -546,6 +546,29 @@ CREATE TABLE "VerificationConfig" (
 );
 
 -- CreateTable
+CREATE TABLE "ModmailConfig" (
+    "guildId" TEXT NOT NULL,
+    "channelId" TEXT,
+    "enabled" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ModmailConfig_pkey" PRIMARY KEY ("guildId")
+);
+
+-- CreateTable
+CREATE TABLE "ModmailThread" (
+    "id" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "open" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ModmailThread_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "FeedSubscription" (
     "id" TEXT NOT NULL,
     "guildId" TEXT NOT NULL,
@@ -709,6 +732,15 @@ CREATE INDEX "Reminder_guildId_idx" ON "Reminder"("guildId");
 
 -- CreateIndex
 CREATE INDEX "Reminder_userId_idx" ON "Reminder"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ModmailThread_channelId_key" ON "ModmailThread"("channelId");
+
+-- CreateIndex
+CREATE INDEX "ModmailThread_guildId_idx" ON "ModmailThread"("guildId");
+
+-- CreateIndex
+CREATE INDEX "ModmailThread_userId_idx" ON "ModmailThread"("userId");
 
 -- CreateIndex
 CREATE INDEX "FeedSubscription_guildId_idx" ON "FeedSubscription"("guildId");

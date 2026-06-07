@@ -11,6 +11,20 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (role menus / dropdown self-roles)
+
+**changed**: Extended `reactionroles` (backlog item 7) with a string-select variant instead of a new module
+(reuses the `ReactionRolePanel` model). New `/reactionrole postmenu <panel>` posts the panel as a `@/ui`
+`stringSelect` (min 0; max 1 single / all multiple); new `rrs:<panelId>` ComponentHandler reconciles the
+submission via pure `reconcileRoles(panelRoleIds, currentRoleIds, selectedIds)`, which only adds/removes
+roles inside the panel set and ignores anything else the member holds or selects. No schema or wiring change
+(reactionrole already in `/help` + emoji).
+
+**files touched**: `src/modules/reactionroles/{index,service,service.test}.ts`,
+`docs/modules/reactionroles.mdx`.
+
+**verified**: typecheck clean; reactionroles tests 5/5 (added 3 `reconcileRoles` cases); biome clean.
+
 ### 2026-06-07 (bulk role)
 
 **changed**: New `bulkrole` module (backlog item 6): `/role all add|remove <role> [who]` applies a role

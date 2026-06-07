@@ -72,3 +72,21 @@ export async function setMessage(id: string, channelId: string, messageId: strin
 export async function deletePanel(id: string): Promise<void> {
 	await getPrisma().reactionRolePanel.deleteMany({ where: { id } });
 }
+
+/**
+ * Reconcile a select-menu submission: within the panel's role set, add the
+ * selected roles the member lacks and remove the panel roles they have but did
+ * not select. Roles outside the panel are never touched.
+ */
+export function reconcileRoles(
+	panelRoleIds: string[],
+	currentRoleIds: string[],
+	selectedIds: string[],
+): { add: string[]; remove: string[] } {
+	const inPanel = new Set(panelRoleIds);
+	const has = new Set(currentRoleIds);
+	const selected = new Set(selectedIds.filter((id) => inPanel.has(id)));
+	const add = [...selected].filter((id) => !has.has(id));
+	const remove = panelRoleIds.filter((id) => has.has(id) && !selected.has(id));
+	return { add, remove };
+}

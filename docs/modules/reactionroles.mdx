@@ -1,14 +1,14 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
 
 ## what this is
 
-Self-assignable roles: staff build a panel of role buttons and post it; members click a button to give
-themselves (or remove) a role - no moderator needed. Supports "single" mode (one role from the panel) or
-"multiple".
+Self-assignable roles: staff build a panel of roles and post it as buttons (`post`) or a dropdown menu
+(`postmenu`); members click/select to give themselves (or remove) roles - no moderator needed. Supports
+"single" mode (one role from the panel) or "multiple".
 
 ## technical map
 
@@ -18,13 +18,18 @@ themselves (or remove) a role - no moderator needed. Supports "single" mode (one
 - model: `prisma/schema.prisma` → `ReactionRolePanel` (roles stored as a JSON array)
 
 **command** - `/reactionrole` (Manage Roles): `create <title> [mode]`, `addrole <panel> <role> <label>
-[emoji]`, `removerole <panel> <role>`, `post <panel>`, `list`, `delete <panel>`.
+[emoji]`, `removerole <panel> <role>`, `post <panel>`, `postmenu <panel>`, `list`, `delete <panel>`.
 
 **button (ComponentHandler `prefix: "rr"`)** - `rr:<panelId>:<roleId>` toggles the role on the clicker;
 in `single` mode it removes the panel's other roles first.
 
+**dropdown (ComponentHandler `prefix: "rrs"`)** - `rrs:<panelId>` posted via `postmenu` (a `stringSelect`
+from `@/ui`, min 0, max 1 for single / all for multiple). On submit, pure `reconcileRoles(panelRoleIds,
+currentRoleIds, selectedIds)` computes the add/remove diff *within the panel's roles only* (roles outside the
+panel are never touched), then the handler applies the editable ones.
+
 **exports (service.ts)** - `createPanel/getPanel/listPanels/deletePanel`, `addRole/removeRole`,
-`setMessage`, and pure `parseRoles(panel)` (validates the JSON column).
+`setMessage`, and pure `parseRoles(panel)` + `reconcileRoles(...)` (both tested).
 
 ## gotchas
 

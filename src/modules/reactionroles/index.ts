@@ -9,7 +9,7 @@ import {
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, button, buttonGrid, container, reply, text } from "@/ui";
+import { Accent, button, buttonGrid, container, reply, stringSelect, text } from "@/ui";
 import {
 	addRole,
 	createPanel,
@@ -18,6 +18,7 @@ import {
 	listPanels,
 	type PanelRole,
 	parseRoles,
+	reconcileRoles,
 	removeRole,
 	setMessage,
 } from "./service.ts";
@@ -32,6 +33,22 @@ function buttonRows(panelId: string, roles: PanelRole[]) {
 				...(role.emoji ? { emoji: role.emoji } : {}),
 			}),
 		),
+	);
+}
+
+function selectRow(panel: { id: string; mode: string }, roles: PanelRole[]) {
+	return stringSelect(
+		`rrs:${panel.id}`,
+		roles.map((r) => ({
+			label: r.label,
+			value: r.roleId,
+			...(r.emoji ? { emoji: r.emoji } : {}),
+		})),
+		{
+			placeholder: "Pick your roles",
+			min: 0,
+			max: panel.mode === "single" ? 1 : roles.length,
+		},
 	);
 }
 
@@ -73,6 +90,12 @@ function buildData(): SlashCommandBuilder {
 		s
 			.setName("post")
 			.setDescription("Post a panel in this channel")
+			.addStringOption((o) => o.setName("panel").setDescription("Panel ID").setRequired(true)),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("postmenu")
+			.setDescription("Post a panel as a dropdown menu in this channel")
 			.addStringOption((o) => o.setName("panel").setDescription("Panel ID").setRequired(true)),
 	);
 	cmd.addSubcommand((s) => s.setName("list").setDescription("List panels"));
@@ -147,6 +170,24 @@ async function execute({
 			await setMessage(panel.id, channel.id, message.id);
 			return ok(interaction, "reactionroles:posted");
 		}
+		case "postmenu": {
+			const id = interaction.options.getString("panel", true);
+			const panel = await getPanel(id);
+			if (!panel || panel.guildId !== guild.id)
+				return void reply.error(interaction, t("reactionroles:notFound"));
+			const roles = parseRoles(panel);
+			if (roles.length === 0) return void reply.error(interaction, t("reactionroles:noRoles"));
+			const channel = interaction.channel;
+			if (!channel?.isTextBased() || channel.isDMBased()) {
+				return void reply.error(interaction, t("reactionroles:badChannel"));
+			}
+			const message = await channel.send({
+				components: [container(Accent.info, [text(`# ${panel.title}`)]), selectRow(panel, roles)],
+				flags: MessageFlags.IsComponentsV2,
+			});
+			await setMessage(panel.id, channel.id, message.id);
+			return ok(interaction, "reactionroles:posted");
+		}
 		case "list": {
 			const panels = await listPanels(guild.id);
 			if (panels.length === 0) return ok(interaction, "reactionroles:listEmpty");
@@ -199,6 +240,41 @@ const reactionRoleComponent: ComponentHandler = {
 	},
 };
 
+const reactionMenuComponent: ComponentHandler = {
+	prefix: "rrs",
+	execute: async (interaction, args) => {
+		if (!interaction.isStringSelectMenu() || !interaction.guild) return;
+		const [panelId] = args;
+		if (!panelId) return;
+		const panel = await getPanel(panelId);
+		if (!panel) return void reply.error(interaction, t("reactionroles:notFound"));
+		const member = interaction.member as GuildMember | null;
+		if (!member) return void reply.error(interaction, t("reactionroles:cannotAssign"));
+
+		const panelRoleIds = parseRoles(panel).map((r) => r.roleId);
+		const { add, remove } = reconcileRoles(
+			panelRoleIds,
+			[...member.roles.cache.keys()],
+			interaction.values,
+		);
+		const editable = (id: string): boolean =>
+			interaction.guild?.roles.cache.get(id)?.editable === true;
+		const toAdd = add.filter(editable);
+		const toRemove = remove.filter(editable);
+
+		if (toAdd.length) await member.roles.add(toAdd, "Role menu").catch(() => {});
+		if (toRemove.length) await member.roles.remove(toRemove, "Role menu").catch(() => {});
+		if (!toAdd.length && !toRemove.length) {
+			return void reply.success(interaction, t("reactionroles:menuNoChange"), true);
+		}
+		return void reply.success(
+			interaction,
+			t("reactionroles:menuUpdated", { added: toAdd.length, removed: toRemove.length }),
+			true,
+		);
+	},
+};
+
 const reactionRoleCommand: SlashCommand = {
 	data: buildData(),
 	guildOnly: true,
@@ -208,7 +284,7 @@ const reactionRoleCommand: SlashCommand = {
 const reactionroles: BotModule = {
 	name: "reactionroles",
 	commands: [reactionRoleCommand],
-	components: [reactionRoleComponent],
+	components: [reactionRoleComponent, reactionMenuComponent],
 	i18n: {
 		created: "✅ Panel created. ID: `{id}`\nAdd roles with `/reactionrole addrole` then `post` it.",
 		roleAdded: "✅ Added **{role}** ({count} total).",
@@ -223,6 +299,8 @@ const reactionroles: BotModule = {
 		added: "✅ Gave you **{role}**.",
 		removed: "➖ Removed **{role}**.",
 		cannotAssign: "I can't assign that role (it may be above my highest role).",
+		menuUpdated: "✅ Roles updated. Added {added}, removed {removed}.",
+		menuNoChange: "No changes - your roles already match your selection.",
 	},
 };
 

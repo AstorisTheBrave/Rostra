@@ -11,6 +11,22 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (sticky messages)
+
+**changed**: New `sticky` module (backlog item 3): keep a message pinned to the bottom of a channel.
+`/sticky set|remove|list` (Manage Server). New `StickyMessage` model (`channelId` id, `lastMessageId`). The
+messageCreate handler is cached per guild and gated by the `sticky` tenant flag; a 3s per-channel debounce
+deletes the old repost and sends a fresh one (`buildStickyContent` adds 📌 and clamps to 2000), writing the
+new id back to DB + the shared cache row so the next delete is correct. Wired into `/setup`, the `sticky`
+emoji, and the `/help` Server Management category.
+
+**files touched**: `src/modules/sticky/{index,events,service,service.test}.ts`,
+`prisma/schema.prisma` + `0_init`, `src/ui/emojis.ts`, `src/modules/core/categories.ts`,
+`src/modules/setup/index.ts`, `docs/modules/sticky.mdx`, `README.md`.
+
+**verified**: typecheck clean; sticky tests 2/2 (`buildStickyContent`); biome clean; baseline migration
+includes `StickyMessage`.
+
 ### 2026-06-07 (highlights)
 
 **changed**: New `highlight` module (backlog item 2): keyword highlights that DM a subscriber when one of

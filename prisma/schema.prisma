@@ -377,6 +377,17 @@ model AutoResponder {
   @@index([guildId])
 }
 
+// ── Sticky messages ──────────────────────────────────────────────────────────
+
+model StickyMessage {
+  channelId     String  @id
+  guildId       String
+  content       String
+  lastMessageId String? // id of the most recent repost, deleted before the next
+
+  @@index([guildId])
+}
+
 // ── Highlights ───────────────────────────────────────────────────────────────
 
 model Highlight {

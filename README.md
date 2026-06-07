@@ -77,6 +77,7 @@ sharded application - built to scale to millions of users.
 - avatar / userinfo / serverinfo
 - AFK, snipe, autoresponder, tags
 - Keyword highlights (DM on a watched word)
+- Sticky messages (keep a note at the bottom of a channel)
 - Notification feeds: YouTube, Twitch, Reddit, RSS/Atom
 - Vanity status-roles, feedback
 
@@ -154,7 +155,7 @@ Commands are slash-only and grouped under top-level commands with subcommands (w
 `/setup` · `/mod` · `/security` · `/automod` · `/verification` · `/logging` · `/welcome` · `/ticket` · `/economy` · `/level` ·
 `/giveaway` · `/starboard` · `/voicehub` · `/reactionrole` · `/birthday` · `/tag` · `/vanityrole` · `/feedback` ·
 `/trivia` · `/game` · `/roleplay` · `/profile` · `/music` · `/ask` · `/afk` · `/snipe` · `/steal` ·
-`/reminder` · `/feeds` · `/highlight` · `/autoresponder` · `/util` · `/help` · `/stats` · `/shards` · `/ping`
+`/reminder` · `/feeds` · `/highlight` · `/sticky` · `/autoresponder` · `/util` · `/help` · `/stats` · `/shards` · `/ping`
 
 ## Architecture
 

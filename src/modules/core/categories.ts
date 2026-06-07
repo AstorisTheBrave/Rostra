@@ -30,6 +30,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
 			"reactionrole",
 			"vanityrole",
 			"autoresponder",
+			"sticky",
 			"ticket",
 		],
 	},

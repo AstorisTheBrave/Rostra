@@ -1,0 +1,37 @@
+---
+last-updated: 2026-06-07
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Sticky messages: keep one message pinned to the bottom of a channel by deleting and reposting it whenever
+someone talks. `/sticky set|remove|list` (Manage Server). Admins can kill it from `/setup` (tenant flag
+`sticky`).
+
+## technical map
+
+**file paths**
+- command: `src/modules/sticky/index.ts`
+- repost loop: `src/modules/sticky/events.ts` (messageCreate, debounced)
+- cache + DB: `src/modules/sticky/service.ts` (+ `service.test.ts`)
+- model: `StickyMessage` (`channelId` is the id; `lastMessageId` tracks the current repost)
+
+**how it works** - per-guild sticky config is cached in-process (`getGuildStickies`, invalidated on
+set/remove). On a non-bot message in a sticky channel (unless the `sticky` feature is blocked) a 3s debounce
+timer is set/refreshed; when the channel goes quiet the timer deletes the previous repost
+(`lastMessageId`), sends a fresh one (`buildStickyContent` adds the 📌 marker and clamps to 2000 chars), and
+writes the new id back to the DB and the shared cache row. The bot's own repost is a bot message, so it does
+not retrigger the loop.
+
+**exports (service.ts)** - `getGuildStickies`, `setSticky`, `removeSticky`, `setLastMessageId`, pure
+`buildStickyContent` (tested) + `STICKY_PREFIX`.
+
+## gotchas
+
+- Debounce timers and the cache live per shard; guilds are single-shard owned so that is safe. If a shard
+  restarts mid-debounce the next message simply re-arms it.
+- The cache row object is shared with the timer closure, so updating `lastMessageId` in place keeps the next
+  delete correct without a full reload.
+- Manage Server gates the command; the channel is the current one (no channel option) for `set`/`remove`.

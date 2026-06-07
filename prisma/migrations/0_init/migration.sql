@@ -370,6 +370,16 @@ CREATE TABLE "AutoResponder" (
 );
 
 -- CreateTable
+CREATE TABLE "StickyMessage" (
+    "channelId" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "lastMessageId" TEXT,
+
+    CONSTRAINT "StickyMessage_pkey" PRIMARY KEY ("channelId")
+);
+
+-- CreateTable
 CREATE TABLE "Highlight" (
     "id" TEXT NOT NULL,
     "guildId" TEXT NOT NULL,
@@ -615,6 +625,9 @@ CREATE INDEX "AutoResponder_guildId_idx" ON "AutoResponder"("guildId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AutoResponder_guildId_trigger_key" ON "AutoResponder"("guildId", "trigger");
+
+-- CreateIndex
+CREATE INDEX "StickyMessage_guildId_idx" ON "StickyMessage"("guildId");
 
 -- CreateIndex
 CREATE INDEX "Highlight_guildId_idx" ON "Highlight"("guildId");

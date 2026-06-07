@@ -466,6 +466,21 @@ CREATE TABLE "GuildTenant" (
 );
 
 -- CreateTable
+CREATE TABLE "FeedSubscription" (
+    "id" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "sourceId" TEXT NOT NULL,
+    "sourceName" TEXT,
+    "lastItemId" TEXT,
+    "mention" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "FeedSubscription_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "StarboardConfig" (
     "guildId" TEXT NOT NULL,
     "channelId" TEXT,
@@ -590,6 +605,12 @@ CREATE INDEX "Reminder_guildId_idx" ON "Reminder"("guildId");
 
 -- CreateIndex
 CREATE INDEX "Reminder_userId_idx" ON "Reminder"("userId");
+
+-- CreateIndex
+CREATE INDEX "FeedSubscription_guildId_idx" ON "FeedSubscription"("guildId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FeedSubscription_guildId_type_sourceId_key" ON "FeedSubscription"("guildId", "type", "sourceId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "StarboardEntry_messageId_key" ON "StarboardEntry"("messageId");

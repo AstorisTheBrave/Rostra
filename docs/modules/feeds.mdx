@@ -1,0 +1,35 @@
+---
+last-updated: 2026-06-06
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Notification feeds: announce a YouTube channel's new uploads and a Twitch streamer going live to a Discord
+channel. `/feeds youtube|twitch|list|remove` (Manage Server). Built from the YAGPDB/Arcane feed feature set.
+
+## technical map
+
+**file paths**
+- command: `src/modules/feeds/index.ts`
+- polling + APIs + DB: `src/modules/feeds/service.ts` (+ `service.test.ts`)
+- cron registration: `src/jobs/builtins.ts` (poll-feeds, every 5 min)
+- model: `FeedSubscription` (unique per guild+type+source)
+
+**how it polls** - the `poll-feeds` cron runs in the **manager** process and posts via REST
+(`Routes.channelMessages`), so it needs no gateway client. YouTube uses the keyless RSS feed
+(`/feeds/videos.xml?channel_id=`); Twitch uses Helix `/streams` with an app token (client-credentials),
+gated on `TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET` (no-op without them).
+
+**exports (service.ts)** - DB ops, pure `parseYouTubeFeed` / `extractYouTubeChannelId` (tested),
+`resolveYouTubeChannelId` (id / URL / @handle best-effort), `youtubePreview`, `twitchConfigured`, and
+`pollAllFeeds`.
+
+## gotchas
+
+- On add, the latest existing video id is stored so subscribing does not spam old uploads; only items newer
+  than `lastItemId` are announced. Twitch stores the live stream id and clears it when the stream ends, so
+  the next stream notifies once.
+- Twitch feeds require app credentials; without them `/feeds twitch` replies that it is not configured.
+- Posting is plain content with the link (YouTube/Twitch links auto-embed), with an optional role mention.

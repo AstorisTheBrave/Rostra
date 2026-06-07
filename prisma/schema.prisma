@@ -478,6 +478,23 @@ model GuildTenant {
   updatedAt        DateTime @updatedAt
 }
 
+// ── Notification feeds (YouTube / Twitch) ────────────────────────────────────
+
+model FeedSubscription {
+  id         String   @id @default(cuid())
+  guildId    String
+  channelId  String
+  type       String // "youtube" | "twitch"
+  sourceId   String // YouTube channel id (UC...) or Twitch login
+  sourceName String?
+  lastItemId String? // last video id / last live stream id seen
+  mention    String? // role id, "everyone", or null
+  createdAt  DateTime @default(now())
+
+  @@unique([guildId, type, sourceId])
+  @@index([guildId])
+}
+
 // ── Starboard ────────────────────────────────────────────────────────────────
 
 model StarboardConfig {

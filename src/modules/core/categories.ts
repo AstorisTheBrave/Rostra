@@ -58,6 +58,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
 			"snipe",
 			"steal",
 			"reminder",
+			"feeds",
 			"tag",
 			"feedback",
 			"ask",

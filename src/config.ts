@@ -43,6 +43,8 @@ const schema = z.object({
 	TOPGG_TOKEN: z.string().optional(),
 	TOPGG_WEBHOOK_AUTH: z.string().optional(),
 	TOPGG_BOT_ID: z.string().optional(),
+	TWITCH_CLIENT_ID: z.string().optional(),
+	TWITCH_CLIENT_SECRET: z.string().optional(),
 });
 
 export type Config = {
@@ -61,6 +63,7 @@ export type Config = {
 		restTimeout: number;
 	};
 	topgg: { token?: string; webhookAuth?: string; botId?: string };
+	twitch: { clientId?: string; clientSecret?: string };
 };
 
 export function loadConfig(source: Record<string, string | undefined> = process.env): Config {
@@ -95,6 +98,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 			restTimeout: e.LAVALINK_REST_TIMEOUT,
 		},
 		topgg: { token: e.TOPGG_TOKEN, webhookAuth: e.TOPGG_WEBHOOK_AUTH, botId: e.TOPGG_BOT_ID },
+		twitch: { clientId: e.TWITCH_CLIENT_ID, clientSecret: e.TWITCH_CLIENT_SECRET },
 	});
 }
 

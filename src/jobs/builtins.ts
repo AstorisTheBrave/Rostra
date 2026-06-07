@@ -1,3 +1,4 @@
+import { pollAllFeeds } from "@/modules/feeds/service.ts";
 import { registerCron } from "@/services/cron.ts";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
@@ -20,5 +21,12 @@ export function registerBuiltinCron(): void {
 			const res = await getPrisma().scheduledTask.deleteMany({ where: { runAt: { lt: cutoff } } });
 			if (res.count > 0) log.info({ count: res.count }, "pruned stale scheduled tasks");
 		},
+	});
+
+	// Poll YouTube/Twitch feeds and announce new videos/streams (manager-only, REST).
+	registerCron({
+		name: "poll-feeds",
+		everyMs: 5 * 60_000,
+		handler: () => pollAllFeeds(),
 	});
 }

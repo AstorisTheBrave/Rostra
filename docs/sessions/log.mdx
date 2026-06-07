@@ -11,6 +11,27 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (modmail cross-shard fix + shard audit)
+
+**changed**: Fixed modmail so it works at any shard count (e.g. 78 shards). DMs arrive on shard 0;
+`findModmailGuild` (which only scanned the local shard's cache) is replaced by `findModmailTarget`, which
+`broadcastEval`s every shard for "do you own a modmail-enabled guild this user is in?" and returns
+`{guildId, shardId}`. Relaying happens on the owning shard: directly if local, else via a targeted
+`broadcastEval` into that shard's registered `globalThis.__rostraModmail.relay`. Extracted
+`relayUserMessage` (open/continue thread + post) and `enabledModmailGuildIds`; `createThread` now takes a
+plain `{id,tag,username}` so it works without a cross-shard `User` object.
+
+**shard audit**: reviewed every cross-guild access for 78-shard safety. Findings: stats (`core/stats.ts`)
+and the manager already aggregate via `broadcastEval` (correct); per-guild in-memory state (security raid
+windows, automod spam buckets, extras afk/snipe, etc.) is correct because a guild is always owned by one
+shard; scheduler re-arms per-shard by guild ownership; birthday `runDaily` runs on every shard but acts
+only on owned guilds (each birthday handled once); crons (feeds/serverstats) run in the manager via REST.
+Modmail was the only genuine break.
+
+**files touched**: `src/modules/modmail/{events,service}.ts`, `docs/modules/modmail.mdx`.
+
+**verified**: typecheck clean; modmail tests 3/3; full suite 204/204; biome clean.
+
 ### 2026-06-07 (full multi-board starboard rebuild)
 
 **changed**: Rebuilt `starboard` from a single per-guild config into a full **multi-board** system, per the

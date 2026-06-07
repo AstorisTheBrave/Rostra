@@ -1,5 +1,5 @@
 import type { ModmailConfig, ModmailThread } from "@prisma/client";
-import { ChannelType, type Client, type Guild, type ThreadChannel, type User } from "discord.js";
+import { ChannelType, type Client, type Guild, type ThreadChannel } from "discord.js";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
@@ -55,28 +55,71 @@ export async function closeThread(channelId: string): Promise<ModmailThread | nu
 	return getPrisma().modmailThread.update({ where: { channelId }, data: { open: false } });
 }
 
+/** Plain, serializable user info that can cross a shard boundary (no User object). */
+export interface ModmailUser {
+	id: string;
+	tag: string;
+	username: string;
+}
+
+/** Guild ids with modmail enabled and a channel set (small set, queried fresh). */
+export async function enabledModmailGuildIds(): Promise<string[]> {
+	const rows = await getPrisma().modmailConfig.findMany({
+		where: { enabled: true, channelId: { not: null } },
+		select: { guildId: true },
+	});
+	return rows.map((r) => r.guildId);
+}
+
+export interface ModmailTarget {
+	guildId: string;
+	shardId: number;
+}
+
 /**
- * Find the guild whose modmail a DM should open in: the first mutual guild (in
- * this shard's cache) with modmail enabled and a parent channel set. DMs route to
- * shard 0, so at multi-shard scale only shard-0 guilds are visible - a documented
- * limitation.
+ * Find which guild (and which shard owns it) a DM should open modmail in: the
+ * first mutual, modmail-enabled guild the user belongs to. DMs always arrive on
+ * shard 0, so this asks every shard (via `broadcastEval`) which of the enabled
+ * guilds it owns and the user is a member of - correct at any shard count.
+ * Falls back to a local scan when running as a single process (no sharding).
  */
-export async function findModmailGuild(client: Client, user: User): Promise<Guild | null> {
-	for (const guild of client.guilds.cache.values()) {
-		if (await isFeatureBlocked(guild.id, "modmail")) continue;
-		const config = await getConfig(guild.id);
-		if (!config?.enabled || !config.channelId) continue;
-		const member = await guild.members.fetch(user.id).catch(() => null);
-		if (member) return guild;
+export async function findModmailTarget(
+	client: Client,
+	userId: string,
+): Promise<ModmailTarget | null> {
+	const guildIds = await enabledModmailGuildIds();
+	if (guildIds.length === 0) return null;
+
+	if (!client.shard) {
+		for (const gid of guildIds) {
+			const guild = client.guilds.cache.get(gid);
+			if (!guild) continue;
+			const member = await guild.members.fetch(userId).catch(() => null);
+			if (member) return { guildId: gid, shardId: 0 };
+		}
+		return null;
 	}
-	return null;
+
+	const results = (await client.shard.broadcastEval(
+		async (c, ctx) => {
+			for (const gid of ctx.guildIds) {
+				const guild = c.guilds.cache.get(gid);
+				if (!guild) continue;
+				const member = await guild.members.fetch(ctx.userId).catch(() => null);
+				if (member) return { guildId: gid, shardId: c.shard?.ids[0] ?? 0 };
+			}
+			return null;
+		},
+		{ context: { guildIds, userId } },
+	)) as (ModmailTarget | null)[];
+	return results.find((r): r is ModmailTarget => r != null) ?? null;
 }
 
 /** Open a new modmail thread in the guild's staff channel and persist it. */
 export async function createThread(
 	guild: Guild,
 	config: ModmailConfig,
-	user: User,
+	user: ModmailUser,
 ): Promise<ThreadChannel | null> {
 	if (!config.channelId) return null;
 	const parent = await guild.channels.fetch(config.channelId).catch(() => null);
@@ -95,6 +138,47 @@ export async function createThread(
 		log.error({ err, guild: guild.id }, "failed to create modmail thread");
 		return null;
 	}
+}
+
+/**
+ * Open or continue the user's modmail thread in `guildId` and post their message.
+ * Runs on the shard that owns the guild (directly, or invoked there via the
+ * cross-shard relay). Returns false if the guild/config is unavailable.
+ */
+export async function relayUserMessage(
+	client: Client,
+	guildId: string,
+	user: ModmailUser,
+	content: string,
+	attachments: string[],
+): Promise<boolean> {
+	const guild = client.guilds.cache.get(guildId);
+	if (!guild) return false;
+	if (await isFeatureBlocked(guildId, "modmail")) return false;
+	const config = await getConfig(guildId);
+	if (!config?.enabled || !config.channelId) return false;
+
+	const record = await getOpenThreadByUser(guildId, user.id);
+	let thread: ThreadChannel | null = null;
+	if (record) {
+		const existing = await guild.channels.fetch(record.channelId).catch(() => null);
+		thread = existing?.isThread() ? existing : null;
+		if (!thread || thread.archived) {
+			await closeThread(record.channelId).catch(() => {});
+			thread = null;
+		}
+	}
+	if (!thread) {
+		thread = await createThread(guild, config, user);
+		if (!thread) return false;
+		await thread
+			.send(
+				`# 📬 New modmail\n**From:** ${user.tag} (\`${user.id}\`)\nReply here to message them. Lines starting with \`//\` stay internal.`,
+			)
+			.catch(() => {});
+	}
+	await thread.send(relayBody(user.username, content, attachments)).catch(() => {});
+	return true;
 }
 
 /** Compose a relay line, appending any attachment URLs. */

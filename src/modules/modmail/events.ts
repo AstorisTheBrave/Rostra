@@ -1,20 +1,35 @@
-import type { Client, Message, ThreadChannel } from "discord.js";
+import type { Client, Message } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
 import { getLogger } from "@/services/logger.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import {
-	closeThread,
-	createThread,
-	findModmailGuild,
-	getConfig,
-	getOpenThreadByUser,
+	findModmailTarget,
 	getThreadByChannel,
 	isStaffNote,
+	type ModmailUser,
 	relayBody,
+	relayUserMessage,
 } from "./service.ts";
 
 const log = getLogger("modmail");
+
+interface RelayPayload {
+	guildId: string;
+	user: ModmailUser;
+	content: string;
+	attachments: string[];
+}
+
+/** Cross-shard entrypoint: registered on every shard's process so a DM received
+ * on shard 0 can be relayed by whichever shard actually owns the target guild. */
+interface ModmailGlobal {
+	relay: (client: Client, payload: RelayPayload) => Promise<boolean>;
+}
+const g = globalThis as unknown as { __rostraModmail?: ModmailGlobal };
+g.__rostraModmail = {
+	relay: (client, p) => relayUserMessage(client, p.guildId, p.user, p.content, p.attachments),
+};
 
 const attachmentUrls = (message: Message): string[] =>
 	[...message.attachments.values()].map((a) => a.url);
@@ -22,34 +37,37 @@ const attachmentUrls = (message: Message): string[] =>
 /** A user DMing the bot opens (or continues) a modmail thread in a mutual guild. */
 async function handleUserDm(client: Client, message: Message): Promise<void> {
 	const user = message.author;
-	const guild = await findModmailGuild(client, user);
-	if (!guild) return; // no mutual guild with modmail enabled (on this shard)
-	const config = await getConfig(guild.id);
-	if (!config?.channelId) return;
+	const target = await findModmailTarget(client, user.id);
+	if (!target) return; // no mutual guild with modmail enabled, on any shard
 
-	const record = await getOpenThreadByUser(guild.id, user.id);
-	let thread: ThreadChannel | null = null;
-	if (record) {
-		const existing = await guild.channels.fetch(record.channelId).catch(() => null);
-		thread = existing?.isThread() ? existing : null;
-		if (!thread || thread.archived) {
-			await closeThread(record.channelId).catch(() => {});
-			thread = null;
-		}
+	const payload: RelayPayload = {
+		guildId: target.guildId,
+		user: { id: user.id, tag: user.tag, username: user.username },
+		content: message.content ?? "",
+		attachments: attachmentUrls(message),
+	};
+
+	let ok: boolean;
+	const localShard = client.shard?.ids[0] ?? 0;
+	if (!client.shard || target.shardId === localShard) {
+		// This shard owns the guild; relay directly.
+		ok = await relayUserMessage(
+			client,
+			payload.guildId,
+			payload.user,
+			payload.content,
+			payload.attachments,
+		);
+	} else {
+		// Hand off to the owning shard's registered relay (single-shard eval => single result).
+		const result = (await client.shard.broadcastEval(
+			(c, p) =>
+				(globalThis as unknown as { __rostraModmail: ModmailGlobal }).__rostraModmail.relay(c, p),
+			{ shard: target.shardId, context: payload },
+		)) as unknown as boolean;
+		ok = result === true;
 	}
-	if (!thread) {
-		thread = await createThread(guild, config, user);
-		if (!thread) return void message.react("⚠️").catch(() => {});
-		await thread
-			.send(
-				`# 📬 New modmail\n**From:** ${user.tag} (\`${user.id}\`)\nReply here to message them. Lines starting with \`//\` stay internal.`,
-			)
-			.catch(() => {});
-	}
-	await thread
-		.send(relayBody(user.username, message.content ?? "", attachmentUrls(message)))
-		.catch(() => {});
-	await message.react("✅").catch(() => {});
+	await message.react(ok ? "✅" : "⚠️").catch(() => {});
 }
 
 /** Staff replying in a modmail thread relays back to the user's DMs. */

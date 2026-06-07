@@ -21,14 +21,17 @@ alternative to tickets for "contact staff" conversations.
 **command** - `/modmail setup <channel>` (sets the staff parent channel + enables + flips the tenant flag) ·
 `disable` · `status` · `close` (run inside a thread to close it and notify the user). Manage Server.
 
-**flow** - on a DM (`messageCreate`, not in a guild): `findModmailGuild` picks the first mutual guild on
-this shard with modmail enabled, then reuses the user's open `ModmailThread` or creates a public thread in
-the staff channel; the DM is relayed in as `**user:** ...` and the DM gets a ✅. On a staff message in a
-modmail thread: it is relayed to the user's DMs as `**<guild> staff:** ...` (📨), unless the line starts
-with `//` (internal note). A failed DM (user closed DMs / left) reacts ⚠️.
+**flow** - on a DM (`messageCreate`, not in a guild): `findModmailTarget` asks **every shard** (via
+`broadcastEval`) which modmail-enabled guild the user belongs to and returns `{guildId, shardId}`. The
+message is then relayed on the owning shard - directly if this shard owns it, otherwise handed to that
+shard's registered `globalThis.__rostraModmail.relay` via a targeted `broadcastEval`. `relayUserMessage`
+reuses the user's open `ModmailThread` or creates a public thread in the staff channel and posts
+`**user:** ...`; the DM gets a ✅ (or ⚠️ on failure). On a staff message in a modmail thread: it is relayed
+to the user's DMs as `**<guild> staff:** ...` (📨) unless the line starts with `//` (internal note).
 
 **exports (service.ts)** - cached `getConfig`/`upsertConfig`, `getThreadByChannel`/`getOpenThreadByUser`/
-`closeThread`/`createThread`, `findModmailGuild`, and the pure `relayBody` / `isStaffNote` (tested).
+`closeThread`/`createThread`, `enabledModmailGuildIds`, `findModmailTarget` (cross-shard), `relayUserMessage`,
+and the pure `relayBody` / `isStaffNote` (tested).
 
 ## gotchas
 
@@ -36,8 +39,10 @@ with `//` (internal note). A failed DM (user closed DMs / left) reacts ⚠️.
   (already present) to receive and fetch DM messages.
 - The staff parent channel must be a normal **GuildText** channel that only staff can see - threads inherit
   its visibility, so a public channel would leak modmail to everyone.
-- DMs route to **shard 0**, so `findModmailGuild` only sees shard-0 guilds; at multi-shard scale a user
-  whose only mutual modmail guild lives on another shard will not be matched. Single/low-shard deploys are
-  unaffected. If multiple mutual guilds have modmail on, the first in cache wins.
+- DMs route to **shard 0**, but `findModmailTarget` uses `broadcastEval` so it works at **any shard count**
+  (e.g. 78 shards): every shard reports whether it owns a modmail-enabled guild the user is in, and the
+  message is relayed on the owning shard. If multiple mutual guilds qualify, the lowest-shard match wins.
+- The cross-shard relay needs the `modmail` module loaded on every shard (it is, via the module loader) so
+  each process registers `globalThis.__rostraModmail.relay`. Single-process deploys take the local path.
 - The bot needs Create Public Threads + Send Messages in the staff channel, and the user must allow DMs.
 - Gated on the tenant `modmail` flag (in `/setup`); `setup` flips it on.

@@ -23,7 +23,7 @@ status: active · owner: AstorisTheBrave · 2026-06-07
 - [x] 17. Logging depth + giveaway depth - `feat(logging)`, `feat(giveaways)` (music depth = see note)
 
 BACKLOG COMPLETE except one documented infra-dependent remainder. Done in the 2026-06-07 build session:
-items 1-17 (each its own commit + tests + docs; 205 tests, all green). Item 17 shipped logging event types
+items 1-17 (each its own commit + tests + docs; 203 tests, all green). Item 17 shipped logging event types
 (bulk delete / voice / nickname) and giveaway entry requirements (role / level / account-age). The only
 unshipped piece in the whole backlog is **music depth (filters / autoplay / playlists)**: it requires a
 live Lavalink node to smoke-test, which CI cannot provide, so it was intentionally not built blind

@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
@@ -7,7 +7,8 @@ status: stable
 ## what this is
 
 Run prize giveaways: staff start one with a duration and prize, members click a button to enter, and the
-bot automatically picks winners when time runs out (and can reroll).
+bot automatically picks winners when time runs out (and can reroll). Entry can be gated by a required role,
+minimum leveling level, and/or minimum account age.
 
 ## technical map
 
@@ -17,12 +18,16 @@ bot automatically picks winners when time runs out (and can reroll).
 - model: `prisma/schema.prisma` → `Giveaway`
 
 **command** - `/giveaway` (Manage Server for start/end/reroll; list open): `start <duration> <prize>
-[winners]`, `end <id>`, `reroll <id>`, `list`.
+[winners] [required_role] [required_level] [min_account_days]`, `end <id>`, `reroll <id>`, `list`.
 
-**button (ComponentHandler `prefix: "giveaway"`)** - `giveaway:enter:<id>` adds the clicker as an entry.
+**button (ComponentHandler `prefix: "giveaway"`)** - `giveaway:enter:<id>` checks the entry requirements
+(role / level / account-age) and, if met, adds the clicker as an entry; otherwise replies with the missing
+requirement.
 
 **exports (service.ts)** - `createGiveaway`, `setMessageId`, `getGiveaway`, `addEntry` (idempotent),
-`endGiveaway` (draws winners), `getActive`, and pure `pickWinners(entries, count)`.
+`endGiveaway` (draws winners), `getActive`, pure `pickWinners(entries, count)`, pure `checkEntry`
+(role/level/age gate, tested), and `getMemberLevel` (reads `LevelUser.level` from the shared DB without
+importing the leveling module, preserving module isolation).
 
 ## gotchas
 

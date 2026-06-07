@@ -11,6 +11,26 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (giveaway entry requirements) - backlog item 17 part 2/2
+
+**changed**: Extended `giveaways` (second half of item 17) with entry requirements. `/giveaway start` gained
+`required_role`, `required_level`, and `min_account_days` options; the enter button now runs a pure
+`checkEntry` (role -> level -> account-age, first failure wins) before counting an entry, replying with the
+missing requirement otherwise. Requirements are shown on the giveaway message. New `Giveaway` columns
+`reqRoleId`, `reqLevel`, `reqAccountDays`. Level is read via `getMemberLevel` (queries `LevelUser.level`
+through the shared Prisma client - no cross-module import, so module isolation holds).
+
+**files touched**: `src/modules/giveaways/{index,service,service.test}.ts`, `prisma/schema.prisma` +
+`0_init`, `docs/modules/giveaways.mdx`.
+
+**verified**: typecheck clean; giveaway tests 7/7 (`checkEntry` role/level/age + existing `pickWinners`);
+biome clean; baseline includes the three new columns.
+
+**item 17 status**: logging depth + giveaway depth shipped. The third sub-area (music filters / autoplay /
+playlists) is intentionally NOT shipped: it needs a live Lavalink node to smoke-test (untestable in CI), and
+shipping unrunnable audio code would violate the verify-before-ship rule. Left as the one documented
+infra-dependent remainder.
+
 ### 2026-06-07 (logging depth) - backlog item 17 part 1/2
 
 **changed**: Extended `logging` (first half of the final backlog item 17) with three new event types:

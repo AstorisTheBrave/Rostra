@@ -342,6 +342,9 @@ model Giveaway {
   endsAt    DateTime
   ended     Boolean  @default(false)
   entries   String[] @default([])
+  reqRoleId String? // must have this role to enter
+  reqLevel  Int      @default(0) // must be at least this leveling level (0 = no requirement)
+  reqAccountDays Int @default(0) // account must be at least this many days old (0 = no requirement)
   createdAt DateTime @default(now())
 
   @@index([guildId, ended])

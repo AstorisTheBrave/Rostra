@@ -331,6 +331,9 @@ CREATE TABLE "Giveaway" (
     "endsAt" TIMESTAMP(3) NOT NULL,
     "ended" BOOLEAN NOT NULL DEFAULT false,
     "entries" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "reqRoleId" TEXT,
+    "reqLevel" INTEGER NOT NULL DEFAULT 0,
+    "reqAccountDays" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Giveaway_pkey" PRIMARY KEY ("id")

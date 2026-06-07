@@ -23,8 +23,43 @@ export async function createGiveaway(data: {
 	winners: number;
 	hostId: string;
 	endsAt: Date;
+	reqRoleId?: string | null;
+	reqLevel?: number;
+	reqAccountDays?: number;
 }): Promise<Giveaway> {
 	return getPrisma().giveaway.create({ data });
+}
+
+export interface EntryRequirements {
+	reqRoleId: string | null;
+	reqLevel: number;
+	reqAccountDays: number;
+}
+
+export type EntryCheck = { ok: true } | { ok: false; reason: "role" | "level" | "age" };
+
+/** Pure entry-gate: role, minimum leveling level, and minimum account age (in days). */
+export function checkEntry(opts: {
+	hasRole: boolean;
+	level: number;
+	accountAgeDays: number;
+	req: EntryRequirements;
+}): EntryCheck {
+	if (opts.req.reqRoleId && !opts.hasRole) return { ok: false, reason: "role" };
+	if (opts.req.reqLevel > 0 && opts.level < opts.req.reqLevel)
+		return { ok: false, reason: "level" };
+	if (opts.req.reqAccountDays > 0 && opts.accountAgeDays < opts.req.reqAccountDays) {
+		return { ok: false, reason: "age" };
+	}
+	return { ok: true };
+}
+
+/** Read a member's leveling level from the shared DB (no cross-module import). */
+export async function getMemberLevel(guildId: string, userId: string): Promise<number> {
+	const row = await getPrisma()
+		.levelUser.findUnique({ where: { guildId_userId: { guildId, userId } } })
+		.catch(() => null);
+	return row?.level ?? 0;
 }
 
 export async function setMessageId(id: string, messageId: string): Promise<void> {

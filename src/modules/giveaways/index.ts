@@ -14,10 +14,12 @@ import type { BotModule, ComponentHandler, RegisteredEvent, SlashCommand } from 
 import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
 	addEntry,
+	checkEntry,
 	createGiveaway,
 	endGiveaway,
 	getActive,
 	getGiveaway,
+	getMemberLevel,
 	setMessageId,
 } from "./service.ts";
 
@@ -113,6 +115,21 @@ function buildData(): SlashCommandBuilder {
 			.addStringOption((o) => o.setName("prize").setDescription("Prize").setRequired(true))
 			.addIntegerOption((o) =>
 				o.setName("winners").setDescription("Number of winners").setMinValue(1).setMaxValue(20),
+			)
+			.addRoleOption((o) =>
+				o.setName("required_role").setDescription("Members must have this role to enter"),
+			)
+			.addIntegerOption((o) =>
+				o
+					.setName("required_level")
+					.setDescription("Minimum leveling level to enter")
+					.setMinValue(1),
+			)
+			.addIntegerOption((o) =>
+				o
+					.setName("min_account_days")
+					.setDescription("Minimum account age in days to enter")
+					.setMinValue(1),
 			),
 	);
 	cmd.addSubcommand((s) =>
@@ -152,6 +169,9 @@ async function execute({
 			if (!durationMs) return void reply.error(interaction, t("giveaways:error.duration"));
 			const prize = interaction.options.getString("prize", true);
 			const winners = interaction.options.getInteger("winners") ?? 1;
+			const reqRoleId = interaction.options.getRole("required_role")?.id ?? null;
+			const reqLevel = interaction.options.getInteger("required_level") ?? 0;
+			const reqAccountDays = interaction.options.getInteger("min_account_days") ?? 0;
 			const channel = interaction.channel;
 			if (!channel?.isTextBased() || channel.isDMBased()) {
 				return void reply.error(interaction, t("giveaways:error.badChannel"));
@@ -164,13 +184,21 @@ async function execute({
 				winners,
 				hostId: interaction.user.id,
 				endsAt,
+				reqRoleId,
+				reqLevel,
+				reqAccountDays,
 			});
+			const reqLines: string[] = [];
+			if (reqRoleId) reqLines.push(`Role: <@&${reqRoleId}>`);
+			if (reqLevel > 0) reqLines.push(`Level **${reqLevel}+**`);
+			if (reqAccountDays > 0) reqLines.push(`Account **${reqAccountDays}+ days** old`);
+			const reqText = reqLines.length ? `\n**Requirements:** ${reqLines.join(" · ")}` : "";
 			const message = await channel.send({
 				components: [
 					container(Accent.info, [
 						text(`# 🎉 ${prize}`),
 						text(
-							`Hosted by <@${interaction.user.id}>\nWinners: **${winners}**\nEnds <t:${Math.floor(endsAt.getTime() / 1000)}:R>`,
+							`Hosted by <@${interaction.user.id}>\nWinners: **${winners}**\nEnds <t:${Math.floor(endsAt.getTime() / 1000)}:R>${reqText}`,
 						),
 					]),
 					enterRow(giveaway.id, 0),
@@ -236,6 +264,42 @@ const giveawayComponent: ComponentHandler = {
 		if (args[0] !== "enter" || !interaction.isButton()) return;
 		const id = args[1];
 		if (!id) return;
+		const giveaway = await getGiveaway(id);
+		if (!giveaway || giveaway.ended)
+			return void reply.error(interaction, t("giveaways:error.closed"));
+
+		// Enforce entry requirements before counting the entry.
+		if (giveaway.reqRoleId || giveaway.reqLevel > 0 || giveaway.reqAccountDays > 0) {
+			const member = giveaway.reqRoleId
+				? await interaction.guild?.members.fetch(interaction.user.id).catch(() => null)
+				: null;
+			const hasRole = giveaway.reqRoleId
+				? (member?.roles.cache.has(giveaway.reqRoleId) ?? false)
+				: true;
+			const level =
+				giveaway.reqLevel > 0 ? await getMemberLevel(giveaway.guildId, interaction.user.id) : 0;
+			const accountAgeDays = (Date.now() - interaction.user.createdTimestamp) / 86_400_000;
+			const check = checkEntry({
+				hasRole,
+				level,
+				accountAgeDays,
+				req: {
+					reqRoleId: giveaway.reqRoleId,
+					reqLevel: giveaway.reqLevel,
+					reqAccountDays: giveaway.reqAccountDays,
+				},
+			});
+			if (!check.ok) {
+				const detail =
+					check.reason === "role"
+						? `<@&${giveaway.reqRoleId}>`
+						: check.reason === "level"
+							? `level ${giveaway.reqLevel}`
+							: `${giveaway.reqAccountDays} days`;
+				return void reply.error(interaction, t(`giveaways:req.${check.reason}`, { detail }));
+			}
+		}
+
 		const count = await addEntry(id, interaction.user.id);
 		if (count === null) return void reply.error(interaction, t("giveaways:error.closed"));
 		await reply.success(interaction, t("giveaways:entered", { count }), true);
@@ -277,6 +341,9 @@ const giveaways: BotModule = {
 		"error.badChannel": "Use this in a text channel.",
 		"error.notFound": "No giveaway with that ID here.",
 		"error.closed": "This giveaway is no longer open.",
+		"req.role": "🚫 You need the {detail} role to enter this giveaway.",
+		"req.level": "🚫 You need to reach {detail} to enter this giveaway.",
+		"req.age": "🚫 Your account must be at least {detail} old to enter this giveaway.",
 	},
 };
 

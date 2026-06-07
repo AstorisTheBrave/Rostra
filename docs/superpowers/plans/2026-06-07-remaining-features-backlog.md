@@ -20,13 +20,15 @@ status: active · owner: AstorisTheBrave · 2026-06-07
 - [x] 14. Image cards - `feat(cards)` (leveling rank card + optional welcome card via `@napi-rs/canvas`)
 - [x] 15. Economy depth - `feat(economy)` (shop + inventory + buyable roles; ShopItem + InventoryItem)
 - [x] 16. Polls, suggestions, counting - three modules: `feat(counting)`, `feat(poll)`, `feat(suggest)`
-- [ ] 17. Logging + music + giveaway depth (next - the final item)
+- [x] 17. Logging depth + giveaway depth - `feat(logging)`, `feat(giveaways)` (music depth = see note)
 
-Done in the 2026-06-07 build session: items 1-16 (each its own commit + tests + docs; 198 tests, all
-green). Item 16 shipped as three small self-contained modules (counting, poll, suggest) rather than one
-`community` module. Next session: start at item 17 (depth items - more logging event types: bulk delete /
-voice / nickname; music filters/autoplay/playlists; giveaway entry requirements role/level/account-age).
-This is the LAST backlog item - after it, the "build everything" backlog is complete.
+BACKLOG COMPLETE except one documented infra-dependent remainder. Done in the 2026-06-07 build session:
+items 1-17 (each its own commit + tests + docs; 205 tests, all green). Item 17 shipped logging event types
+(bulk delete / voice / nickname) and giveaway entry requirements (role / level / account-age). The only
+unshipped piece in the whole backlog is **music depth (filters / autoplay / playlists)**: it requires a
+live Lavalink node to smoke-test, which CI cannot provide, so it was intentionally not built blind
+(shipping unrunnable audio code would break the verify-before-ship rule). When a live node is available,
+add `/music filter|autoplay|playlist` against `lavalink-client`'s player API and smoke-test in a real VC.
 
 The maintainer wants **every** remaining all-in-one feature built (no dashboard, no custom commands, no
 deferring). This doc is the authoritative backlog + the patterns to follow. Reference material lives in

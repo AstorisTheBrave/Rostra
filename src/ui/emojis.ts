@@ -44,6 +44,7 @@ export const EMOJI_FALLBACK = {
 	highlight: "🔔",
 	sticky: "📌",
 	reputation: "⭐",
+	voicerole: "🎙️",
 	// stats / system
 	stats: "📊",
 	cpu: "🖥️",

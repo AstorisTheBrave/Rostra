@@ -370,6 +370,14 @@ CREATE TABLE "AutoResponder" (
 );
 
 -- CreateTable
+CREATE TABLE "VoiceRoleConfig" (
+    "guildId" TEXT NOT NULL,
+    "roleId" TEXT NOT NULL,
+
+    CONSTRAINT "VoiceRoleConfig_pkey" PRIMARY KEY ("guildId")
+);
+
+-- CreateTable
 CREATE TABLE "RepUser" (
     "guildId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,

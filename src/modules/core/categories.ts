@@ -27,6 +27,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
 			"setup",
 			"welcome",
 			"voicehub",
+			"voicerole",
 			"reactionrole",
 			"vanityrole",
 			"autoresponder",

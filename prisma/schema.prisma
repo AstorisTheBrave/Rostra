@@ -377,6 +377,13 @@ model AutoResponder {
   @@index([guildId])
 }
 
+// ── Voice roles ──────────────────────────────────────────────────────────────
+
+model VoiceRoleConfig {
+  guildId String @id
+  roleId  String
+}
+
 // ── Reputation ───────────────────────────────────────────────────────────────
 
 model RepUser {

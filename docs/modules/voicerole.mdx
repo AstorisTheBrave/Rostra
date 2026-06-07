@@ -1,0 +1,33 @@
+---
+last-updated: 2026-06-07
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Voice roles: grant a role while a member is connected to any voice channel and remove it when they leave.
+`/voicerole set|disable|status` (Manage Roles). Admins can kill it from `/setup` (tenant flag `voicerole`).
+
+## technical map
+
+**file paths**
+- command: `src/modules/voicerole/index.ts`
+- listener: `src/modules/voicerole/events.ts` (voiceStateUpdate)
+- config + decision: `src/modules/voicerole/service.ts` (+ `service.test.ts`)
+- model: `VoiceRoleConfig` (one row per guild: `roleId`)
+
+**how it works** - `voiceRoleAction(wasConnected, isConnected)` collapses the voice state diff into
+`add` (joined from nowhere), `remove` (disconnected), or `none` (moved between channels / mute-deaf toggles).
+On a real add/remove (unless the `voicerole` feature is blocked) the handler loads the cached config, skips
+if the role is missing, integration-managed, or above the bot, then adds/removes it. Config is cached per
+guild and invalidated on set/disable (the cache stores `null` for known-empty guilds to avoid re-querying).
+
+**exports** - `getConfig`, `setConfig`, `disableConfig`, pure `voiceRoleAction` (tested).
+
+## gotchas
+
+- Needs the **Manage Roles** permission and the target role below the bot's highest role; both the command
+  and the listener guard the hierarchy.
+- Moving between voice channels is a `none` action, so the role is not churned on every hop.
+- One role per guild; re-running `/voicerole set` replaces it (the old role is not stripped retroactively).

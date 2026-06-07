@@ -11,6 +11,22 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (voice roles)
+
+**changed**: New `voicerole` module (backlog item 5): grant a role while connected to voice, remove on
+disconnect. `/voicerole set|disable|status` (Manage Roles). New `VoiceRoleConfig` model (one row per guild).
+The voiceStateUpdate listener uses pure `voiceRoleAction` to map the state diff to add/remove/none, gated by
+the `voicerole` tenant flag, and guards role hierarchy + managed roles in both the command and the listener.
+Config cache stores `null` for known-empty guilds. Wired into `/setup`, the `voicerole` emoji, and the
+`/help` Server Management category.
+
+**files touched**: `src/modules/voicerole/{index,events,service,service.test}.ts`, `prisma/schema.prisma` +
+`0_init`, `src/ui/emojis.ts`, `src/modules/core/categories.ts`, `src/modules/setup/index.ts`,
+`docs/modules/voicerole.mdx`, `README.md`.
+
+**verified**: typecheck clean; voicerole tests 2/2 (`voiceRoleAction`); categories + setup tests green;
+biome clean.
+
 ### 2026-06-07 (reputation)
 
 **changed**: New `reputation` module (backlog item 4): `/rep give|view|leaderboard`. New `RepUser` model

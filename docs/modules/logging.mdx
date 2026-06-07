@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
@@ -7,8 +7,9 @@ status: stable
 ## what this is
 
 Audit logging: posts a tidy record to a chosen channel whenever something notable happens - a message is
-deleted or edited, a member joins/leaves/is banned, or a role/channel is created or deleted. Staff pick
-the channel, which event types to log, and which channels to ignore.
+deleted/edited/bulk-deleted, a member joins/leaves/is banned, a role/channel is created or deleted, a
+member's nickname changes, or someone moves between voice channels. Staff pick the channel, which event
+types to log, and which channels to ignore.
 
 ## technical map
 
@@ -21,9 +22,10 @@ the channel, which event types to log, and which channels to ignore.
 **command** - `/logging` (Manage Server): `channel <channel>`, `toggle <type> <bool>`, `status`, and
 group `ignore add|remove <channel>`.
 
-**events logged** - messageDelete, messageUpdate, guildMemberAdd/Remove, guildBanAdd/Remove,
-roleCreate/Delete, channelCreate/Delete (mapped to the toggles messageDelete, messageEdit, memberJoin,
-memberLeave, memberBan, memberUnban, roleChanges, channelChanges).
+**events logged** - messageDelete, messageUpdate, messageDeleteBulk, guildMemberAdd/Remove,
+guildBanAdd/Remove, roleCreate/Delete, channelCreate/Delete, voiceStateUpdate (join/leave/move),
+guildMemberUpdate (nickname) - mapped to the toggles messageDelete, messageEdit, memberJoin, memberLeave,
+memberBan, memberUnban, roleChanges, channelChanges, bulkDelete, voiceMoves, nicknameChanges.
 
 **exports (service.ts)**
 - `getConfig/upsertConfig/invalidate` - cached config

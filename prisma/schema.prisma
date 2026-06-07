@@ -186,6 +186,9 @@ model LoggingConfig {
   memberUnban     Boolean  @default(true)
   roleChanges     Boolean  @default(true)
   channelChanges  Boolean  @default(true)
+  bulkDelete      Boolean  @default(true)
+  voiceMoves      Boolean  @default(true)
+  nicknameChanges Boolean  @default(true)
   ignoredChannels String[] @default([])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

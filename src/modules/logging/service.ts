@@ -16,6 +16,9 @@ export type LogEvent = Extract<
 	| "memberUnban"
 	| "roleChanges"
 	| "channelChanges"
+	| "bulkDelete"
+	| "voiceMoves"
+	| "nicknameChanges"
 >;
 
 const cache = new Map<string, LoggingConfig | null>();

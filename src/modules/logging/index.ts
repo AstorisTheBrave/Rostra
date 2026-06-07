@@ -21,6 +21,9 @@ const EVENTS: { name: string; value: LogEvent }[] = [
 	{ name: "Member unbans", value: "memberUnban" },
 	{ name: "Role changes", value: "roleChanges" },
 	{ name: "Channel changes", value: "channelChanges" },
+	{ name: "Bulk deletes", value: "bulkDelete" },
+	{ name: "Voice activity", value: "voiceMoves" },
+	{ name: "Nickname changes", value: "nicknameChanges" },
 ];
 
 function buildData(): SlashCommandBuilder {

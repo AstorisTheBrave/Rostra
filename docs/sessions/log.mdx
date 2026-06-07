@@ -11,6 +11,19 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (logging depth) - backlog item 17 part 1/2
+
+**changed**: Extended `logging` (first half of the final backlog item 17) with three new event types:
+`messageDeleteBulk` (bulk delete count), `voiceStateUpdate` (join/leave/move between voice channels), and
+`guildMemberUpdate` nickname changes. New `LoggingConfig` toggle columns `bulkDelete`, `voiceMoves`,
+`nicknameChanges` (default on), added to the `LogEvent` union and the `/logging toggle` + `status` event
+list. Uses existing intents (GuildMessages/GuildVoiceStates/GuildMembers).
+
+**files touched**: `src/modules/logging/{index,events,service}.ts`, `prisma/schema.prisma` + `0_init`,
+`docs/modules/logging.mdx`.
+
+**verified**: typecheck clean; biome clean; full suite still green; baseline includes the three new columns.
+
 ### 2026-06-07 (suggestions) - backlog item 16 part 3/3 (item 16 COMPLETE)
 
 **changed**: New `suggest` module (final part of item 16). `/suggest add` posts a numbered card to a

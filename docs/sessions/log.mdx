@@ -11,6 +11,29 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (starboard: full engine - blacklists, downvotes, filters, tiers, overrides)
+
+**changed**: Completed the deepest Starboard-bot layer on top of the multi-board base, so starboard now has
+feature parity with the headline systems. New pure `eligibility.ts` (all tested in `eligibility.test.ts`):
+`isAllowed` (blacklist/whitelist with user>role>channel specificity; more-specific whitelist beats
+less-specific blacklist), `passesFilters` (min length / min attachments / require image / max message age /
+NSFW-channel), `netStars` (valid upvoters minus downvoters, floored at 0, honouring self/bot/blacklist),
+`tierEmoji`/`parseDisplayTiers` (display tiers), and `resolveSettings` (override inheritance: role then
+channel overrides merge over the board base, channel wins). New `StarboardOverride` model + many new
+`Starboard` columns (blacklist/whitelist user/role/channel arrays, `downvoteEmojis`, `removeInvalid`,
+`minChars`, `minAttachments`, `requireImage`, `maxMessageAgeHours`, `requireNsfwChannel`, `displayTiers`
+JSON). Events `processBoard` rewritten around the engine: net star counting from all of a message's
+reactions, filter gate, per-context override resolution, tiered header emoji, and remove-invalid-reactions
+on add. New commands: `/starboard block|allow` (toggle black/whitelist), the `override create|set|delete`
+group, and ~9 more `edit` options. Boards are now loaded `include: { overrides }` and cached.
+
+**files touched**: `src/modules/starboard/{index,events,service,eligibility,eligibility.test}.ts`,
+`prisma/schema.prisma` + `0_init`, `docs/modules/starboard.mdx`.
+
+**verified**: typecheck clean; starboard tests 16/16 (6 new engine cases); full suite 210/210; biome clean;
+baseline includes `StarboardOverride` + all new columns. Starboard is now feature-complete vs the docs;
+nothing left flagged as unbuilt.
+
 ### 2026-06-07 (modmail cross-shard fix + shard audit)
 
 **changed**: Fixed modmail so it works at any shard count (e.g. 78 shards). DMs arrive on shard 0;

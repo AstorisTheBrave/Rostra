@@ -8,50 +8,57 @@ status: stable
 
 Starboards: members react to a message with a star emoji and, once it passes a threshold, the bot reposts
 it to a starboard channel. A guild can have **many** starboards, each with its own channel, star emojis, and
-settings; a message can land on several at once. Also supports **auto-star channels** (the bot pre-reacts to
-every new message) and a cross-board leaderboard. Built from the official Starboard bot docs (cloned into
-`Archive/starboard-docs`).
+settings; a message can land on several at once. Full feature parity with the official Starboard bot's
+headline systems: per-board blacklist/whitelist (users/roles/channels), downvote emojis, remove-invalid-
+reactions, message filters (length/attachments/image/age/NSFW), display tiers, per-context override
+inheritance, auto-star channels, reward roles, and a cross-board leaderboard. Built from the official
+Starboard bot docs (cloned into `Archive/starboard-docs`).
 
 ## technical map
 
 **file paths**
-- command (board CRUD + edit + autostar + leaderboard): `src/modules/starboard/index.ts`
+- command (board CRUD + edit + block/allow + autostar + override + leaderboard): `src/modules/starboard/index.ts`
 - reaction/autostar/delete engine + post builder: `src/modules/starboard/events.ts`
-- board/autostar/entry data + pure helpers: `src/modules/starboard/service.ts`
+- pure eligibility/appearance engine: `src/modules/starboard/eligibility.ts` (+ `eligibility.test.ts`)
+- board/override/autostar/entry data + pure helpers: `src/modules/starboard/service.ts`
   (+ `service.test.ts`, `decide.test.ts`)
-- models: `Starboard`, `StarboardEntry` (one per board+message), `AutostarChannel`
+- models: `Starboard`, `StarboardEntry` (one per board+message), `StarboardOverride`, `AutostarChannel`
 
-**command** - `/starboard` (Manage Server): `create <name> <channel> [emojis]`, `delete <name>`, `list`,
-`edit <name> [required_stars] [remove_stars] [emojis] [self_star] [filter_bots] [sync_deletes]
-[reward_role] [reward_stars] [author_role] [enabled]`, `ignore <name> <channel>`, `leaderboard`, and the
-`autostar add|remove|list` group. `create` flips the tenant `starboard` flag.
+**command** - `/starboard` (Manage Server): `create`, `delete`, `list`, `edit <name> [...many settings:
+required_stars, remove_stars, emojis, self_star, filter_bots, sync_deletes, reward_role, reward_stars,
+author_role, enabled, downvote_emojis, remove_invalid, min_chars, min_attachments, require_image,
+max_age_hours, require_nsfw, display_tiers]`, `block <name> [role][channel][user]` (toggle blacklist),
+`allow <name> ...` (toggle whitelist), `ignore`, `leaderboard`, plus the `autostar add|remove|list` and
+`override create|set|delete` groups. `create` flips the tenant `starboard` flag.
 
-**routing (events.ts)** - on a star reaction, `boardsForEmoji` finds every enabled board whose `emojis`
-include the reacted emoji; for each, the message is filtered (skip if in the board's `ignoredChannels`, if
-its author lacks `authorRoleId` for a role-based board, or if it lives in any board's channel), the valid
-star count is computed per board (`effectiveStarCount` honouring `selfStar`/`filterBots`), and
-`decideStarboard(stars, requiredStars, removeStars, hasPost)` returns `post|keep|remove|none`. `post` grants
-the reward role (`earnsReward`). Auto-star channels are handled on `messageCreate` (the bot reacts with the
-channel's emojis; it does **not** auto-post - the message must still earn its stars). `messageDelete` removes
-each board's post when that board has `syncDeletes`.
+**routing (events.ts)** - on an up/down reaction, `boardsForEmoji` finds every enabled board for which that
+emoji is an up- or downvote. For each board `processBoard`: skips ignored channels; enforces the role-based
+`authorRoleId`; rejects blacklisted authors (`isAllowed`); applies message filters (`passesFilters`:
+length/attachments/image/age/NSFW); resolves effective settings for the message context
+(`resolveSettings` - role then channel overrides merge over the board base); counts **net** stars
+(`netStars` = valid upvoters minus downvoters, excluding bots/self/blacklisted, floored at 0); then
+`decideStarboard` returns `post|keep|remove|none`. The header emoji comes from `tierEmoji` (display tiers).
+`post` grants the reward role. With `removeInvalid`, an invalid added reaction (self/bot/blacklisted) is
+stripped. Auto-star channels react on `messageCreate` (no auto-post). `messageDelete` removes each board's
+post when that board has `syncDeletes`.
 
-**exports (service.ts)** - board CRUD (`listBoards`/`getBoard`/`createBoard`/`updateBoard`/`deleteBoard`,
-cached per guild) + `boardsForEmoji`; autostar CRUD (`listAutostar`/`getAutostar`/`addAutostar`/
-`removeAutostar`); entry ops (`getEntry`/`upsertEntry`/`entriesForMessage`/`deleteEntriesForMessage`);
-`topStarred` (groupBy across all boards); and pure, tested helpers `parseStarEmoji`, `parseEmojiList`,
-`reactionKey`, `emojiDisplay`, `effectiveStarCount`, `decideStarboard`, `earnsReward`.
+**exports** - service: board CRUD + `boardsForEmoji`, override CRUD (`createOverride`/`updateOverride`/
+`deleteOverride`), autostar CRUD, entry ops, `topStarred`, and pure `parseStarEmoji`/`parseEmojiList`/
+`reactionKey`/`emojiDisplay`/`effectiveStarCount`/`decideStarboard`/`earnsReward`. eligibility (all pure,
+tested): `isAllowed` (blacklist/whitelist with user>role>channel specificity), `passesFilters`, `netStars`,
+`tierEmoji`/`parseDisplayTiers`, `resolveSettings` (override inheritance).
 
 ## gotchas
 
-- Multi-board: emoji-based routing is inherent (different emoji -> different board); role-based and
-  channel-based routing are the `authorRoleId` and `ignoredChannels` filters. A message can appear on
-  multiple boards simultaneously (one `StarboardEntry` per board+message).
-- `removeStars` is the hysteresis floor (null => `requiredStars`, i.e. no hysteresis). `filterBots` ignores
-  bot authors/reactions; `selfStar` lets authors star their own messages.
-- Valid star counts come from fetching the reaction's users, so very large counts cap at Discord's 100-user
-  fetch.
+- A message can appear on multiple boards at once (one `StarboardEntry` per board+message). Routing is by
+  emoji (per-board `emojis`/`downvoteEmojis`); role/channel routing is `authorRoleId`/`ignoredChannels`.
+- Blacklist/whitelist specificity: a more specific whitelist beats a less specific blacklist (user > role >
+  channel). Blacklisted authors' messages can't be starred and blacklisted reactors don't count.
+- `removeStars` is the hysteresis floor (null => `requiredStars`). Overrides only replace the four settings
+  they expose (required_stars, remove_stars, self_star, filter_bots); channel scope beats role scope.
+- Display tiers (`"5:⭐ 10:🌟 25:💫"`) change only the header emoji as the count climbs; below the lowest
+  tier the board's first emoji is used.
+- Star counts and net votes come from fetching each reaction's users (cap at Discord's 100/ fetch); role
+  blacklist/whitelist checks fetch reactor members only when the board actually filters on roles.
 - Needs `GuildMessageReactions` intent + `Partials.Reaction`/`Partials.Message` (set on `BotClient`).
   Gated on the tenant `starboard` flag.
-- **Not yet built** (the deepest Starboard-bot layer): the override-inheritance engine (per-context setting
-  overrides that inherit from a base), blacklists/whitelists, message-filter groups with display tiers, and
-  downvote emojis. The multi-board + per-board-settings + autostar + reward + leaderboard core is complete.

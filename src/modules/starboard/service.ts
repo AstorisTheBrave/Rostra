@@ -1,17 +1,26 @@
-import type { AutostarChannel, Starboard, StarboardEntry } from "@prisma/client";
+import type {
+	AutostarChannel,
+	Prisma,
+	Starboard,
+	StarboardEntry,
+	StarboardOverride,
+} from "@prisma/client";
 import { getPrisma } from "@/services/database.ts";
+
+export type BoardWithOverrides = Starboard & { overrides: StarboardOverride[] };
 
 // ── Boards (cached per guild) ────────────────────────────────────────────────
 
-const boardCache = new Map<string, Starboard[]>();
+const boardCache = new Map<string, BoardWithOverrides[]>();
 const autostarCache = new Map<string, AutostarChannel[]>();
 
-export async function listBoards(guildId: string): Promise<Starboard[]> {
+export async function listBoards(guildId: string): Promise<BoardWithOverrides[]> {
 	const cached = boardCache.get(guildId);
 	if (cached) return cached;
 	const rows = await getPrisma().starboard.findMany({
 		where: { guildId },
 		orderBy: { createdAt: "asc" },
+		include: { overrides: true },
 	});
 	boardCache.set(guildId, rows);
 	return rows;
@@ -41,7 +50,10 @@ export async function updateBoard(
 		where: { guildId_name: { guildId, name } },
 	});
 	if (!board) return null;
-	const updated = await getPrisma().starboard.update({ where: { id: board.id }, data: patch });
+	const updated = await getPrisma().starboard.update({
+		where: { id: board.id },
+		data: patch as Prisma.StarboardUncheckedUpdateInput,
+	});
 	boardCache.delete(guildId);
 	return updated;
 }
@@ -52,10 +64,62 @@ export async function deleteBoard(guildId: string, name: string): Promise<boolea
 	return res.count > 0;
 }
 
-/** Enabled boards in a guild whose emoji list contains the reacted emoji. */
-export async function boardsForEmoji(guildId: string, emojiKey: string): Promise<Starboard[]> {
+/** Enabled boards in a guild for which the reacted emoji is an up- or downvote. */
+export async function boardsForEmoji(
+	guildId: string,
+	emojiKey: string,
+): Promise<BoardWithOverrides[]> {
 	const boards = await listBoards(guildId);
-	return boards.filter((b) => b.enabled && b.emojis.includes(emojiKey));
+	return boards.filter(
+		(b) => b.enabled && (b.emojis.includes(emojiKey) || b.downvoteEmojis.includes(emojiKey)),
+	);
+}
+
+// ── Overrides ────────────────────────────────────────────────────────────────
+
+export async function createOverride(data: {
+	starboardId: string;
+	guildId: string;
+	name: string;
+	scopeType: string;
+	scopeIds: string[];
+}): Promise<StarboardOverride> {
+	const row = await getPrisma().starboardOverride.create({ data });
+	boardCache.delete(data.guildId);
+	return row;
+}
+
+export async function updateOverride(
+	guildId: string,
+	starboardId: string,
+	name: string,
+	patch: Partial<
+		Pick<
+			StarboardOverride,
+			"requiredStars" | "removeStars" | "selfStar" | "filterBots" | "scopeIds" | "enabled"
+		>
+	>,
+): Promise<StarboardOverride | null> {
+	const existing = await getPrisma().starboardOverride.findUnique({
+		where: { starboardId_name: { starboardId, name } },
+	});
+	if (!existing) return null;
+	const row = await getPrisma().starboardOverride.update({
+		where: { id: existing.id },
+		data: patch,
+	});
+	boardCache.delete(guildId);
+	return row;
+}
+
+export async function deleteOverride(
+	guildId: string,
+	starboardId: string,
+	name: string,
+): Promise<boolean> {
+	const res = await getPrisma().starboardOverride.deleteMany({ where: { starboardId, name } });
+	boardCache.delete(guildId);
+	return res.count > 0;
 }
 
 // ── Autostar channels (cached per guild) ─────────────────────────────────────

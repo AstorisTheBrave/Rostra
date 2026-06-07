@@ -1,4 +1,4 @@
-import type { Starboard } from "@prisma/client";
+import type { Starboard, StarboardOverride } from "@prisma/client";
 import {
 	type Message,
 	MessageFlags,
@@ -14,11 +14,23 @@ import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { Accent, actionRow, container, gallery, linkButton, text } from "@/ui";
 import {
+	type AccessLists,
+	type DisplayTier,
+	isAllowed,
+	type MessageFacts,
+	netStars,
+	type OverrideRule,
+	passesFilters,
+	type Reactor,
+	resolveSettings,
+	tierEmoji,
+} from "./eligibility.ts";
+import {
+	type BoardWithOverrides,
 	boardsForEmoji,
 	decideStarboard,
 	deleteEntriesForMessage,
 	earnsReward,
-	effectiveStarCount,
 	emojiDisplay,
 	getAutostar,
 	getEntry,
@@ -30,8 +42,47 @@ import {
 
 const log = getLogger("starboard");
 
+function accessLists(board: Starboard): AccessLists {
+	return {
+		blacklistUsers: board.blacklistUsers,
+		blacklistRoles: board.blacklistRoles,
+		blacklistChannels: board.blacklistChannels,
+		whitelistUsers: board.whitelistUsers,
+		whitelistRoles: board.whitelistRoles,
+		whitelistChannels: board.whitelistChannels,
+	};
+}
+
+function overrideRules(overrides: StarboardOverride[]): OverrideRule[] {
+	return overrides.map((o) => ({
+		scopeType: o.scopeType,
+		scopeIds: o.scopeIds,
+		enabled: o.enabled,
+		requiredStars: o.requiredStars,
+		removeStars: o.removeStars,
+		selfStar: o.selfStar,
+		filterBots: o.filterBots,
+	}));
+}
+
+function displayTiersOf(board: Starboard): DisplayTier[] {
+	return Array.isArray(board.displayTiers) ? (board.displayTiers as unknown as DisplayTier[]) : [];
+}
+
 function firstImageUrl(message: Message): string | undefined {
 	return message.attachments.find((a) => (a.contentType ?? "").startsWith("image/"))?.url;
+}
+
+function messageFacts(message: Message): MessageFacts {
+	const hasImage =
+		Boolean(firstImageUrl(message)) || message.embeds.some((e) => e.image || e.thumbnail);
+	return {
+		contentLength: message.content?.length ?? 0,
+		attachmentCount: message.attachments.size,
+		hasImage,
+		ageMs: Date.now() - message.createdTimestamp,
+		channelNsfw: "nsfw" in message.channel ? Boolean(message.channel.nsfw) : false,
+	};
 }
 
 function buildStarPost(message: Message, stars: number, emoji: string) {
@@ -54,26 +105,102 @@ async function grantReward(message: Message, board: Starboard, stars: number): P
 	await member.roles.add(board.rewardRoleId, "Starboard reward").catch(() => {});
 }
 
-/** Process one board for a message at a known star count. */
-async function processBoard(board: Starboard, message: Message, stars: number): Promise<void> {
-	if (board.ignoredChannels.includes(message.channelId)) return;
-	// Role-based board: only accept messages whose author has the required role.
-	if (board.authorRoleId) {
-		const member = await message.guild?.members.fetch(message.author.id).catch(() => null);
-		if (!member?.roles.cache.has(board.authorRoleId)) return;
-	}
-	const board2 = await message.client.channels.fetch(board.channelId).catch(() => null);
-	if (!board2?.isTextBased() || board2.isDMBased()) return;
+/** Member role ids, only fetched when a board actually filters on roles. */
+async function rolesIfNeeded(message: Message, userId: string, needed: boolean): Promise<string[]> {
+	if (!needed || !message.guild) return [];
+	const member = await message.guild.members.fetch(userId).catch(() => null);
+	return member ? [...member.roles.cache.keys()] : [];
+}
 
+/** Collect reactors for a set of emoji keys, attaching role ids when needed. */
+async function collectReactors(
+	message: Message,
+	emojiKeys: string[],
+	needRoles: boolean,
+): Promise<Reactor[]> {
+	const out: Reactor[] = [];
+	for (const reaction of message.reactions.cache.values()) {
+		if (!emojiKeys.includes(reactionKey(reaction.emoji))) continue;
+		const users = await reaction.users.fetch().catch(() => null);
+		if (!users) continue;
+		for (const u of users.values()) {
+			out.push({ id: u.id, bot: u.bot, roleIds: await rolesIfNeeded(message, u.id, needRoles) });
+		}
+	}
+	return out;
+}
+
+/** Process one board for a message: resolve settings, count net stars, filter, post/remove. */
+async function processBoard(board: BoardWithOverrides, message: Message): Promise<void> {
+	if (!message.author) return;
+	if (board.ignoredChannels.includes(message.channelId)) return;
+
+	const authorRoles = await rolesIfNeeded(
+		message,
+		message.author.id,
+		Boolean(board.authorRoleId) ||
+			board.blacklistRoles.length > 0 ||
+			board.whitelistRoles.length > 0,
+	);
+	// Role-based board: author must have the required role.
+	if (board.authorRoleId && !authorRoles.includes(board.authorRoleId)) return;
+	// Blacklisted authors' messages cannot be starred.
+	if (
+		!isAllowed(
+			{ userId: message.author.id, roleIds: authorRoles, channelId: message.channelId },
+			accessLists(board),
+		)
+	)
+		return;
+	// Message filters.
+	if (
+		!passesFilters(messageFacts(message), {
+			minChars: board.minChars,
+			minAttachments: board.minAttachments,
+			requireImage: board.requireImage,
+			maxMessageAgeHours: board.maxMessageAgeHours,
+			requireNsfwChannel: board.requireNsfwChannel,
+		})
+	)
+		return;
+
+	// Effective settings after overrides for this message's context.
+	const eff = resolveSettings(
+		{
+			requiredStars: board.requiredStars,
+			removeStars: board.removeStars,
+			selfStar: board.selfStar,
+			filterBots: board.filterBots,
+		},
+		overrideRules(board.overrides),
+		{ channelId: message.channelId, roleIds: authorRoles },
+	);
+
+	const needRoles = board.blacklistRoles.length > 0 || board.whitelistRoles.length > 0;
+	const upvoters = await collectReactors(message, board.emojis, needRoles);
+	const downvoters = board.downvoteEmojis.length
+		? await collectReactors(message, board.downvoteEmojis, needRoles)
+		: [];
+	const stars = netStars({
+		upvoters,
+		downvoters,
+		authorId: message.author.id,
+		selfStar: eff.selfStar,
+		filterBots: eff.filterBots,
+		lists: accessLists(board),
+	});
+
+	const channel = await message.client.channels.fetch(board.channelId).catch(() => null);
+	if (!channel?.isTextBased() || channel.isDMBased()) return;
 	const entry = await getEntry(board.id, message.id);
-	const emoji = board.emojis[0] ?? "⭐";
 	const action = decideStarboard(
 		stars,
-		board.requiredStars,
-		board.removeStars,
+		eff.requiredStars,
+		eff.removeStars,
 		Boolean(entry?.starboardMessageId),
 	);
 	if (action === "none") return;
+	const emoji = tierEmoji(stars, displayTiersOf(board), board.emojis[0] ?? "⭐");
 	const base = {
 		starboardId: board.id,
 		guildId: board.guildId,
@@ -86,26 +213,59 @@ async function processBoard(board: Starboard, message: Message, stars: number): 
 	if (action === "post" || action === "keep") {
 		const components = buildStarPost(message, stars, emoji);
 		if (entry?.starboardMessageId) {
-			const existing = await board2.messages.fetch(entry.starboardMessageId).catch(() => null);
+			const existing = await channel.messages.fetch(entry.starboardMessageId).catch(() => null);
 			await existing?.edit({ components, flags: MessageFlags.IsComponentsV2 }).catch(() => {});
 			await upsertEntry({ ...base, starboardMessageId: entry.starboardMessageId });
 		} else if (action === "post") {
-			const posted = await board2
+			const posted = await channel
 				.send({ components, flags: MessageFlags.IsComponentsV2 })
 				.catch(() => null);
 			await upsertEntry({ ...base, starboardMessageId: posted?.id ?? null });
 		}
 		if (action === "post") await grantReward(message, board, stars);
 	} else if (action === "remove" && entry?.starboardMessageId) {
-		const existing = await board2.messages.fetch(entry.starboardMessageId).catch(() => null);
+		const existing = await channel.messages.fetch(entry.starboardMessageId).catch(() => null);
 		await existing?.delete().catch(() => {});
 		await upsertEntry({ ...base, starboardMessageId: null });
 	}
 }
 
+/** Strip a reaction that is not a valid star for a board (remove-invalid-reactions). */
+async function maybeRemoveInvalid(
+	reaction: MessageReaction,
+	user: User | PartialUser,
+	message: Message,
+	boards: BoardWithOverrides[],
+): Promise<void> {
+	const key = reactionKey(reaction.emoji);
+	for (const board of boards) {
+		if (!board.removeInvalid || !board.emojis.includes(key)) continue;
+		if (!message.author) continue;
+		const reactorRoles = await rolesIfNeeded(
+			message,
+			user.id,
+			board.blacklistRoles.length > 0 || board.whitelistRoles.length > 0,
+		);
+		const selfBad = !board.selfStar && user.id === message.author.id;
+		const botBad = board.filterBots && user.bot;
+		const listBad = !isAllowed(
+			{ userId: user.id, roleIds: reactorRoles, channelId: message.channelId },
+			accessLists(board),
+		);
+		if (selfBad || botBad || listBad) {
+			await reaction.users.remove(user.id).catch(() => {});
+			return;
+		}
+	}
+}
+
 type AnyReaction = MessageReaction | PartialMessageReaction;
 
-async function handleReaction(reaction: AnyReaction, _user: User | PartialUser): Promise<void> {
+async function handleReaction(
+	reaction: AnyReaction,
+	user: User | PartialUser,
+	isAdd: boolean,
+): Promise<void> {
 	try {
 		if (reaction.partial) reaction = await reaction.fetch();
 		const message = reaction.message.partial
@@ -118,22 +278,14 @@ async function handleReaction(reaction: AnyReaction, _user: User | PartialUser):
 		const boards = await boardsForEmoji(guildId, reactionKey(reaction.emoji));
 		if (boards.length === 0) return;
 
-		// Never star messages that live in any of this guild's starboard channels.
+		// Never star messages living in any of this guild's starboard channels.
 		const boardChannelIds = new Set((await listBoards(guildId)).map((b) => b.channelId));
 		if (boardChannelIds.has(message.channelId)) return;
 
-		const reactors = await reaction.users.fetch().catch(() => null);
-		if (!reactors) return;
-		const reactorList = reactors.map((u) => ({ id: u.id, bot: u.bot }));
-
-		for (const board of boards) {
-			const stars = effectiveStarCount(reactorList, {
-				authorId: message.author.id,
-				selfStar: board.selfStar,
-				filterBots: board.filterBots,
-			});
-			await processBoard(board, message, stars);
+		if (isAdd && !user.bot) {
+			await maybeRemoveInvalid(reaction as MessageReaction, user, message, boards);
 		}
+		for (const board of boards) await processBoard(board, message);
 	} catch (err) {
 		log.error({ err }, "starboard reaction handling failed");
 	}
@@ -144,9 +296,7 @@ async function handleAutostar(message: Message | PartialMessage): Promise<void> 
 	if (await isFeatureBlocked(message.guild.id, "starboard")) return;
 	const config = await getAutostar(message.guild.id, message.channelId);
 	if (!config) return;
-	for (const emoji of config.emojis) {
-		await message.react(emoji).catch(() => {});
-	}
+	for (const emoji of config.emojis) await message.react(emoji).catch(() => {});
 }
 
 async function handleDelete(message: Message | PartialMessage): Promise<void> {
@@ -166,10 +316,10 @@ async function handleDelete(message: Message | PartialMessage): Promise<void> {
 
 export const starboardEvents: RegisteredEvent[] = [
 	defineEvent("messageReactionAdd", {
-		execute: (_c, reaction, user) => handleReaction(reaction, user),
+		execute: (_c, reaction, user) => handleReaction(reaction, user, true),
 	}),
 	defineEvent("messageReactionRemove", {
-		execute: (_c, reaction, user) => handleReaction(reaction, user),
+		execute: (_c, reaction, user) => handleReaction(reaction, user, false),
 	}),
 	defineEvent("messageCreate", {
 		execute: async (_c, message) => {

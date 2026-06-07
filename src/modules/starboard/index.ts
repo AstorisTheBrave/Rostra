@@ -9,11 +9,14 @@ import { t } from "@/i18n/index.ts";
 import { setFeatures } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/ui";
+import { parseDisplayTiers } from "./eligibility.ts";
 import { starboardEvents } from "./events.ts";
 import {
 	addAutostar,
 	createBoard,
+	createOverride,
 	deleteBoard,
+	deleteOverride,
 	emojiDisplay,
 	getBoard,
 	listAutostar,
@@ -22,6 +25,7 @@ import {
 	removeAutostar,
 	topStarred,
 	updateBoard,
+	updateOverride,
 } from "./service.ts";
 
 function buildData(): SlashCommandBuilder {
@@ -81,7 +85,52 @@ function buildData(): SlashCommandBuilder {
 			.addRoleOption((o) =>
 				o.setName("author_role").setDescription("Only accept messages by authors with this role"),
 			)
-			.addBooleanOption((o) => o.setName("enabled").setDescription("Enable or disable the board")),
+			.addBooleanOption((o) => o.setName("enabled").setDescription("Enable or disable the board"))
+			.addStringOption((o) =>
+				o.setName("downvote_emojis").setDescription("Emojis that subtract stars (space separated)"),
+			)
+			.addBooleanOption((o) =>
+				o.setName("remove_invalid").setDescription("Strip reactions that are not valid stars"),
+			)
+			.addIntegerOption((o) =>
+				o.setName("min_chars").setDescription("Minimum message length").setMinValue(0),
+			)
+			.addIntegerOption((o) =>
+				o.setName("min_attachments").setDescription("Minimum attachments").setMinValue(0),
+			)
+			.addBooleanOption((o) =>
+				o.setName("require_image").setDescription("Require an image/attachment"),
+			)
+			.addIntegerOption((o) =>
+				o
+					.setName("max_age_hours")
+					.setDescription("Only star messages newer than N hours (0 = off)")
+					.setMinValue(0),
+			)
+			.addBooleanOption((o) =>
+				o.setName("require_nsfw").setDescription("Only star messages from age-restricted channels"),
+			)
+			.addStringOption((o) =>
+				o.setName("display_tiers").setDescription('Tiers e.g. "5:⭐ 10:🌟 25:💫" (empty to clear)'),
+			),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("block")
+			.setDescription("Toggle a role/channel/user on a board's blacklist")
+			.addStringOption((o) => o.setName("name").setDescription("Board name").setRequired(true))
+			.addRoleOption((o) => o.setName("role").setDescription("Role"))
+			.addChannelOption((o) => o.setName("channel").setDescription("Channel"))
+			.addUserOption((o) => o.setName("user").setDescription("User")),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("allow")
+			.setDescription("Toggle a role/channel/user on a board's whitelist (beats blacklist)")
+			.addStringOption((o) => o.setName("name").setDescription("Board name").setRequired(true))
+			.addRoleOption((o) => o.setName("role").setDescription("Role"))
+			.addChannelOption((o) => o.setName("channel").setDescription("Channel"))
+			.addUserOption((o) => o.setName("user").setDescription("User")),
 	);
 	cmd.addSubcommand((s) =>
 		s
@@ -113,6 +162,49 @@ function buildData(): SlashCommandBuilder {
 					),
 			)
 			.addSubcommand((s) => s.setName("list").setDescription("List auto-star channels")),
+	);
+	cmd.addSubcommandGroup((g) =>
+		g
+			.setName("override")
+			.setDescription("Per-channel or per-role setting overrides for a board")
+			.addSubcommand((s) =>
+				s
+					.setName("create")
+					.setDescription("Create an override scoped to a channel or role")
+					.addStringOption((o) => o.setName("board").setDescription("Board name").setRequired(true))
+					.addStringOption((o) =>
+						o.setName("name").setDescription("Override name").setRequired(true),
+					)
+					.addChannelOption((o) => o.setName("channel").setDescription("Scope: channel"))
+					.addRoleOption((o) => o.setName("role").setDescription("Scope: role")),
+			)
+			.addSubcommand((s) =>
+				s
+					.setName("set")
+					.setDescription("Set an override's settings (blank = inherit)")
+					.addStringOption((o) => o.setName("board").setDescription("Board name").setRequired(true))
+					.addStringOption((o) =>
+						o.setName("name").setDescription("Override name").setRequired(true),
+					)
+					.addIntegerOption((o) =>
+						o.setName("required_stars").setDescription("Required stars").setMinValue(1),
+					)
+					.addIntegerOption((o) =>
+						o.setName("remove_stars").setDescription("Removal floor").setMinValue(0),
+					)
+					.addBooleanOption((o) => o.setName("self_star").setDescription("Allow self-stars"))
+					.addBooleanOption((o) => o.setName("filter_bots").setDescription("Ignore bots"))
+					.addBooleanOption((o) => o.setName("enabled").setDescription("Enable the override")),
+			)
+			.addSubcommand((s) =>
+				s
+					.setName("delete")
+					.setDescription("Delete an override")
+					.addStringOption((o) => o.setName("board").setDescription("Board name").setRequired(true))
+					.addStringOption((o) =>
+						o.setName("name").setDescription("Override name").setRequired(true),
+					),
+			),
 	);
 	return cmd;
 }
@@ -169,6 +261,61 @@ async function handleAutostar(
 		: void reply.error(interaction, t("starboard:autostar.notFound"));
 }
 
+function toggle(list: string[], id: string): string[] {
+	return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+}
+
+async function handleOverride(
+	interaction: ChatInputCommandInteraction,
+	gid: string,
+	sub: string,
+): Promise<void> {
+	const boardName = interaction.options.getString("board", true);
+	const name = interaction.options.getString("name", true).slice(0, 40);
+	const board = await getBoard(gid, boardName);
+	if (!board) return void reply.error(interaction, t("starboard:notFound"));
+
+	if (sub === "create") {
+		const channel = interaction.options.getChannel("channel");
+		const role = interaction.options.getRole("role");
+		if (!channel && !role) return void reply.error(interaction, t("starboard:override.needScope"));
+		try {
+			await createOverride({
+				starboardId: board.id,
+				guildId: gid,
+				name,
+				scopeType: channel ? "channel" : "role",
+				scopeIds: channel ? [channel.id] : [(role as { id: string }).id],
+			});
+		} catch {
+			return void reply.error(interaction, t("starboard:override.exists"));
+		}
+		return ok(interaction, "starboard:override.created", { name, board: boardName });
+	}
+	if (sub === "delete") {
+		const removed = await deleteOverride(gid, board.id, name);
+		return removed
+			? ok(interaction, "starboard:override.deleted", { name })
+			: void reply.error(interaction, t("starboard:override.notFound"));
+	}
+	// set
+	const patch: Record<string, number | boolean> = {};
+	const rsq = interaction.options.getInteger("required_stars");
+	if (rsq !== null) patch.requiredStars = rsq;
+	const rms = interaction.options.getInteger("remove_stars");
+	if (rms !== null) patch.removeStars = rms;
+	const ssq = interaction.options.getBoolean("self_star");
+	if (ssq !== null) patch.selfStar = ssq;
+	const fbq = interaction.options.getBoolean("filter_bots");
+	if (fbq !== null) patch.filterBots = fbq;
+	const enq = interaction.options.getBoolean("enabled");
+	if (enq !== null) patch.enabled = enq;
+	const updated = await updateOverride(gid, board.id, name, patch);
+	return updated
+		? ok(interaction, "starboard:override.updated", { name })
+		: void reply.error(interaction, t("starboard:override.notFound"));
+}
+
 async function execute({
 	interaction,
 }: {
@@ -182,6 +329,7 @@ async function execute({
 	const sub = interaction.options.getSubcommand();
 
 	if (group === "autostar") return handleAutostar(interaction, gid, sub);
+	if (group === "override") return handleOverride(interaction, gid, sub);
 
 	switch (sub) {
 		case "create": {
@@ -244,6 +392,24 @@ async function execute({
 			if (ar) patch.authorRoleId = ar.id;
 			const en = interaction.options.getBoolean("enabled");
 			if (en !== null) patch.enabled = en;
+			const dv = interaction.options.getString("downvote_emojis");
+			if (dv !== null) patch.downvoteEmojis = parseEmojiList(dv);
+			const rinv = interaction.options.getBoolean("remove_invalid");
+			if (rinv !== null) patch.removeInvalid = rinv;
+			const mc = interaction.options.getInteger("min_chars");
+			if (mc !== null) patch.minChars = mc;
+			const ma = interaction.options.getInteger("min_attachments");
+			if (ma !== null) patch.minAttachments = ma;
+			const rimg = interaction.options.getBoolean("require_image");
+			if (rimg !== null) patch.requireImage = rimg;
+			const mah = interaction.options.getInteger("max_age_hours");
+			if (mah !== null) patch.maxMessageAgeHours = mah;
+			const rn = interaction.options.getBoolean("require_nsfw");
+			if (rn !== null) patch.requireNsfwChannel = rn;
+			const dt = interaction.options.getString("display_tiers");
+			if (dt !== null) {
+				patch.displayTiers = parseDisplayTiers(dt) as unknown as Starboard["displayTiers"];
+			}
 
 			const updated = await updateBoard(gid, name, patch);
 			return updated
@@ -264,6 +430,36 @@ async function execute({
 				channel: `<#${channel.id}>`,
 				name,
 			});
+		}
+		case "block":
+		case "allow": {
+			const name = interaction.options.getString("name", true);
+			const board = await getBoard(gid, name);
+			if (!board) return void reply.error(interaction, t("starboard:notFound"));
+			const role = interaction.options.getRole("role");
+			const channel = interaction.options.getChannel("channel");
+			const user = interaction.options.getUser("user");
+			if (!role && !channel && !user)
+				return void reply.error(interaction, t("starboard:pickTarget"));
+			const block = sub === "block";
+			const patch: Partial<Starboard> = {};
+			if (role)
+				patch[block ? "blacklistRoles" : "whitelistRoles"] = toggle(
+					block ? board.blacklistRoles : board.whitelistRoles,
+					role.id,
+				);
+			if (channel)
+				patch[block ? "blacklistChannels" : "whitelistChannels"] = toggle(
+					block ? board.blacklistChannels : board.whitelistChannels,
+					channel.id,
+				);
+			if (user)
+				patch[block ? "blacklistUsers" : "whitelistUsers"] = toggle(
+					block ? board.blacklistUsers : board.whitelistUsers,
+					user.id,
+				);
+			await updateBoard(gid, name, patch);
+			return ok(interaction, block ? "starboard:blocked" : "starboard:allowed", { name });
 		}
 		case "leaderboard": {
 			const top = await topStarred(gid, 10);
@@ -290,6 +486,16 @@ const starboard: BotModule = {
 		notFound: "No starboard with that name.",
 		ignored: "🙈 **{name}** now ignores {channel}.",
 		unignored: "👀 **{name}** no longer ignores {channel}.",
+		blocked: "🚫 Updated **{name}**'s blacklist.",
+		allowed: "✅ Updated **{name}**'s whitelist.",
+		pickTarget: "Provide a role, channel, and/or user to toggle.",
+		"override.created":
+			"🧩 Created override **{name}** on **{board}**. Tune it with `/starboard override set`.",
+		"override.updated": "🧩 Updated override **{name}**.",
+		"override.deleted": "🗑️ Deleted override **{name}**.",
+		"override.exists": "An override with that name already exists on this board.",
+		"override.needScope": "Give the override a channel or a role to scope it to.",
+		"override.notFound": "No override with that name on this board.",
 		"list.title": "# ⭐ Starboards",
 		"list.empty": "No starboards yet. Create one with `/starboard create`.",
 		"lb.title": "# ⭐ Starboard leaderboard",

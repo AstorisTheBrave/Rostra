@@ -742,14 +742,59 @@ model Starboard {
   authorRoleId String? // role-based board: only accept messages by authors with this role
   ignoredChannels String[] @default([]) // never star from these channels
   enabled      Boolean  @default(true)
+
+  // Blacklist / whitelist (whitelist beats blacklist; user > role > channel specificity).
+  blacklistUsers    String[] @default([])
+  blacklistRoles    String[] @default([])
+  blacklistChannels String[] @default([])
+  whitelistUsers    String[] @default([])
+  whitelistRoles    String[] @default([])
+  whitelistChannels String[] @default([])
+
+  // Downvotes + invalid-reaction handling.
+  downvoteEmojis String[] @default([]) // reactions that subtract from the net star count
+  removeInvalid  Boolean  @default(false) // strip reactions that are not valid stars
+
+  // Message filters a message must pass to be starred.
+  minChars           Int     @default(0)
+  minAttachments     Int     @default(0)
+  requireImage       Boolean @default(false)
+  maxMessageAgeHours Int     @default(0) // 0 = no age limit
+  requireNsfwChannel Boolean @default(false)
+
+  // Display tiers: [{minStars, emoji}] - the header emoji changes as stars climb.
+  displayTiers Json @default("[]")
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  entries StarboardEntry[]
+  entries   StarboardEntry[]
+  overrides StarboardOverride[]
 
   @@unique([guildId, name])
   @@unique([guildId, channelId])
   @@index([guildId])
+}
+
+/// A per-context override of a starboard's settings (inherits non-null fields
+/// from the board base). Channel scope is more specific than role scope.
+model StarboardOverride {
+  id            String    @id @default(cuid())
+  starboardId   String
+  guildId       String
+  name          String
+  scopeType     String // "channel" | "role"
+  scopeIds      String[]  @default([])
+  enabled       Boolean   @default(true)
+  requiredStars Int? // null = inherit
+  removeStars   Int?
+  selfStar      Boolean?
+  filterBots    Boolean?
+  createdAt     DateTime  @default(now())
+  starboard     Starboard @relation(fields: [starboardId], references: [id], onDelete: Cascade)
+
+  @@unique([starboardId, name])
+  @@index([starboardId])
 }
 
 /// A message reposted to one starboard (a message may have one entry per board).

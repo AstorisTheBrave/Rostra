@@ -715,10 +715,42 @@ CREATE TABLE "Starboard" (
     "authorRoleId" TEXT,
     "ignoredChannels" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "blacklistUsers" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "blacklistRoles" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "blacklistChannels" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "whitelistUsers" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "whitelistRoles" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "whitelistChannels" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "downvoteEmojis" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "removeInvalid" BOOLEAN NOT NULL DEFAULT false,
+    "minChars" INTEGER NOT NULL DEFAULT 0,
+    "minAttachments" INTEGER NOT NULL DEFAULT 0,
+    "requireImage" BOOLEAN NOT NULL DEFAULT false,
+    "maxMessageAgeHours" INTEGER NOT NULL DEFAULT 0,
+    "requireNsfwChannel" BOOLEAN NOT NULL DEFAULT false,
+    "displayTiers" JSONB NOT NULL DEFAULT '[]',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Starboard_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "StarboardOverride" (
+    "id" TEXT NOT NULL,
+    "starboardId" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "scopeType" TEXT NOT NULL,
+    "scopeIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "requiredStars" INTEGER,
+    "removeStars" INTEGER,
+    "selfStar" BOOLEAN,
+    "filterBots" BOOLEAN,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "StarboardOverride_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -925,6 +957,12 @@ CREATE UNIQUE INDEX "Starboard_guildId_name_key" ON "Starboard"("guildId", "name
 CREATE UNIQUE INDEX "Starboard_guildId_channelId_key" ON "Starboard"("guildId", "channelId");
 
 -- CreateIndex
+CREATE INDEX "StarboardOverride_starboardId_idx" ON "StarboardOverride"("starboardId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "StarboardOverride_starboardId_name_key" ON "StarboardOverride"("starboardId", "name");
+
+-- CreateIndex
 CREATE INDEX "StarboardEntry_guildId_idx" ON "StarboardEntry"("guildId");
 
 -- CreateIndex
@@ -965,6 +1003,9 @@ ALTER TABLE "PollVote" ADD CONSTRAINT "PollVote_pollId_fkey" FOREIGN KEY ("pollI
 
 -- AddForeignKey
 ALTER TABLE "SuggestionVote" ADD CONSTRAINT "SuggestionVote_suggestionId_fkey" FOREIGN KEY ("suggestionId") REFERENCES "Suggestion"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "StarboardOverride" ADD CONSTRAINT "StarboardOverride_starboardId_fkey" FOREIGN KEY ("starboardId") REFERENCES "Starboard"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "StarboardEntry" ADD CONSTRAINT "StarboardEntry_starboardId_fkey" FOREIGN KEY ("starboardId") REFERENCES "Starboard"("id") ON DELETE CASCADE ON UPDATE CASCADE;

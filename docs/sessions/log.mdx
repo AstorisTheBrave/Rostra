@@ -11,6 +11,24 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (highlights)
+
+**changed**: New `highlight` module (backlog item 2): keyword highlights that DM a subscriber when one of
+their words is said. `/highlight add|remove|list|clear` (personal, no Manage perms). New `Highlight` model
+(unique guild+user+word). messageCreate scan is cached per guild and gated by the `highlights` tenant flag;
+`resolveHits` does a whole-word case-insensitive match, excludes the author / recently-active / on-cooldown
+subscribers, then the handler fetches each member, checks `ViewChannel`, and DMs a jump link + snippet.
+Wired into `/setup` FEATURES (`highlights`), the `highlight` emoji, and the `/help` Utility category. Baseline
+migration regenerated (note: Prisma now wants `--to-schema <path>`, the old `--to-schema-datamodel` was
+removed).
+
+**files touched**: `src/modules/highlight/{index,events,service,service.test}.ts`,
+`prisma/schema.prisma` + `prisma/migrations/0_init/migration.sql`, `src/ui/emojis.ts`,
+`src/modules/core/categories.ts`, `src/modules/setup/index.ts`, `docs/modules/highlight.mdx`, `README.md`.
+
+**verified**: typecheck clean; highlight tests 4/4 (wordMatches + resolveHits), core/loader tests still
+green; biome clean on touched files.
+
 ### 2026-06-07 (feeds: reddit + rss)
 
 **changed**: Extended the `feeds` module with two keyless sources, working the backlog top-down (item 1 of

@@ -370,6 +370,17 @@ CREATE TABLE "AutoResponder" (
 );
 
 -- CreateTable
+CREATE TABLE "Highlight" (
+    "id" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "word" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Highlight_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "TriviaScore" (
     "guildId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -604,6 +615,12 @@ CREATE INDEX "AutoResponder_guildId_idx" ON "AutoResponder"("guildId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AutoResponder_guildId_trigger_key" ON "AutoResponder"("guildId", "trigger");
+
+-- CreateIndex
+CREATE INDEX "Highlight_guildId_idx" ON "Highlight"("guildId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Highlight_guildId_userId_word_key" ON "Highlight"("guildId", "userId", "word");
 
 -- CreateIndex
 CREATE INDEX "TriviaScore_guildId_idx" ON "TriviaScore"("guildId");

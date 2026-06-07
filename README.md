@@ -76,6 +76,8 @@ sharded application - built to scale to millions of users.
 ### Utility & Extras
 - avatar / userinfo / serverinfo
 - AFK, snipe, autoresponder, tags
+- Keyword highlights (DM on a watched word)
+- Notification feeds: YouTube, Twitch, Reddit, RSS/Atom
 - Vanity status-roles, feedback
 
 ### Assistant
@@ -152,7 +154,7 @@ Commands are slash-only and grouped under top-level commands with subcommands (w
 `/setup` · `/mod` · `/security` · `/automod` · `/verification` · `/logging` · `/welcome` · `/ticket` · `/economy` · `/level` ·
 `/giveaway` · `/starboard` · `/voicehub` · `/reactionrole` · `/birthday` · `/tag` · `/vanityrole` · `/feedback` ·
 `/trivia` · `/game` · `/roleplay` · `/profile` · `/music` · `/ask` · `/afk` · `/snipe` · `/steal` ·
-`/reminder` · `/feeds` · `/autoresponder` · `/util` · `/help` · `/stats` · `/shards` · `/ping`
+`/reminder` · `/feeds` · `/highlight` · `/autoresponder` · `/util` · `/help` · `/stats` · `/shards` · `/ping`
 
 ## Architecture
 

@@ -377,6 +377,19 @@ model AutoResponder {
   @@index([guildId])
 }
 
+// ── Highlights ───────────────────────────────────────────────────────────────
+
+model Highlight {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  word      String // stored lowercased
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, userId, word])
+  @@index([guildId])
+}
+
 // ── Trivia ───────────────────────────────────────────────────────────────────
 
 model TriviaScore {

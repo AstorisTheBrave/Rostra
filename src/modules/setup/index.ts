@@ -34,6 +34,7 @@ const FEATURES: { key: string; label: string; emoji: EmojiName }[] = [
 	{ key: "leveling", label: "Leveling", emoji: "leveling" },
 	{ key: "economy", label: "Economy", emoji: "economy" },
 	{ key: "starboard", label: "Starboard", emoji: "starboard" },
+	{ key: "highlights", label: "Highlights", emoji: "highlight" },
 ];
 
 /** Systems enabled by the one-click recommended baseline. */

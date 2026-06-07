@@ -1,0 +1,38 @@
+---
+last-updated: 2026-06-07
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Keyword highlights (Sapphire/Carl style): a member subscribes to words and gets a DM whenever one is said
+in the server. `/highlight add|remove|list|clear` - personal, so no Manage perms required. Server admins can
+kill it from `/setup` (tenant flag `highlights`).
+
+## technical map
+
+**file paths**
+- command: `src/modules/highlight/index.ts`
+- scan + DM: `src/modules/highlight/events.ts` (messageCreate)
+- cache + matching: `src/modules/highlight/service.ts` (+ `service.test.ts`)
+- model: `Highlight` (unique per guild+user+word; word stored lowercased)
+
+**how it works** - per-guild word lists are cached in-process (`getGuildHighlights`, invalidated on
+add/remove/clear). On each guild message the handler records the author as "active" in that channel, then
+(unless the `highlights` feature is blocked) runs `resolveHits`: whole-word case-insensitive match
+(`wordMatches`, regex-escaped), excluding the author, anyone active in that channel in the last 5 min, and
+anyone on the per-user 60s notify cooldown. Each remaining subscriber is fetched, checked for
+`ViewChannel`, and DMed a jump link + snippet.
+
+**exports (service.ts)** - `getGuildHighlights`, `listHighlights`, `addHighlight` (returns
+`ok|exists|limit|tooShort`, max 25 words), `removeHighlight`, `clearHighlights`, `markActive`, pure
+`wordMatches` + `resolveHits` (tested).
+
+## gotchas
+
+- `resolveHits` consumes the cooldown for the subscribers it returns, so it is not a pure read - call it
+  once per message. The active-window and cooldown maps are in-process per shard (fine: guilds are
+  single-shard owned).
+- DMs use `allowedMentions: { parse: [] }` and plain content (links auto-embed); no legacy embeds.
+- Matching is whole-word so `rostra` does not fire on `rostrabot`. Metacharacters in words are escaped.

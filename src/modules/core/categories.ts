@@ -38,7 +38,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
 		label: "Economy & Levels",
 		description: "Currency, XP, and events",
 		emoji: "economy",
-		commands: ["economy", "level", "giveaway", "birthday"],
+		commands: ["economy", "level", "giveaway", "birthday", "starboard"],
 	},
 	{
 		id: "fun",

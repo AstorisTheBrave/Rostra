@@ -32,6 +32,7 @@ const FEATURES: { key: string; label: string; emoji: EmojiName }[] = [
 	{ key: "security", label: "Antinuke", emoji: "security" },
 	{ key: "leveling", label: "Leveling", emoji: "leveling" },
 	{ key: "economy", label: "Economy", emoji: "economy" },
+	{ key: "starboard", label: "Starboard", emoji: "starboard" },
 ];
 
 /** Systems enabled by the one-click recommended baseline. */

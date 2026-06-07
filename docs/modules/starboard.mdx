@@ -1,0 +1,43 @@
+---
+last-updated: 2026-06-06
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+A starboard: members react to a message with the star emoji, and once it passes a threshold the bot
+reposts it to a dedicated channel. Built from the official Starboard bot docs (cloned into
+`Archive/starboard-docs`), as a sensible v1 (single starboard, single emoji).
+
+## technical map
+
+**file paths**
+- command (config + leaderboard): `src/modules/starboard/index.ts`
+- reaction/delete handlers + post builder: `src/modules/starboard/events.ts`
+- config (cached) + pure helpers + entry CRUD: `src/modules/starboard/service.ts` (+ `service.test.ts`)
+- models: `StarboardConfig`, `StarboardEntry` in `prisma/schema.prisma`
+
+**command** - `/starboard channel|threshold|emoji|selfstar|ignorebots|ignore|status|leaderboard|disable`
+(Manage Server). `ignore` toggles a channel in/out of the ignore list.
+
+**events** - `messageReactionAdd` / `messageReactionRemove` recompute a message's valid star count and
+create / update / remove its starboard post; `messageDelete` removes the post when `syncDeletes` is on.
+Needs the `GuildMessageReactions` intent + `Partials.Reaction` (added to `BotClient`).
+
+**exports (service.ts)** - cached `getConfig` / `upsertConfig`, pure `parseStarEmoji` / `reactionKey` /
+`emojiDisplay` / `effectiveStarCount`, entry CRUD, and `topStarred` (leaderboard via Prisma `groupBy`).
+
+## gotchas
+
+- Valid stars exclude bots (when `ignoreBots`) and the author (when `selfStar` is off); the count comes
+  from fetching the reaction's users, so very large counts cap at Discord's 100-user fetch.
+- The post is Components V2 (star count, jump-to-message link button, first image via `gallery`). Posts in
+  the starboard channel itself and ignored channels are never starred.
+- Entries are kept even when a message falls below the threshold (the post is removed, `starboardMessageId`
+  cleared) so the leaderboard still reflects total stars. `syncDeletes` removes the post if the original is
+  deleted.
+- Gated on the tenant `starboard` feature flag (so `/setup` can toggle it). Custom star emojis are stored
+  by id; unicode emojis are stored as-is.
+- Not in v1 (the docs cover them as future work): multiple starboards, per-channel/role/emoji overrides,
+  auto-star channels, separate remove-threshold, reward roles, hall of fame.

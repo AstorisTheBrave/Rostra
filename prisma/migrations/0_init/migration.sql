@@ -466,6 +466,36 @@ CREATE TABLE "GuildTenant" (
 );
 
 -- CreateTable
+CREATE TABLE "StarboardConfig" (
+    "guildId" TEXT NOT NULL,
+    "channelId" TEXT,
+    "threshold" INTEGER NOT NULL DEFAULT 3,
+    "emoji" TEXT NOT NULL DEFAULT '⭐',
+    "selfStar" BOOLEAN NOT NULL DEFAULT false,
+    "ignoreBots" BOOLEAN NOT NULL DEFAULT true,
+    "syncDeletes" BOOLEAN NOT NULL DEFAULT true,
+    "ignoredChannels" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "StarboardConfig_pkey" PRIMARY KEY ("guildId")
+);
+
+-- CreateTable
+CREATE TABLE "StarboardEntry" (
+    "id" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "messageId" TEXT NOT NULL,
+    "starboardMessageId" TEXT,
+    "authorId" TEXT NOT NULL,
+    "stars" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "StarboardEntry_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ScheduledTask" (
     "id" TEXT NOT NULL,
     "type" TEXT NOT NULL,
@@ -560,6 +590,15 @@ CREATE INDEX "Reminder_guildId_idx" ON "Reminder"("guildId");
 
 -- CreateIndex
 CREATE INDEX "Reminder_userId_idx" ON "Reminder"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "StarboardEntry_messageId_key" ON "StarboardEntry"("messageId");
+
+-- CreateIndex
+CREATE INDEX "StarboardEntry_guildId_idx" ON "StarboardEntry"("guildId");
+
+-- CreateIndex
+CREATE INDEX "StarboardEntry_guildId_authorId_idx" ON "StarboardEntry"("guildId", "authorId");
 
 -- CreateIndex
 CREATE INDEX "ScheduledTask_runAt_idx" ON "ScheduledTask"("runAt");

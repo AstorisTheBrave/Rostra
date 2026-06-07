@@ -952,3 +952,25 @@ tags `latest` + the version. README updated to pull `:latest`. The push that lan
 that creates the `:latest` image.
 
 **files touched**: `.github/workflows/docker.yml`, `README.md`.
+
+### 2026-06-06 (later - starboard module, built from the official docs)
+
+**changed**: Scraped competitor docs for feature ideas (only YAGPDB and the Starboard bot docs were
+fetchable; Sapphire/Wick/D-Sec are client-rendered SPAs and returned nothing, so skipped). Cloned the
+Starboard docs into `Archive/starboard-docs` (gitignored) and built a v1 **starboard** module from them:
+react with the star emoji, and a message that passes a threshold is reposted to a starboard channel.
+`/starboard channel|threshold|emoji|selfstar|ignorebots|ignore|status|leaderboard|disable` (Manage Server).
+Reaction add/remove recompute valid stars (excluding bots + self-stars per config) and create/update/remove
+the Components V2 post (jump link + first image); `messageDelete` syncs removals. New models
+`StarboardConfig`/`StarboardEntry`; leaderboard via Prisma `groupBy`. Added the `GuildMessageReactions`
+intent + `Partials.Reaction` to `BotClient`. Gated on the tenant `starboard` flag; added to `/setup`, the
+`/help` categories, the emoji registry, and README. 4 new tests; typecheck + Biome + 132/132 green;
+baseline now 39 tables.
+
+**deferred (documented as future)**: multiple starboards, per-channel/role/emoji overrides, auto-star
+channels, separate remove-threshold, reward roles, hall of fame.
+
+**files touched**: `src/modules/starboard/{index,events,service,service.test}.ts`,
+`src/client/BotClient.ts`, `src/modules/setup/index.ts`, `src/modules/core/categories.ts`,
+`src/ui/emojis.ts`, `prisma/schema.prisma`, `prisma/migrations/0_init/migration.sql`, `README.md`,
+`docs/modules/starboard.mdx`, `CLAUDE.md`.

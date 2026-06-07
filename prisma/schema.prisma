@@ -478,6 +478,35 @@ model GuildTenant {
   updatedAt        DateTime @updatedAt
 }
 
+// ── Starboard ────────────────────────────────────────────────────────────────
+
+model StarboardConfig {
+  guildId         String   @id
+  channelId       String?
+  threshold       Int      @default(3)
+  emoji           String   @default("⭐")
+  selfStar        Boolean  @default(false)
+  ignoreBots      Boolean  @default(true)
+  syncDeletes     Boolean  @default(true)
+  ignoredChannels String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model StarboardEntry {
+  id                 String   @id @default(cuid())
+  guildId            String
+  channelId          String
+  messageId          String   @unique
+  starboardMessageId String?
+  authorId           String
+  stars              Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  @@index([guildId])
+  @@index([guildId, authorId])
+}
+
 // ── Durable scheduler ────────────────────────────────────────────────────────
 // One row per future action (reminder, giveaway end, tempban/mute/role lift,
 // ticket auto-close, ...). Survives restart/crash; re-armed per shard on boot.

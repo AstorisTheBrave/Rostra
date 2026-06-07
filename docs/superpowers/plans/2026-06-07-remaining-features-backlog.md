@@ -12,11 +12,13 @@ status: active · owner: AstorisTheBrave · 2026-06-07
 - [x] 6. Bulk role - `feat(bulkrole)` d630067
 - [x] 7. Role menus (dropdown self-roles, extended `reactionroles`) - `feat(reactionroles)` 89258ae
 - [x] 8. Server stats channels - `feat(serverstats)` beb4942
-- [ ] 9. Anti-raid / panic mode (next)
-- [ ] 10-17. see below
+- [x] 9. Anti-raid / panic mode - `feat(security)` 91a8def
+- [ ] 10. Verification depth (next)
+- [ ] 11-17. see below
 
-Done in the 2026-06-07 build session: items 1-8 (each its own commit + tests + docs; 161 tests, all green).
-Next session: start at item 9 (anti-raid / panic mode - extend the `security` module).
+Done in the 2026-06-07 build session: items 1-9 (each its own commit + tests + docs; 163 tests, all green).
+Next session: start at item 10 (verification depth - auto-kick unverified after a timeout + optional
+captcha; extend the `verification` module).
 
 The maintainer wants **every** remaining all-in-one feature built (no dashboard, no custom commands, no
 deferring). This doc is the authoritative backlog + the patterns to follow. Reference material lives in

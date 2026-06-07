@@ -1,4 +1,11 @@
-import { type ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import {
+	AttachmentBuilder,
+	type ChatInputCommandInteraction,
+	type InteractionEditReplyOptions,
+	type InteractionReplyOptions,
+	MessageFlags,
+	SlashCommandBuilder,
+} from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
@@ -11,6 +18,7 @@ import {
 	shipBar,
 	shipScore,
 } from "./service.ts";
+import { renderShipCard } from "./shipCard.ts";
 
 function buildData(): SlashCommandBuilder {
 	const cmd = new SlashCommandBuilder()
@@ -43,18 +51,36 @@ async function execute({
 	if (action === "ship") {
 		if (!target) return void reply.error(interaction, t("roleplay:error.shipNeedsTarget"));
 		const score = shipScore(interaction.user.id, target.id);
-		await reply.components(interaction, [
-			container(Accent.info, [
-				text(
-					t("roleplay:ship.result", {
-						user: userMention,
-						target: `<@${target.id}>`,
-						bar: shipBar(score),
-						score: String(score),
-					}),
-				),
-			]),
-		]);
+		const buffer = await renderShipCard({
+			avatarA: interaction.user.displayAvatarURL({ extension: "png", size: 128 }),
+			avatarB: target.displayAvatarURL({ extension: "png", size: 128 }),
+			nameA: interaction.user.displayName,
+			nameB: target.displayName,
+			score,
+		});
+		const file = new AttachmentBuilder(buffer, { name: "ship.png" });
+		const payload = {
+			components: [
+				container(Accent.info, [
+					text(
+						t("roleplay:ship.result", {
+							user: userMention,
+							target: `<@${target.id}>`,
+							bar: shipBar(score),
+							score: String(score),
+						}),
+					),
+					gallery(["attachment://ship.png"]),
+				]),
+			],
+			files: [file],
+			flags: MessageFlags.IsComponentsV2,
+		};
+		if (interaction.deferred || interaction.replied) {
+			await interaction.editReply(payload as unknown as InteractionEditReplyOptions);
+		} else {
+			await interaction.reply(payload as unknown as InteractionReplyOptions);
+		}
 		return;
 	}
 

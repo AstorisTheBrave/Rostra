@@ -1,0 +1,35 @@
+---
+last-updated: 2026-06-07
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+Button polls: `/poll create <question> <option1> <option2> [option3..5]` posts a message with one button per
+option and a live-updating results bar. Each member gets one vote (changeable); the creator ends the poll
+with the End button.
+
+## technical map
+
+**file paths**
+- command + button handler: `src/modules/poll/index.ts`
+- persistence + tally + pure `resultBar`: `src/modules/poll/service.ts` (+ `service.test.ts`)
+- models: `Poll`, `PollVote` (unique per `[pollId, userId]`, cascade-deleted with the poll)
+
+**flow** - `create` writes a `Poll` and replies with the Components V2 message (`renderPoll`), then stores
+the message id. The `poll` component handler edits the message in place via `interaction.update`:
+`poll:vote:<id>:<i>` upserts the voter's choice and re-tallies; `poll:end:<id>` (creator only) closes the
+poll and re-renders without buttons.
+
+**exports (service.ts)** - `createPoll`, `setMessageId`, `castVote` (upsert; no-op when closed), `closePoll`
+(creator-gated), `tally` (counts per option), and the pure `resultBar(count, total, size)` (tested).
+
+## gotchas
+
+- `interaction.update` acknowledges the button within Discord's 3s window, so `safeAck` never needs to
+  auto-defer; the original poll message is edited in place (no new messages per vote).
+- Votes survive restarts (DB-backed) - there is no in-memory poll state. There is no auto-close timer; a
+  poll stays open until its creator ends it.
+- Up to 5 options (one button row) plus the End button row. Option button labels are truncated to 80 chars.
+- Stateless w.r.t. tenant flags (no `/setup` entry); available wherever the bot can post.

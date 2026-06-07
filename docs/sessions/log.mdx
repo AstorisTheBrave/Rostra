@@ -11,6 +11,21 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (button polls) - backlog item 16 part 2/3
+
+**changed**: New `poll` module (second of three for item 16). `/poll create <question> <option1> <option2>
+[option3..5]` posts a Components V2 message with one button per option + an End button; votes are DB-backed
+(`Poll` + `PollVote`, one changeable vote per user). The `poll` component handler edits the message in place
+via `interaction.update` (fast enough that safeAck never auto-defers): `poll:vote:<id>:<i>` re-tallies,
+`poll:end:<id>` (creator only) closes + re-renders without buttons. Pure `resultBar` tested. Added `/poll`
+to the `/help` community category + README; no tenant flag (stateless).
+
+**files touched**: new `src/modules/poll/{index,service,service.test}.ts`,
+`src/modules/core/categories.ts`, `prisma/schema.prisma` + `0_init`, `docs/modules/poll.mdx`, README.
+
+**verified**: typecheck clean; poll tests 3/3 (`resultBar`); biome clean; baseline includes `Poll` +
+`PollVote`. Suggestions (item 16 part 3/3) still to come.
+
 ### 2026-06-07 (counting game) - backlog item 16 part 1/3
 
 **changed**: New `counting` module (first of three for backlog item 16). A designated channel where members

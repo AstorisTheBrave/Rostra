@@ -591,6 +591,34 @@ model VerificationConfig {
   updatedAt   DateTime @updatedAt
 }
 
+// ── Polls ────────────────────────────────────────────────────────────────────
+
+model Poll {
+  id        String     @id @default(cuid())
+  guildId   String
+  channelId String
+  messageId String?
+  creatorId String
+  question  String
+  options   String[] // 2-5 option labels
+  closed    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  votes     PollVote[]
+
+  @@index([guildId])
+}
+
+model PollVote {
+  id     String @id @default(cuid())
+  pollId String
+  userId String
+  choice Int // index into Poll.options
+  poll   Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+}
+
 // ── Counting game ────────────────────────────────────────────────────────────
 
 model CountingConfig {

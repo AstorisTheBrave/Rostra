@@ -572,6 +572,31 @@ CREATE TABLE "VerificationConfig" (
 );
 
 -- CreateTable
+CREATE TABLE "Poll" (
+    "id" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "messageId" TEXT,
+    "creatorId" TEXT NOT NULL,
+    "question" TEXT NOT NULL,
+    "options" TEXT[],
+    "closed" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Poll_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PollVote" (
+    "id" TEXT NOT NULL,
+    "pollId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "choice" INTEGER NOT NULL,
+
+    CONSTRAINT "PollVote_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "CountingConfig" (
     "channelId" TEXT NOT NULL,
     "guildId" TEXT NOT NULL,
@@ -785,6 +810,15 @@ CREATE INDEX "Reminder_guildId_idx" ON "Reminder"("guildId");
 CREATE INDEX "Reminder_userId_idx" ON "Reminder"("userId");
 
 -- CreateIndex
+CREATE INDEX "Poll_guildId_idx" ON "Poll"("guildId");
+
+-- CreateIndex
+CREATE INDEX "PollVote_pollId_idx" ON "PollVote"("pollId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PollVote_pollId_userId_key" ON "PollVote"("pollId", "userId");
+
+-- CreateIndex
 CREATE INDEX "CountingConfig_guildId_idx" ON "CountingConfig"("guildId");
 
 -- CreateIndex
@@ -828,3 +862,6 @@ ALTER TABLE "GuildMember" ADD CONSTRAINT "GuildMember_userId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "UserVote" ADD CONSTRAINT "UserVote_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PollVote" ADD CONSTRAINT "PollVote_pollId_fkey" FOREIGN KEY ("pollId") REFERENCES "Poll"("id") ON DELETE CASCADE ON UPDATE CASCADE;

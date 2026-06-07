@@ -13,12 +13,13 @@ status: active · owner: AstorisTheBrave · 2026-06-07
 - [x] 7. Role menus (dropdown self-roles, extended `reactionroles`) - `feat(reactionroles)` 89258ae
 - [x] 8. Server stats channels - `feat(serverstats)` beb4942
 - [x] 9. Anti-raid / panic mode - `feat(security)` 91a8def
-- [ ] 10. Verification depth (next)
-- [ ] 11-17. see below
+- [x] 10. Verification depth - `feat(verification)` (captcha + auto-kick)
+- [ ] 11. Starboard depth (next)
+- [ ] 12-17. see below
 
-Done in the 2026-06-07 build session: items 1-9 (each its own commit + tests + docs; 163 tests, all green).
-Next session: start at item 10 (verification depth - auto-kick unverified after a timeout + optional
-captcha; extend the `verification` module).
+Done in the 2026-06-07 build session: items 1-10 (each its own commit + tests + docs; 164 tests, all
+green). Next session: start at item 11 (starboard depth - multiple starboards, per-channel/emoji
+overrides, NSFW/self-star rules, separate remove-threshold; extend the `starboard` module).
 
 The maintainer wants **every** remaining all-in-one feature built (no dashboard, no custom commands, no
 deferring). This doc is the authoritative backlog + the patterns to follow. Reference material lives in

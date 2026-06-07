@@ -539,11 +539,13 @@ model GuildTenant {
 // ── Verification gate ────────────────────────────────────────────────────────
 
 model VerificationConfig {
-  guildId   String   @id
-  roleId    String?
-  enabled   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  guildId     String   @id
+  roleId      String?
+  enabled     Boolean  @default(false)
+  captcha     Boolean  @default(false) // require a simple math captcha before granting
+  kickAfterMin Int? // auto-kick members who do not verify within N minutes (null = off)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // ── Notification feeds (YouTube / Twitch) ────────────────────────────────────

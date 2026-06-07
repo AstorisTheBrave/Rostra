@@ -523,6 +523,8 @@ CREATE TABLE "VerificationConfig" (
     "guildId" TEXT NOT NULL,
     "roleId" TEXT,
     "enabled" BOOLEAN NOT NULL DEFAULT false,
+    "captcha" BOOLEAN NOT NULL DEFAULT false,
+    "kickAfterMin" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

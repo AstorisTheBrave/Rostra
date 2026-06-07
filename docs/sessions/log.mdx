@@ -11,6 +11,22 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (verification depth)
+
+**changed**: Extended `verification` (backlog item 10) with a captcha and auto-kick. New `captcha.ts` (pure
+`makeCaptcha` -> sum question + four shuffled answer buttons, correctness encoded in the button id). New
+`events.ts`: a `guildMemberAdd` listener schedules a durable `verify_kick` task when `kickAfterMin` is set;
+the handler kicks only if the member still lacks the verified role (self-cancelling, restart-safe, no task
+id tracking). New subcommands `/verification captcha <enabled>` and `/verification autokick <minutes>` (0 =
+off); richer `status`. New `VerificationConfig` columns: `captcha`, `kickAfterMin`. Component flow: captcha
+panel on `verify:go` when enabled, `verify:cap:ok|no:<i>` grants/retries.
+
+**files touched**: `src/modules/verification/{index,events,captcha,captcha.test,service}.ts`,
+`prisma/schema.prisma` + `0_init`, `docs/modules/verification.mdx`.
+
+**verified**: typecheck clean; captcha test (200-iteration invariants) green; biome clean (fixed an
+optional-chain warning); baseline includes the new columns.
+
 ### 2026-06-07 (anti-raid / panic mode)
 
 **changed**: Extended `security` (backlog item 9) with anti-raid. New `raid.ts`: a second `guildMemberAdd`

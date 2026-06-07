@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-06
+last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
 ---
@@ -8,24 +8,34 @@ status: stable
 
 A verification gate: post a panel with a Verify button, and members who click it get a "verified" role
 that unlocks the server. Adapted from YAGPDB's verification feature, button-based (no web captcha).
+Optionally adds a quick math captcha before granting and auto-kicks members who never verify.
 
 ## technical map
 
 **file paths**
-- command + verify button handler: `src/modules/verification/index.ts` (+ `index.test.ts`)
+- command + verify button handler: `src/modules/verification/index.ts`
+- auto-kick scheduling + handler: `src/modules/verification/events.ts`
+- captcha generator (pure): `src/modules/verification/captcha.ts` (+ `captcha.test.ts`)
 - cached config: `src/modules/verification/service.ts`
-- model: `VerificationConfig`
+- model: `VerificationConfig` (adds `captcha`, `kickAfterMin`)
 
-**command** - `/verification setup <role>` · `/verification panel` · `/verification disable` ·
-`/verification status` (Manage Server). `panel` posts the Components V2 verify button (customId
-`verify:go`).
+**command** - `/verification setup <role>` · `panel` · `captcha <enabled>` · `autokick <minutes>` (0 = off)
+· `disable` · `status` (Manage Server). `panel` posts the Components V2 verify button (customId `verify:go`).
 
-**component (`verify`)** - on click, grants the configured role (ephemeral reply); reports already-verified
-or a permissions failure. Gated on the tenant `verification` flag (so `/setup` can toggle it).
+**component (`verify`)** - on `verify:go`, if captcha is on it replies with a sum + four answer buttons
+(`verify:cap:ok|no:<i>`, correctness encoded in the id, unique per index); otherwise it grants the role
+directly. `verify:cap:ok` grants; a wrong tap asks them to retry. Gated on the tenant `verification` flag.
+
+**auto-kick** - when `kickAfterMin` is set, a `guildMemberAdd` listener schedules a durable `verify_kick`
+task (`registerTaskHandler` in index). On fire it kicks the member only if they are still missing the role,
+so verifying in time (or a config change) is self-cancelling - no task id bookkeeping needed.
 
 ## gotchas
 
-- The bot needs Manage Roles and the verified role must sit below the bot's highest role.
+- The bot needs Manage Roles and the verified role must sit below the bot's highest role. Auto-kick also
+  needs Kick Members; non-kickable members are skipped.
 - The button reply is ephemeral; `deferEphemeral` is set so a slow role add still acknowledges.
+- The captcha is a lightweight bot gate (correctness lives in the button id), not anti-OCR security.
+- `guildMemberAdd` needs the GuildMembers intent (already enabled for welcome/security).
 - Pair with channel permissions that hide everything until the verified role is granted (the gate grants
   the role; the server's permission setup decides what that role unlocks).

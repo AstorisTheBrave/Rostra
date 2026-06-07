@@ -1,4 +1,5 @@
 import {
+	type ButtonInteraction,
 	ButtonStyle,
 	type ChatInputCommandInteraction,
 	GuildMember,
@@ -8,10 +9,16 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { registerTaskHandler } from "@/services/scheduler.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
 import { Accent, actionRow, button, container, reply, text } from "@/ui";
+import { makeCaptcha } from "./captcha.ts";
+import { VERIFY_KICK, verificationEvents, verifyKickTask } from "./events.ts";
 import { getConfig, upsertConfig } from "./service.ts";
+
+// Register the durable auto-kick handler at module load (before boot recovery).
+registerTaskHandler(VERIFY_KICK, verifyKickTask);
 
 function verifyPanel() {
 	return [
@@ -43,6 +50,25 @@ function buildData(): SlashCommandBuilder {
 	);
 	cmd.addSubcommand((s) =>
 		s.setName("panel").setDescription("Post the verification panel in this channel"),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("captcha")
+			.setDescription("Require a simple math captcha before verifying")
+			.addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true)),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("autokick")
+			.setDescription("Kick members who do not verify within N minutes (0 to disable)")
+			.addIntegerOption((o) =>
+				o
+					.setName("minutes")
+					.setDescription("Minutes before kicking unverified members (0 = off)")
+					.setRequired(true)
+					.setMinValue(0)
+					.setMaxValue(1440),
+			),
 	);
 	cmd.addSubcommand((s) => s.setName("disable").setDescription("Turn verification off"));
 	cmd.addSubcommand((s) => s.setName("status").setDescription("Show verification settings"));
@@ -77,6 +103,24 @@ async function execute({
 			await interaction.reply({ components: verifyPanel(), flags: MessageFlags.IsComponentsV2 });
 			return;
 		}
+		case "captcha": {
+			const enabled = interaction.options.getBoolean("enabled", true);
+			await upsertConfig(guild.id, { captcha: enabled });
+			return void reply.success(
+				interaction,
+				enabled ? t("verification:captcha.on") : t("verification:captcha.off"),
+				true,
+			);
+		}
+		case "autokick": {
+			const minutes = interaction.options.getInteger("minutes", true);
+			await upsertConfig(guild.id, { kickAfterMin: minutes === 0 ? null : minutes });
+			return void reply.success(
+				interaction,
+				minutes === 0 ? t("verification:autokick.off") : t("verification:autokick.on", { minutes }),
+				true,
+			);
+		}
 		case "disable": {
 			await upsertConfig(guild.id, { enabled: false });
 			return void reply.success(interaction, t("verification:disabled"), true);
@@ -90,6 +134,8 @@ async function execute({
 						t("verification:status.body", {
 							state: config?.enabled ? "on" : "off",
 							role: config?.roleId ? `<@&${config.roleId}>` : "—",
+							captcha: config?.captcha ? "on" : "off",
+							autokick: config?.kickAfterMin ? `${config.kickAfterMin} min` : "off",
 						}),
 					),
 				]),
@@ -100,11 +146,44 @@ async function execute({
 	}
 }
 
+async function grantVerified(
+	interaction: ButtonInteraction,
+	member: GuildMember,
+	roleId: string,
+): Promise<void> {
+	try {
+		await member.roles.add(roleId, "Verified");
+	} catch {
+		return void reply.error(interaction, t("verification:failed"));
+	}
+	return void reply.success(interaction, t("verification:welcome"), true);
+}
+
+function captchaPanel() {
+	const cap = makeCaptcha();
+	const row = actionRow(
+		...cap.options.map((o, i) =>
+			button({
+				id: `verify:cap:${o.correct ? "ok" : "no"}:${i}`,
+				label: o.label,
+				style: ButtonStyle.Secondary,
+			}),
+		),
+	);
+	return [
+		container(Accent.info, [
+			text(t("verification:captcha.title")),
+			text(t("verification:captcha.q", { q: cap.question })),
+		]),
+		row,
+	];
+}
+
 const verifyComponent: ComponentHandler = {
 	prefix: "verify",
 	deferEphemeral: true,
 	execute: async (interaction, args) => {
-		if (args[0] !== "go" || !interaction.isButton() || !interaction.inGuild()) return;
+		if (!interaction.isButton() || !interaction.inGuild()) return;
 		const guildId = interaction.guildId;
 		if (await isFeatureBlocked(guildId, "verification")) {
 			return void reply.error(interaction, t("verification:off"));
@@ -118,18 +197,24 @@ const verifyComponent: ComponentHandler = {
 		if (member.roles.cache.has(config.roleId)) {
 			return void reply.success(interaction, t("verification:already"), true);
 		}
-		try {
-			await member.roles.add(config.roleId, "Verified");
-		} catch {
-			return void reply.error(interaction, t("verification:failed"));
+
+		if (args[0] === "go") {
+			if (config.captcha) {
+				return void reply.components(interaction, captchaPanel(), true);
+			}
+			return void grantVerified(interaction, member, config.roleId);
 		}
-		return void reply.success(interaction, t("verification:welcome"), true);
+		if (args[0] === "cap") {
+			if (args[1] === "ok") return void grantVerified(interaction, member, config.roleId);
+			return void reply.error(interaction, t("verification:captcha.wrong"));
+		}
 	},
 };
 
 const verification: BotModule = {
 	name: "verification",
 	commands: [{ data: buildData(), guildOnly: true, execute } satisfies SlashCommand],
+	events: verificationEvents,
 	components: [verifyComponent],
 	i18n: {
 		setupDone:
@@ -140,11 +225,19 @@ const verification: BotModule = {
 		already: "✅ You're already verified.",
 		welcome: "🎉 You're verified - welcome in!",
 		failed: "I couldn't assign the role - check my Manage Roles permission and role position.",
+		"captcha.on": "🧩 Captcha **enabled**. Members solve a quick sum before they verify.",
+		"captcha.off": "🧩 Captcha **disabled**.",
+		"captcha.title": "# 🧩 Quick check",
+		"captcha.q": "What is **{q}**? Tap the right answer.",
+		"captcha.wrong": "❌ Not quite. Tap **Verify** to try again.",
+		"autokick.on": "⏳ Members who do not verify within **{minutes} min** will be kicked.",
+		"autokick.off": "⏳ Auto-kick disabled.",
 		"panel.title": "# 🔓 Verification",
 		"panel.body": "Click the button below to verify and unlock the server.",
 		"panel.button": "Verify",
 		"status.title": "# 🔓 Verification settings",
-		"status.body": "Status: **{state}**\nVerified role: {role}",
+		"status.body":
+			"Status: **{state}**\nVerified role: {role}\nCaptcha: **{captcha}**\nAuto-kick: **{autokick}**",
 	},
 };
 

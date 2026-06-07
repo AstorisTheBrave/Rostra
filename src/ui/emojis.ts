@@ -48,6 +48,7 @@ export const EMOJI_FALLBACK = {
 	role: "🎭",
 	serverstats: "📊",
 	modmail: "📬",
+	counting: "🔢",
 	// stats / system
 	stats: "📊",
 	cpu: "🖥️",

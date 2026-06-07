@@ -38,6 +38,7 @@ const FEATURES: { key: string; label: string; emoji: EmojiName }[] = [
 	{ key: "sticky", label: "Sticky messages", emoji: "sticky" },
 	{ key: "voicerole", label: "Voice role", emoji: "voicerole" },
 	{ key: "modmail", label: "Modmail", emoji: "modmail" },
+	{ key: "counting", label: "Counting", emoji: "counting" },
 ];
 
 /** Systems enabled by the one-click recommended baseline. */

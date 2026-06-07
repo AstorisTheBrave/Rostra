@@ -572,6 +572,19 @@ CREATE TABLE "VerificationConfig" (
 );
 
 -- CreateTable
+CREATE TABLE "CountingConfig" (
+    "channelId" TEXT NOT NULL,
+    "guildId" TEXT NOT NULL,
+    "current" INTEGER NOT NULL DEFAULT 0,
+    "best" INTEGER NOT NULL DEFAULT 0,
+    "lastUserId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CountingConfig_pkey" PRIMARY KEY ("channelId")
+);
+
+-- CreateTable
 CREATE TABLE "ModmailConfig" (
     "guildId" TEXT NOT NULL,
     "channelId" TEXT,
@@ -770,6 +783,9 @@ CREATE INDEX "Reminder_guildId_idx" ON "Reminder"("guildId");
 
 -- CreateIndex
 CREATE INDEX "Reminder_userId_idx" ON "Reminder"("userId");
+
+-- CreateIndex
+CREATE INDEX "CountingConfig_guildId_idx" ON "CountingConfig"("guildId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ModmailThread_channelId_key" ON "ModmailThread"("channelId");

@@ -1,0 +1,33 @@
+---
+last-updated: 2026-06-07
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+A counting game: members take turns posting the next number in a designated channel. The bot validates
+each message, reacts ✅ (or 🏆 on a new record), and resets the count to 1 on a mistake.
+
+## technical map
+
+**file paths**
+- command: `src/modules/counting/index.ts`
+- messageCreate validator: `src/modules/counting/events.ts`
+- config + pure rules: `src/modules/counting/service.ts` (+ `service.test.ts`)
+- model: `CountingConfig` (keyed by `channelId`)
+
+**command** - `/counting setup <channel>` · `disable <channel>` · `status <channel>` (Manage Server).
+`setup` flips the tenant `counting` flag.
+
+**rules (pure, tested)** - `parseCount` reads the leading integer of a message; `evaluateCount(config,
+userId, value)` returns `accept` (with a `best` flag) / `reject` (`wrong` | `double`) / `ignore`. The next
+value must be exactly `current + 1` and must not come from the same user who posted the previous number.
+
+## gotchas
+
+- Config is cached per channel; non-numeric messages are ignored (chat is allowed between counts only if it
+  has no leading number - a message like "5 nice" still counts as 5).
+- Gated on the tenant `counting` flag and on a row existing for the channel; both must be true to validate.
+- Reset posts a short message and sets `current` back to 0 (so the next valid number is 1). `best` tracks
+  the highest streak reached.

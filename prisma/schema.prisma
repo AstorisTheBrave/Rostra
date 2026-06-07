@@ -591,6 +591,20 @@ model VerificationConfig {
   updatedAt   DateTime @updatedAt
 }
 
+// ── Counting game ────────────────────────────────────────────────────────────
+
+model CountingConfig {
+  channelId  String  @id
+  guildId    String
+  current    Int     @default(0) // last correct number
+  best       Int     @default(0) // highest streak reached
+  lastUserId String? // who posted the last number (no consecutive doubles)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([guildId])
+}
+
 // ── Modmail (DM-to-staff threads) ────────────────────────────────────────────
 
 model ModmailConfig {

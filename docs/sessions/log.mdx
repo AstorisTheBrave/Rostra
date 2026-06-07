@@ -11,6 +11,21 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-07 (counting game) - backlog item 16 part 1/3
+
+**changed**: New `counting` module (first of three for backlog item 16). A designated channel where members
+count up; `messageCreate` validates via pure `parseCount` + `evaluateCount` (next = current+1, no
+consecutive same-user), reacts ✅/🏆 or resets to 1 with ❌ on a mistake. New `CountingConfig` model (keyed
+by channelId, tracks `current`/`best`/`lastUserId`). `/counting setup|disable|status`. Wired the `counting`
+feature into `/setup`, `src/ui/emojis.ts` (🔢), and the `/help` community category + README. Polls and
+suggestions (the other two parts of item 16) still to come.
+
+**files touched**: new `src/modules/counting/{index,events,service,service.test}.ts`,
+`src/modules/setup/index.ts`, `src/ui/emojis.ts`, `src/modules/core/categories.ts`,
+`prisma/schema.prisma` + `0_init`, `docs/modules/counting.mdx`, README.
+
+**verified**: typecheck clean; counting tests 6/6; biome clean; baseline includes `CountingConfig`.
+
 ### 2026-06-07 (economy depth: shop, items, buyable roles)
 
 **changed**: Extended `economy` (backlog item 15) with a shop. New `shop.ts`: catalog CRUD

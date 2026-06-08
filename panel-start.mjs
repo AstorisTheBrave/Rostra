@@ -8,13 +8,14 @@
 //      file the operator uploads via the panel Files tab.
 //   2. Prisma: panels frequently block npm install scripts, so the Prisma client may be
 //      ungenerated and the schema unmigrated. We do both here (idempotent once in sync).
-//   3. TypeScript: plain `node` cannot run `.ts` or resolve the `@/` path alias, so we
-//      register tsx before importing the cluster entry. The manager then spawns its
-//      native shards with `--import tsx` on its own (see src/cluster.ts).
+//   3. TypeScript: plain `node` cannot run `.ts` or resolve the `@/` path alias. We launch
+//      the cluster entry with `node --import tsx`, the same loader the shard children use,
+//      which both transpiles TypeScript and applies the tsconfig `@/` path mapping. (The
+//      programmatic tsx register() API transpiles but does NOT apply path aliases, which is
+//      why we re-exec rather than import in-process.)
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { register } from "tsx/esm/api";
 
 // 1. Load secrets from an uploaded .env if present (Node 20.12+ built-in, no dependency).
 if (existsSync(".env") && typeof process.loadEnvFile === "function") {
@@ -33,6 +34,16 @@ try {
 	process.exit(1);
 }
 
-// 3. Run the TypeScript entry through tsx (no build step).
-register();
-await import("./src/cluster.ts");
+// 3. Run the TypeScript cluster entry through the tsx loader. Forward stop signals so the
+//    bot shuts down cleanly when the panel stops the server.
+const child = spawn(process.execPath, ["--import", "tsx", "./src/cluster.ts"], {
+	stdio: "inherit",
+});
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+	process.on(signal, () => child.kill(signal));
+}
+
+child.on("exit", (code, signal) => {
+	process.exit(code ?? (signal ? 1 : 0));
+});

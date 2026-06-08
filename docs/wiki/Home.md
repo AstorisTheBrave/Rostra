@@ -4,7 +4,14 @@ Rostra is an all in one, open source Discord bot built to scale to millions of u
 moderation, security, tickets, modmail, economy, leveling, giveaways, music, starboard, and much more, with
 a clean Components V2 interface and full localization.
 
-## Start here
+## New here? Start with the tutorials
+
+- [[Setup Guide]] - get your server running in a few minutes
+- [[Moderation and Security]] - antinuke, anti raid, automod, verification, logging
+- [[Engagement]] - leveling, economy, starboard, welcome, giveaways, polls
+- [[FAQ]] - common questions and troubleshooting
+
+## Reference and operations
 
 - [[Getting Started]] - run Rostra locally or self host it
 - [[Commands]] - every command at a glance

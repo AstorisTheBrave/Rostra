@@ -11,6 +11,28 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (scaling: leader election for single-instance jobs + scaling runbook)
+
+**changed**: New `src/services/leader.ts` - Redis leader election so the manager-process crons (feeds,
+server-stats, autopost, command sync) run on exactly ONE cluster manager across the fleet, not once per
+cluster (a duplicate-execution bug once hybrid clustering lands). `acquireLeadership` holds a renewing TTL
+lease; `startWhenLeader` starts the work when this instance wins and keeps polling so a standby takes over
+if the leader dies; `releaseLeadership` on shutdown. `cluster.ts` now gates `registerBuiltinCron`/`startCron`
+on `startWhenLeader("manager-crons", …)` - a trivial yes in native single-manager mode, correct under
+clustering. New `docs/infrastructure/scaling.mdx` capturing the locked decisions (hybrid clustering,
+blue-green deploys, AI drafts, dormant flags), shard/identify math, the data-vs-code live-change split, and
+the blue-green deploy runbook.
+
+**files touched**: new `src/services/leader.ts`, `docs/infrastructure/scaling.mdx`; `src/cluster.ts`.
+
+**verified**: typecheck clean; biome clean; full suite still 228/228 (no test changes). Leader lock is
+forward-compatible and harmless in native mode.
+
+**remaining scaling work (needs a live multi-process/host env to smoke-test, like the Lavalink path)**:
+wire `discord-hybrid-sharding`'s `ClusterManager` + a real `HybridIpc` behind `SHARDING_MODE=hybrid`, plus
+a cross-cluster identify queue. Everything else (control bus, live i18n overlay, feature flags/kill-switches,
+leader election, translate-everything pipeline) is built and verified.
+
 ### 2026-06-08 (i18n: translate-everything pipeline - AI drafts + validation gate)
 
 **changed**: The "translate everything (16 langs)" pipeline (approved: AI drafts + platform review). New

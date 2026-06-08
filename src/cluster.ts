@@ -4,6 +4,7 @@ import { config } from "@/config.ts";
 import { registerBuiltinCron } from "@/jobs/builtins.ts";
 import { syncCommands } from "@/services/commandSync.ts";
 import { startCron } from "@/services/cron.ts";
+import { startWhenLeader } from "@/services/leader.ts";
 import { getLogger } from "@/services/logger.ts";
 import { startAutopost } from "@/web/autopost.ts";
 import { type ShardStat, startWebServer } from "@/web/server.ts";
@@ -47,8 +48,12 @@ async function main(): Promise<void> {
 		shardCount: typeof manager.totalShards === "number" ? manager.totalShards : 1,
 	}));
 	await manager.spawn();
-	registerBuiltinCron();
-	startCron();
+	// Single-instance jobs run on exactly one cluster manager fleet-wide (leader
+	// election). In native single-manager mode this is a trivial yes.
+	await startWhenLeader("manager-crons", () => {
+		registerBuiltinCron();
+		startCron();
+	});
 	log.info("all shards spawned");
 }
 

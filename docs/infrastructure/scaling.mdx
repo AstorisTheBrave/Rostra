@@ -1,0 +1,84 @@
+---
+last-updated: 2026-06-08
+owner: AstorisTheBrave
+status: active
+---
+
+## what this is
+
+How Rostra scales from ~100K to 1M+ servers and ships changes with minimal downtime. Decisions locked:
+**hybrid clustering** (discord-hybrid-sharding), **blue-green deploys**, **AI translation drafts + review**,
+and **dormant-by-default feature flags**. The coordination primitive for everything below is the Redis
+**control bus** (`src/services/bus.ts`).
+
+## Shards & clusters
+
+Discord recommends ~1 shard per 2,500 guilds. 100K -> ~40 shards; design headroom for 1M -> ~400. One host
+cannot safely run hundreds of shards, so shards are split across **clusters** (processes/machines), each
+owning a contiguous shard range.
+
+**Plan (discord-hybrid-sharding, behind `SHARDING_MODE=hybrid`):**
+- A `ClusterManager` spawns N clusters; each cluster internally shards over its range. The existing `Ipc`
+  abstraction (`src/cluster/ipc.ts`) gets a real `HybridIpc` over the lib's `ClusterClient` (cross-cluster
+  `broadcastEval`), so modules that use `Ipc`/`broadcastEval`/the bus need no changes.
+- **Pinned shard count**: fetch `GET /gateway/bot` recommended, add a buffer, round to a multiple of
+  `max_concurrency`, and pin `TOTAL_SHARDS` so every cluster agrees on `shardIdForGuildId` (per-guild
+  ownership must be identical everywhere).
+- **Identify concurrency**: Discord rate-limits gateway IDENTIFYs (large bots get a `max_concurrency`
+  bucket). Across machines, share ONE identify queue (a Redis lock keyed by `identify-bucket-%N`) or
+  clusters race and get disconnected at boot.
+- **Per-guild state stays correct**: routing still delivers each guild's events to one shard, so per-guild
+  in-memory state (raid windows, spam buckets, afk/snipe) is single-owner. Cross-cluster signals
+  (modmail relay, i18n reload, feature flags) ride the control bus.
+- **Single-instance jobs**: the manager crons (feeds, server-stats, autopost, command sync) must run on
+  exactly one cluster. `src/services/leader.ts` (`startWhenLeader`) holds a renewing Redis lease;
+  `cluster.ts` gates the crons on it. If the leader dies, the lease expires and a standby takes over.
+- **Resilience**: a cluster crash drops only its shards (they RESUME in seconds); the rest serve.
+
+Status: leader election, control bus, `HybridIpc` seam, and the `SHARDING_MODE=hybrid` switch are in place;
+wiring `discord-hybrid-sharding`'s `ClusterManager` + identify queue is the remaining live-environment work
+(needs a multi-process/multi-host deploy to smoke-test, like the Lavalink music path).
+
+## Live changes without restarting (data vs code)
+
+Split every change into **data** (instant, fleet-wide, no restart) or **code** (rolling/blue-green).
+
+**Data / config / content -> instant via the control bus + DB/Redis (built):**
+- Translations: `LocaleString` overlay + `npm run i18n:push` (`src/i18n/live.ts`).
+- Feature flags / kill-switches: `src/services/featureFlags.ts` + `/owner feature set` - flip a feature on
+  or off fleet-wide in seconds (e.g. `/owner feature set ai off` when an upstream degrades).
+- Per-guild config + feature toggles: tenant config (cached, invalidated on write).
+- Most "content" (tags, autoresponders, welcome text, thresholds) already lives in the DB.
+
+**Feature flags = "ship dormant, activate live":** new features register a flag (default off), deploy
+dormant in a release, and are switched on live via the bus - so adding a feature rarely needs its own
+restart, and a broken feature is killed instantly.
+
+**Code (new command handlers, bug fixes, refactors) -> blue-green deploy:**
+- Stand up a second full fleet on the new version, let it connect/RESUME, cut traffic over, then retire the
+  old fleet. True zero user-visible downtime even for breaking changes; costs ~2x infra during the deploy.
+- Command registration is already hash-gated (registers with Discord only when definitions change), so a
+  deploy with no command changes makes no gateway command calls.
+- For a faster/cheaper path on non-breaking changes, rolling per-cluster respawn (one cluster at a time,
+  seconds of RESUME per shard) is the fallback; blue-green is the default for breaking/migration releases.
+
+True in-process code hot-swap is intentionally **not** used (fragile in Node); the data/flag layer absorbs
+as much "change without restart" as possible, and blue-green handles the rest.
+
+## Deploy runbook (blue-green)
+
+1. Migrate DB forward-compatibly first (additive columns; never drop in the same release as code that needs
+   the old shape). Baseline: regenerate `0_init`; apply with `prisma migrate deploy`.
+2. Deploy the new fleet (green) alongside the old (blue); both share the DB + Redis.
+3. Verify green: health endpoint, shard READY count == expected, error rate flat.
+4. Cut the gateway/identity over to green (green takes the shards); blue stops identifying.
+5. Watch a soak window; if bad, cut back to blue (still warm). If good, retire blue.
+6. Translations/flags/config changes do NOT need a deploy - push them live anytime (`i18n:push`, `/owner
+   feature set`).
+
+## Gotchas
+
+- All cross-cluster coordination goes through the control bus; anything that must be consistent fleet-wide
+  (flags, translations) publishes a reload, never relies on per-process state alone.
+- `max_concurrency` is the easiest scale footgun - share one identify queue across clusters.
+- Keep migrations additive so blue and green can run against the same schema during a cutover.

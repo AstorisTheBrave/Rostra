@@ -53,6 +53,17 @@ Greet new members with a message or an image card, and hand out roles automatica
 /counting setup channel:#counting        # a count up game
 ```
 
+## Reputation
+
+Let members thank each other. Giving a reputation point is a lightweight way to recognise helpful people,
+with a leaderboard to show who the community values.
+
+```
+/rep give user:@member       # thank a member with a reputation point
+/rep view user:@member        # see someone's reputation (defaults to you)
+/rep leaderboard              # top members by reputation
+```
+
 ## Personal preferences
 
 Members can opt out of fun and social commands, and choose their language, with `/preferences`. Commands

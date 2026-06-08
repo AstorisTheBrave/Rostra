@@ -23,6 +23,7 @@ a clean Components V2 interface and full localization.
 - [[Utility and Extras]] - tags, reminders, birthdays, profiles, and more
 - [[Starboard]] - highlight the best messages, in depth
 - [[Localization]] - 16 languages, per server and per user, changeable live
+- [[Glossary]] - plain language definitions for any term you do not know
 - [[FAQ]] - common questions and troubleshooting
 
 ## Hosting Rostra (technical)

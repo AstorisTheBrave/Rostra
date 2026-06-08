@@ -30,6 +30,10 @@ Each guide walks through one area, with the real commands and settings.
 
 - [[Localization]] - 16 languages, set per server and per user, changeable live
 
+## New to bots?
+
+- [[Glossary]] - plain language definitions for any term you do not know
+
 ## When you outgrow easy hosting
 
 If your bot grows past a handful of servers, or you want to run your own copy, cross over to the technical

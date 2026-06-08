@@ -11,6 +11,19 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (wiki: reputation guide + glossary; verified module coverage)
+
+**changed**: Audited the 8 modules missing from the CLAUDE.md room index (`highlight, role/bulkrole,
+voicerole, poll, rep/reputation, serverstats, suggest, sticky`) against the wiki. Finding: 7 were already
+documented (highlight/sticky/serverstats in Utility and Extras; poll/suggest in Engagement; voicerole/role in
+Roles and Self-Roles; all in Commands). Only `/rep` had no feature guide, so added a **Reputation** section to
+`Engagement.md` (`/rep give|view|leaderboard`, validated against source). Added a new non-technical
+[[Glossary]] page (token, intent, shard, VPS, Redis, etc.) and linked it from Home, _Sidebar, and Using
+Rostra. Note for future: the 8 modules are still absent from the `docs/` room index and have no
+`docs/modules/*.mdx` (separate dev-doc task). No em dashes.
+
+**files touched**: `docs/wiki/{Engagement,Glossary,Home,_Sidebar,Using-Rostra}.md`, `docs/sessions/log.mdx`.
+
 ### 2026-06-08 (wiki: two-track restructure + managed hosting + referrals)
 
 **changed**: Reorganized the wiki into two audience tracks and added managed hosting coverage. (1) New hub

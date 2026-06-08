@@ -16,6 +16,7 @@
 - [[Utility and Extras]]
 - [[Starboard]]
 - [[Localization]]
+- [[Glossary]]
 - [[FAQ]]
 
 ### Hosting the bot

@@ -1,0 +1,13 @@
+{
+	"enabled": "📈 Level-System **aktiviert**.",
+	"disabled": "📈 Level-System **deaktiviert**.",
+	"announce.set": "📢 Level-Up-Ankündigungen werden in {channel} gesendet.",
+	"set": "✅ **{user}** ist jetzt auf Level **{level}**.",
+	"reward.add": "🎁 Mitglieder, die Level **{level}** erreichen, erhalten **{role}**.",
+	"reward.remove": "➖ Belohnung für Level **{level}** entfernt.",
+	"reward.notFound": "Keine Belohnung für Level **{level}** festgelegt.",
+	"reward.title": "# 🎁 Level-Belohnungen",
+	"reward.empty": "Keine Rollenbelohnungen konfiguriert.",
+	"leaderboard.title": "# 🏆 XP-Bestenliste",
+	"leaderboard.empty": "Noch keine XP verdient."
+}

@@ -1,0 +1,13 @@
+{
+	"enabled": "📈 Níveis **ativados**.",
+	"disabled": "📈 Níveis **desativados**.",
+	"announce.set": "📢 Os anúncios de subida de nível serão enviados em {channel}.",
+	"set": "✅ **{user}** agora está no nível **{level}**.",
+	"reward.add": "🎁 Membros que alcançarem o nível **{level}** receberão **{role}**.",
+	"reward.remove": "➖ Recompensa do nível **{level}** removida.",
+	"reward.notFound": "Nenhuma recompensa definida para o nível **{level}**.",
+	"reward.title": "# 🎁 Recompensas de nível",
+	"reward.empty": "Nenhuma recompensa de cargo configurada.",
+	"leaderboard.title": "# 🏆 Ranking de XP",
+	"leaderboard.empty": "Nenhum XP ganho ainda."
+}

@@ -1,0 +1,13 @@
+{
+	"enabled": "📈 等级系统**已启用**。",
+	"disabled": "📈 等级系统**已禁用**。",
+	"announce.set": "📢 升级公告将发送到 {channel}。",
+	"set": "✅ 已将 **{user}** 设为 **{level}** 级。",
+	"reward.add": "🎁 达到 **{level}** 级的成员将获得 **{role}**。",
+	"reward.remove": "➖ 已移除 **{level}** 级的奖励。",
+	"reward.notFound": "未为 **{level}** 级设置奖励。",
+	"reward.title": "# 🎁 等级奖励",
+	"reward.empty": "未配置身份组奖励。",
+	"leaderboard.title": "# 🏆 经验排行榜",
+	"leaderboard.empty": "还没有获得经验。"
+}

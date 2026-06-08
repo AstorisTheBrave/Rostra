@@ -18,9 +18,10 @@ shipped in waves); adding a language is data, not code.
 - supported-locale registry + Discord code map: `src/i18n/locales.ts`
 - translated files: `src/i18n/locales/<code>/<namespace>.json` (+ `_glossary.json`)
 - bundled-file registration: `src/i18n/bundled.ts` (**generated** - run `npm run i18n:bundle`)
-- tooling: `src/scripts/i18n-bundle.ts` (regenerates the bundle), `src/scripts/i18n-coverage.ts`
-  (per-locale completeness report, `npm run i18n:coverage`), `src/scripts/i18n-push.ts` (promote files to
-  the live store, `npm run i18n:push`)
+- tooling: `i18n:bundle` (regenerate the bundle), `i18n:coverage` (completeness report), `i18n:push`
+  (promote files to the live store), `i18n:validate` (CI gate: ICU compiles + placeholders match English,
+  `src/i18n/validate.ts` + `src/scripts/i18n-validate.ts`), `i18n:draft` (AI-draft all missing keys for all
+  16 langs via a configurable provider, `src/scripts/i18n-draft.ts`)
 - live overlay + hot reload: `src/i18n/live.ts` (+ `live.test.ts`), `src/services/bus.ts` (Redis control
   bus), model `LocaleString`
 - native command-metadata localization: `src/i18n/commandLocalizations.ts`

@@ -11,6 +11,24 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (i18n: translate-everything pipeline - AI drafts + validation gate)
+
+**changed**: The "translate everything (16 langs)" pipeline (approved: AI drafts + platform review). New
+pure `src/i18n/validate.ts` (`validateTranslation`: every translated string must compile as ICU and keep
+the same simple `{placeholder}` set as English; `simpleArgs`) + `npm run i18n:validate` CI gate that fails
+on broken translations (missing keys are fine - English fallback). New `npm run i18n:draft`
+(`src/scripts/i18n-draft.ts`): machine-translates every missing key for all 16 langs via a configurable
+OpenAI-compatible provider (`TRANSLATE_*` env added to `config.ts`, neutral names), glossary- and
+ICU-aware, **validates each draft before writing**, never overwrites existing translations, and records
+drafted keys in `locales/<code>/_drafts.json` for review. Flow: `i18n:draft` -> review -> `i18n:bundle` ->
+`i18n:push` (live, no restart). Ran the validator on all current translations: clean.
+
+**files touched**: new `src/i18n/{validate,validate.test}.ts`, `src/scripts/{i18n-validate,i18n-draft}.ts`;
+`src/config.ts` (+ `TRANSLATE_*`), `package.json`, `docs/modules/localization.mdx`.
+
+**verified**: typecheck clean; validate tests 5/5; full suite 228/228; biome clean; `i18n:validate` passes.
+(Draft script builds + typechecks; needs a provider key to run, which the maintainer supplies.)
+
 ### 2026-06-08 (scaling: dormant-by-default feature flags + kill-switches)
 
 **changed**: First piece of the 100K->1M scaling plan (approved: hybrid clustering, blue-green deploys, AI

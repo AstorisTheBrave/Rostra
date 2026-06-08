@@ -36,6 +36,10 @@ const schema = z.object({
 	AI_API_KEY: z.string().optional(),
 	AI_BASE_URL: z.string().optional(),
 	AI_MODEL: z.string().optional(),
+	// Translation-draft tooling (dev only; `npm run i18n:draft`). Neutral names.
+	TRANSLATE_API_KEY: z.string().optional(),
+	TRANSLATE_BASE_URL: z.string().optional(),
+	TRANSLATE_MODEL: z.string().optional(),
 	LAVALINK_NODES: z.string().default("[]"),
 	LAVALINK_RECONNECT_TRIES: z.coerce.number().int().default(5),
 	LAVALINK_RESUME: z.coerce.boolean().default(true),
@@ -56,6 +60,7 @@ export type Config = {
 	web: { port: number; host: string };
 	sharding: { count?: number; mode: "native" | "hybrid" };
 	ai: { apiKey?: string; baseUrl?: string; model?: string };
+	translate: { apiKey?: string; baseUrl?: string; model?: string };
 	lavalink: {
 		nodes: LavalinkNode[];
 		reconnectTries: number;
@@ -91,6 +96,11 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 		web: { port: e.PORT, host: e.HOST },
 		sharding: { count: e.TOTAL_SHARDS, mode: e.SHARDING_MODE },
 		ai: { apiKey: e.AI_API_KEY, baseUrl: e.AI_BASE_URL, model: e.AI_MODEL },
+		translate: {
+			apiKey: e.TRANSLATE_API_KEY,
+			baseUrl: e.TRANSLATE_BASE_URL,
+			model: e.TRANSLATE_MODEL,
+		},
 		lavalink: {
 			nodes,
 			reconnectTries: e.LAVALINK_RECONNECT_TRIES,

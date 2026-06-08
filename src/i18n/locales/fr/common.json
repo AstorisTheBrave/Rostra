@@ -1,0 +1,8 @@
+{
+	"error.generic": "Une erreur est survenue. Veuillez réessayer.",
+	"error.missingPermissions": "Vous n'avez pas la permission de faire cela.",
+	"error.botMissingPermissions": "Il me manque les permissions nécessaires pour cela.",
+	"error.guildOnly": "Cette commande ne peut être utilisée que dans un serveur.",
+	"error.cooldown": "Doucement - réessayez dans {seconds}s.",
+	"ping.pong": "Pong ! {ms}ms"
+}

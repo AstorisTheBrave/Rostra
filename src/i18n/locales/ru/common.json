@@ -1,0 +1,8 @@
+{
+	"error.generic": "Что-то пошло не так. Попробуйте ещё раз.",
+	"error.missingPermissions": "У вас нет прав для этого.",
+	"error.botMissingPermissions": "Мне не хватает необходимых прав для этого.",
+	"error.guildOnly": "Эту команду можно использовать только на сервере.",
+	"error.cooldown": "Помедленнее - попробуйте снова через {seconds}с.",
+	"ping.pong": "Понг! {ms}мс"
+}

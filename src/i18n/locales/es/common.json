@@ -1,0 +1,8 @@
+{
+	"error.generic": "Algo salió mal. Inténtalo de nuevo.",
+	"error.missingPermissions": "No tienes permiso para hacer eso.",
+	"error.botMissingPermissions": "Me faltan los permisos necesarios para eso.",
+	"error.guildOnly": "Este comando solo se puede usar en un servidor.",
+	"error.cooldown": "Más despacio: inténtalo de nuevo en {seconds}s.",
+	"ping.pong": "¡Pong! {ms}ms"
+}

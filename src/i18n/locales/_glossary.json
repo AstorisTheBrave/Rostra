@@ -1,0 +1,19 @@
+{
+	"_comment": "Terms that translators and AI drafts must keep verbatim (untranslated), and rules for ICU placeholders. Brand and feature names stay in English for consistency across locales.",
+	"doNotTranslate": [
+		"Rostra",
+		"Discord",
+		"starboard",
+		"autostar",
+		"modmail",
+		"automod",
+		"antinuke",
+		"anti-raid",
+		"Components V2",
+		"Lavalink"
+	],
+	"placeholders": {
+		"rule": "Keep every {placeholder} exactly as written - they are substituted at runtime. Do not translate or reorder the token name inside the braces.",
+		"icu": "Plural/select forms use ICU MessageFormat, e.g. {count, plural, one {# warning} other {# warnings}}. Translate the inner text; keep the keywords (plural, select, one, other) and the # and {} syntax."
+	}
+}

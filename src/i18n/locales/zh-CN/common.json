@@ -1,0 +1,8 @@
+{
+	"error.generic": "出了点问题，请重试。",
+	"error.missingPermissions": "你没有权限执行此操作。",
+	"error.botMissingPermissions": "我缺少执行此操作所需的权限。",
+	"error.guildOnly": "此命令只能在服务器中使用。",
+	"error.cooldown": "慢一点 - 请在 {seconds} 秒后重试。",
+	"ping.pong": "Pong！{ms}ms"
+}

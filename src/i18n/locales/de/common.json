@@ -1,0 +1,8 @@
+{
+	"error.generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+	"error.missingPermissions": "Du hast keine Berechtigung dafür.",
+	"error.botMissingPermissions": "Mir fehlen die nötigen Berechtigungen dafür.",
+	"error.guildOnly": "Dieser Befehl kann nur auf einem Server verwendet werden.",
+	"error.cooldown": "Langsam - versuche es in {seconds}s erneut.",
+	"ping.pong": "Pong! {ms}ms"
+}

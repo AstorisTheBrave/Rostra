@@ -1,0 +1,62 @@
+---
+last-updated: 2026-06-08
+owner: AstorisTheBrave
+status: stable
+---
+
+## what this is
+
+The localization platform - a core capability peer to `tenant` and `prisma`. It decides which language each
+audience is addressed in and renders per recipient, so one action (e.g. `/timeout`) confirms to the
+moderator in their language while the target's DM arrives in theirs. Supports 16 languages (translations
+shipped in waves); adding a language is data, not code.
+
+## technical map
+
+**file paths**
+- ICU engine + ambient locale: `src/i18n/index.ts` (+ `index.test.ts`)
+- supported-locale registry + Discord code map: `src/i18n/locales.ts`
+- translated files: `src/i18n/locales/<code>/<namespace>.json` (+ `_glossary.json`)
+- bundled-file registration: `src/i18n/bundled.ts`
+- native command-metadata localization: `src/i18n/commandLocalizations.ts`
+- the service (peer to tenant): `src/services/localization.ts`
+- model: `UserPreference` (locale + feature opt-outs)
+
+**engine (`i18n/index.ts`)** - `t(key, vars?, locale?)` formats with **ICU MessageFormat**
+(`intl-messageformat`), so `{count, plural, ...}` / `{x, select, ...}` / `{n, number}` work across every
+language via `Intl.PluralRules`. Locale precedence: explicit arg -> ambient (`runWithLocale`, an
+`AsyncLocalStorage`) -> English. Malformed ICU falls back to plain `{var}` interpolation (never throws).
+Missing key -> English -> the raw key. `getTranslator(locale)` returns a bound translator for per-recipient
+rendering. Modules still register English strings via `module.i18n`; translated files layer on top.
+
+**service (`services/localization.ts`)** - cached per-user `UserPreference` (L1 in-proc + Redis, like
+tenant). `resolveLocale({userId, guildId, interactionLocale, scope})`: guild scope = guild language ->
+English; user/actor scope = explicit user preference -> Discord client locale -> guild -> English.
+`setUserLocale` / `setUserFeature` / `isOptedOut`, `setGuildLocale`, and `localizeAction({actor, target,
+guild})` -> `{actorT, targetT, guildT}` for the three-audience model.
+
+**wiring** - `runCommand` and the component router resolve the actor's locale and run the handler inside
+`runWithLocale`, so every `t()` in a handler renders in the user's language with no call-site changes.
+`/mod warn|timeout|ban|kick` DM the target via `notifyTarget` in the **target's** language. Fun opt-out is
+enforced in `/roleplay` and `/games tictactoe`.
+
+**surfaces** - `/preferences language|feature|view` (user, DM-capable); `/setup language` (guild);
+`/help` has a live language select that re-renders the panel in the chosen language.
+
+**native command localization** - `applyCommandLocalizations` (in `collectCommandJSON`) merges per-locale
+command `description_localizations` keyed by Discord locale code, so the slash-command list appears
+localized in each client. Seed data only for now; the rest is translation content.
+
+## gotchas
+
+- Translated strings are **statically imported** (`bundled.ts`) so the build inlines them - no runtime fs
+  reads. When the corpus grows past `common`, switch to a generated manifest / build-time copy + fs loader;
+  the `registerLocale` API stays the same.
+- ICU treats `{`, `}`, `#`, and `'` (before a syntax char) specially. Apostrophes in normal words are
+  literal; the try/catch fallback covers any string that still fails to compile.
+- `resolveLocale` reads `UserPreference` + `getTenant` (both cached); the pipeline guards it with a default
+  so a config-store outage never blocks a command.
+- Discord native command-metadata localization is capped to Discord's locale list (`SUPPORTED_LOCALES.*.
+  discord`, null for Arabic); runtime response localization has no such cap.
+- Translation workflow: `_glossary.json` lists do-not-translate brand/feature terms and ICU placeholder
+  rules for community (Crowdin/Weblate) + AI-draft pipelines. English is always the complete source.

@@ -43,6 +43,31 @@ test("runWithLocale sets the ambient locale for t", async () => {
 	assert.equal(t("amb:hi"), "Hello"); // outside the scope -> default
 });
 
+test("bundled translations register and resolve, with English fallback", async () => {
+	const { t } = await import("./index.ts");
+	const { registerBundledLocales } = await import("./bundled.ts");
+	registerBundledLocales();
+	assert.equal(
+		t("common:error.guildOnly", undefined, "fr"),
+		"Cette commande ne peut être utilisée que dans un serveur.",
+	);
+	assert.equal(
+		t("common:error.guildOnly", undefined, "de"),
+		"Dieser Befehl kann nur auf einem Server verwendet werden.",
+	);
+	// A key with no translation in the locale falls back to English.
+	assert.equal(t("common:ping.pong", { ms: 5 }, "ru"), "Понг! 5мс");
+});
+
+test("normalizeLocale maps Discord and regional codes to supported ones", async () => {
+	const { normalizeLocale } = await import("./locales.ts");
+	assert.equal(normalizeLocale("en-US"), "en");
+	assert.equal(normalizeLocale("fr-CA"), "fr");
+	assert.equal(normalizeLocale("pt"), "pt-BR");
+	assert.equal(normalizeLocale("zh-CN"), "zh-CN");
+	assert.equal(normalizeLocale("xx"), null);
+});
+
 test("t falls back to plain interpolation for malformed ICU", async () => {
 	const { t, registerLocale } = await import("./index.ts");
 	registerLocale("en", "bad", { x: "Unclosed {brace and {name}" });

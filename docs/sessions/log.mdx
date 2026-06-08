@@ -11,6 +11,28 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (localization - translations + native command metadata; platform complete)
+
+**changed**: Finished the localization platform. (5) **Wave-1 translation files**: `locales/<code>/
+common.json` for fr/de/es/pt-BR/ru/zh-CN (the shared error/ping strings), statically imported + registered
+via `src/i18n/bundled.ts` (bundler-safe; English fallback for anything untranslated). Added
+`locales/_glossary.json` (do-not-translate brand/feature terms + ICU placeholder rules for community/AI
+translation). Registration wired into the commands loader. (6) **Native command-metadata localization**:
+`commandLocalizations.ts` `applyCommandLocalizations` merges per-locale `description_localizations` (keyed by
+Discord locale code from `SUPPORTED_LOCALES`) into the command payload in `collectCommandJSON`, so the slash
+list shows localized in each client; seed descriptions for `help`/`preferences` in the 6 wave-1 langs. New
+`docs/modules/localization.mdx`.
+
+**files touched**: `src/i18n/{bundled,commandLocalizations}.ts` + `locales/{fr,de,es,pt-BR,ru,zh-CN}/
+common.json` + `locales/_glossary.json`, `src/i18n/index.test.ts`, `src/client/loaders/commands.ts`,
+`docs/modules/localization.mdx`.
+
+**verified**: typecheck clean; i18n tests 9/9 (incl. bundled fr/de resolution + `normalizeLocale`); full
+suite 216/216; biome clean. **Localization platform is complete**: ICU engine, ambient + per-recipient
+locales, UserPreference service, pipeline wiring, `/preferences` + `/setup language` + `/help` switch, fun
+opt-outs, wave-1 translations, and native command metadata. Remaining is translation *content* (waves +
+Crowdin/AI), not engineering.
+
 ### 2026-06-08 (localization - user surfaces: /preferences, /setup language, /help switch, opt-outs)
 
 **changed**: The user-facing half of the localization platform. New **`preferences` module**: `/preferences

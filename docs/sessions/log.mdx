@@ -11,6 +11,20 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (panel hosting: launcher fixes + detailed Ori tutorial)
+
+**changed**: Hardened `panel-start.mjs` after live testing on Ori Host. The `--import tsx` loader does NOT
+read tsconfig `paths`, so `@/` failed; fixed by running the cluster through the tsx CLI (`npx tsx
+src/cluster.ts`) with `TSX_TSCONFIG_PATH` pinned to the repo tsconfig, which the native shards inherit. Root
+cause of the persistent crash was operator config (MAIN_FILE pointed at `src/cluster.ts` instead of
+`panel-start.mjs`, so the launcher never ran, identifiable by the absence of Prisma output). Expanded
+[[Hosting on Ori Host]] into a full tutorial: prerequisites (Neon + Upstash + read-only GitHub PAT), exact
+Startup-tab fields, `.env` via Files tab, a "healthy boot" sequence (Prisma output = launcher is running),
+and a troubleshooting table mapping every real error string (including the misleading "MAIN_FILE is not set"
+red herring the egg prints on any non-zero exit). No em dashes.
+
+**files touched**: `panel-start.mjs`, `docs/wiki/Hosting-on-Ori-Host.md`, `docs/sessions/log.mdx`.
+
 ### 2026-06-08 (panel hosting: panel-start.mjs launcher + Ori Host wiki)
 
 **changed**: Added support for game-panel hosts (Pterodactyl / Ori Host) that run `node <MAIN_FILE>` against

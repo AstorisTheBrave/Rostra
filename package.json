@@ -11,6 +11,7 @@
 		"dev": "tsx watch src/cluster.ts",
 		"build": "prisma generate && tsc --noEmit",
 		"start": "tsx src/cluster.ts",
+		"start:panel": "node panel-start.mjs",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",

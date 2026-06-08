@@ -62,6 +62,11 @@ To update later, push to your GitHub fork (or click **Redeploy**) and Railway re
 
 If you get stuck, PebbleHost support is responsive and used to Discord bots.
 
+## Cheaper, slightly more hands on
+
+Game style panels like Ori Host run the bot from a GitHub clone for around 1 euro a month. They are cheaper
+but fiddlier, and you bring your own database. See [[Hosting on Ori Host]].
+
 ## How big can this go
 
 Easy hosting on a single instance comfortably covers a personal bot in 10 to 20 servers. When you outgrow

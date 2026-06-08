@@ -25,6 +25,7 @@
 - [[Self-Hosting]]
 - [[Hosting with Docker]]
 - [[Hosting on a VPS]]
+- [[Hosting on Ori Host]]
 - [[Hosting at Scale]]
 - [[Environment Variables]]
 - [[Permissions and Intents]]

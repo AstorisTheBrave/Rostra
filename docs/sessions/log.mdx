@@ -11,6 +11,22 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (panel hosting: panel-start.mjs launcher + Ori Host wiki)
+
+**changed**: Added support for game-panel hosts (Pterodactyl / Ori Host) that run `node <MAIN_FILE>` against
+a raw clone. New root launcher `panel-start.mjs` solves the three failure modes a user hit on Ori: (1) plain
+`node` cannot run `.ts`/`@/` aliases, so it registers tsx then imports `src/cluster.ts` (native shards
+inherit tsx via the manager's `execArgv: ["--import","tsx"]`, confirmed in cluster.ts); (2) panels expose no
+secret env UI, so it loads an uploaded `.env` via `process.loadEnvFile` (Node 20.12+, no dep added); (3)
+panels block npm install scripts, so it runs `prisma generate` + `prisma migrate deploy` before boot. Added
+`start:panel` npm script. NOT used by Docker/VPS (those keep `npm start` = `tsx src/cluster.ts`). Biome + tsc
+clean. New wiki page [[Hosting on Ori Host]] (set MAIN_FILE=panel-start.mjs, external Neon+Upstash, .env via
+Files tab, error->fix table mapping the exact crash strings), linked from Home, _Sidebar, Hosting Rostra,
+Easy Hosting. No em dashes.
+
+**files touched**: `panel-start.mjs` (new), `package.json`, `docs/wiki/{Hosting-on-Ori-Host,Home,_Sidebar,
+Hosting-Rostra,Easy-Hosting}.md`, `docs/sessions/log.mdx`.
+
 ### 2026-06-08 (wiki: reputation guide + glossary; verified module coverage)
 
 **changed**: Audited the 8 modules missing from the CLAUDE.md room index (`highlight, role/bulkrole,

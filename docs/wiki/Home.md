@@ -33,6 +33,7 @@ a clean Components V2 interface and full localization.
 - [[Self-Hosting]] - pick how to run it, explained for beginners
 - [[Hosting with Docker]] - the easy one command way
 - [[Hosting on a VPS]] - keep it online 24/7 on a cheap cloud server
+- [[Hosting on Ori Host]] - cheap game panel host, step by step
 - [[Hosting at Scale]] - native sharding, big VPS, managed databases
 - [[Environment Variables]] - every setting in plain language
 - [[Permissions and Intents]] - what each feature needs

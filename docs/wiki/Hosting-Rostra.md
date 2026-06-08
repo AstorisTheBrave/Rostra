@@ -18,6 +18,7 @@ guide: [[Easy Hosting]].
 
 - [[Hosting with Docker]] - the one command way, recommended for almost everyone
 - [[Hosting on a VPS]] - keep it online 24/7 on a cheap cloud server
+- [[Hosting on Ori Host]] - cheap Pterodactyl game panel, with the gotchas solved
 - [[Getting Started]] - run from source if you want to edit the code
 
 ## Permissions and intents

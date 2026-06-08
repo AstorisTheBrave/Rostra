@@ -1,0 +1,21 @@
+{
+	"ping": "Pong ! Latence de la passerelle : `{ms}ms`.",
+	"help.title": "Aide Rostra",
+	"help.intro": "**{commands}** commandes réparties en **{categories}** catégories. Choisissez-en une ci-dessous pour voir ses commandes.",
+	"help.placeholder": "Choisir une catégorie",
+	"help.empty": "Aucune commande ici pour l'instant.",
+	"help.langPlaceholder": "🌐 Changer de langue",
+	"help.langAuto": "Auto (suivre le serveur)",
+	"stats.title": "Statistiques Rostra",
+	"stats.servers": "Serveurs",
+	"stats.users": "Utilisateurs",
+	"stats.channels": "Salons",
+	"stats.shards": "Shards",
+	"stats.gateway": "Passerelle",
+	"stats.uptime": "Disponibilité",
+	"stats.memory": "Mémoire",
+	"stats.commands": "Commandes",
+	"shards.title": "Statistiques des shards",
+	"shards.shard": "Shard {id}",
+	"shards.empty": "Aucune donnée de shard."
+}

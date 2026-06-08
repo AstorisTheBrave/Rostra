@@ -1,0 +1,21 @@
+{
+	"ping": "¡Pong! Latencia de la puerta de enlace: `{ms}ms`.",
+	"help.title": "Ayuda de Rostra",
+	"help.intro": "**{commands}** comandos en **{categories}** categorías. Elige una abajo para ver sus comandos.",
+	"help.placeholder": "Selecciona una categoría",
+	"help.empty": "Aún no hay comandos aquí.",
+	"help.langPlaceholder": "🌐 Cambiar tu idioma",
+	"help.langAuto": "Auto (seguir el servidor)",
+	"stats.title": "Estadísticas de Rostra",
+	"stats.servers": "Servidores",
+	"stats.users": "Usuarios",
+	"stats.channels": "Canales",
+	"stats.shards": "Shards",
+	"stats.gateway": "Puerta de enlace",
+	"stats.uptime": "Tiempo activo",
+	"stats.memory": "Memoria",
+	"stats.commands": "Comandos",
+	"shards.title": "Estadísticas de shards",
+	"shards.shard": "Shard {id}",
+	"shards.empty": "No hay datos de shards."
+}

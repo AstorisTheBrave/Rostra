@@ -1,0 +1,8 @@
+{
+	"auto": "Авто (как на сервере)",
+	"languageSet": "🌐 Ваш язык теперь **{language}**.",
+	"featureOn": "✅ **{feature}** включено для вашего аккаунта.",
+	"featureOff": "🚫 **{feature}** отключено для вашего аккаунта.",
+	"view.title": "# ⚙️ Ваши настройки",
+	"view.language": "**Язык:** {language}"
+}

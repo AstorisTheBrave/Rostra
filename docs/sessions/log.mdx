@@ -11,6 +11,26 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (localization - translation pipeline + wave-1 content)
+
+**changed**: Made the translation content pipeline scalable and added real wave-1 content. New
+`src/scripts/i18n-bundle.ts` (`npm run i18n:bundle`) scans `locales/<code>/*.json` and **regenerates**
+`src/i18n/bundled.ts` (static imports, bundler-safe) - adding a translation is now drop-a-file + run-script,
+no hand-editing. New `src/scripts/i18n-coverage.ts` (`npm run i18n:coverage`) reports each language's
+completeness vs the English source (module `i18n` + common) and lists missing namespaces. Translated
+`core`, `preferences`, and `moderation` DM strings into all six wave-1 languages (fr/de/es/pt-BR/ru/zh-CN),
+so the help panel, `/preferences`, and the moderation target-DM showcase render natively in those languages
+(wave-1 coverage 1% -> 7%, 35/493 keys each). The rest falls back to English; the coverage report guides the
+remaining content (community/AI).
+
+**files touched**: new `src/scripts/i18n-{bundle,coverage}.ts`; `src/i18n/bundled.ts` (now generated);
+`src/i18n/locales/{fr,de,es,pt-BR,ru,zh-CN}/{core,preferences,moderation}.json`; `package.json` (scripts);
+`docs/modules/localization.mdx`.
+
+**verified**: bundle regenerates to 24 registrations; typecheck clean; i18n tests 9/9; translations resolve
+(spot-checked fr/ru/zh-CN); full suite 216/216; biome clean. Remaining localization work is purely
+translation content via `i18n:coverage` + the file-drop workflow.
+
 ### 2026-06-08 (localization - translations + native command metadata; platform complete)
 
 **changed**: Finished the localization platform. (5) **Wave-1 translation files**: `locales/<code>/

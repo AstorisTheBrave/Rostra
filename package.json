@@ -21,7 +21,9 @@
 		"emojis:generate": "node --import tsx src/scripts/generate-emojis.ts",
 		"emojis:upload": "node --import tsx --env-file-if-exists=.env src/scripts/upload-emojis.ts",
 		"prisma:generate": "prisma generate",
-		"prisma:migrate": "prisma migrate deploy"
+		"prisma:migrate": "prisma migrate deploy",
+		"i18n:bundle": "node --import tsx src/scripts/i18n-bundle.ts",
+		"i18n:coverage": "node --import tsx --env-file-if-exists=.env src/scripts/i18n-coverage.ts"
 	},
 	"dependencies": {
 		"@fastify/rate-limit": "^10.3.0",

@@ -1,0 +1,21 @@
+{
+	"ping": "Pong！网关延迟：`{ms}ms`。",
+	"help.title": "Rostra 帮助",
+	"help.intro": "共 **{commands}** 个命令，分为 **{categories}** 个类别。请在下方选择一个查看其命令。",
+	"help.placeholder": "选择一个类别",
+	"help.empty": "这里还没有命令。",
+	"help.langPlaceholder": "🌐 更改你的语言",
+	"help.langAuto": "自动（跟随服务器）",
+	"stats.title": "Rostra 统计",
+	"stats.servers": "服务器",
+	"stats.users": "用户",
+	"stats.channels": "频道",
+	"stats.shards": "分片",
+	"stats.gateway": "网关",
+	"stats.uptime": "运行时间",
+	"stats.memory": "内存",
+	"stats.commands": "命令",
+	"shards.title": "分片统计",
+	"shards.shard": "分片 {id}",
+	"shards.empty": "暂无分片数据。"
+}

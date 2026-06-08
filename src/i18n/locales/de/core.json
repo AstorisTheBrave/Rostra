@@ -1,0 +1,21 @@
+{
+	"ping": "Pong! Gateway-Latenz: `{ms}ms`.",
+	"help.title": "Rostra-Hilfe",
+	"help.intro": "**{commands}** Befehle in **{categories}** Kategorien. Wähle unten eine aus, um ihre Befehle zu sehen.",
+	"help.placeholder": "Kategorie auswählen",
+	"help.empty": "Hier gibt es noch keine Befehle.",
+	"help.langPlaceholder": "🌐 Sprache ändern",
+	"help.langAuto": "Auto (dem Server folgen)",
+	"stats.title": "Rostra-Statistiken",
+	"stats.servers": "Server",
+	"stats.users": "Benutzer",
+	"stats.channels": "Kanäle",
+	"stats.shards": "Shards",
+	"stats.gateway": "Gateway",
+	"stats.uptime": "Betriebszeit",
+	"stats.memory": "Arbeitsspeicher",
+	"stats.commands": "Befehle",
+	"shards.title": "Shard-Statistiken",
+	"shards.shard": "Shard {id}",
+	"shards.empty": "Keine Shard-Daten."
+}

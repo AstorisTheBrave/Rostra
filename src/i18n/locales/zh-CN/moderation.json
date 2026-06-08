@@ -1,0 +1,6 @@
+{
+	"dm.warn": "⚠️ 你在 **{server}** 被 **警告**。\n**原因：** {reason}",
+	"dm.timeout": "⏳ 你在 **{server}** 被 **禁言** **{duration}**。\n**原因：** {reason}",
+	"dm.ban": "🔨 你已被 **{server}** **封禁**。\n**原因：** {reason}",
+	"dm.kick": "👢 你已被 **{server}** **踢出**。\n**原因：** {reason}"
+}

@@ -1,0 +1,6 @@
+{
+	"dm.warn": "⚠️ Vous avez reçu un **avertissement** sur **{server}**.\n**Raison :** {reason}",
+	"dm.timeout": "⏳ Vous avez été **exclu temporairement** sur **{server}** pour **{duration}**.\n**Raison :** {reason}",
+	"dm.ban": "🔨 Vous avez été **banni** de **{server}**.\n**Raison :** {reason}",
+	"dm.kick": "👢 Vous avez été **expulsé** de **{server}**.\n**Raison :** {reason}"
+}

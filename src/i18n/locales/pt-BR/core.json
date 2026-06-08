@@ -1,0 +1,21 @@
+{
+	"ping": "Pong! Latência do gateway: `{ms}ms`.",
+	"help.title": "Ajuda do Rostra",
+	"help.intro": "**{commands}** comandos em **{categories}** categorias. Escolha uma abaixo para ver os comandos.",
+	"help.placeholder": "Selecione uma categoria",
+	"help.empty": "Ainda não há comandos aqui.",
+	"help.langPlaceholder": "🌐 Mudar seu idioma",
+	"help.langAuto": "Auto (seguir o servidor)",
+	"stats.title": "Estatísticas do Rostra",
+	"stats.servers": "Servidores",
+	"stats.users": "Usuários",
+	"stats.channels": "Canais",
+	"stats.shards": "Shards",
+	"stats.gateway": "Gateway",
+	"stats.uptime": "Tempo on-line",
+	"stats.memory": "Memória",
+	"stats.commands": "Comandos",
+	"shards.title": "Estatísticas de shards",
+	"shards.shard": "Shard {id}",
+	"shards.empty": "Sem dados de shard."
+}

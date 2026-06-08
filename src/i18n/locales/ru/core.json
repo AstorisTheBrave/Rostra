@@ -1,0 +1,21 @@
+{
+	"ping": "Понг! Задержка шлюза: `{ms}мс`.",
+	"help.title": "Помощь Rostra",
+	"help.intro": "**{commands}** команд в **{categories}** категориях. Выберите одну ниже, чтобы увидеть её команды.",
+	"help.placeholder": "Выберите категорию",
+	"help.empty": "Здесь пока нет команд.",
+	"help.langPlaceholder": "🌐 Сменить язык",
+	"help.langAuto": "Авто (как на сервере)",
+	"stats.title": "Статистика Rostra",
+	"stats.servers": "Серверы",
+	"stats.users": "Пользователи",
+	"stats.channels": "Каналы",
+	"stats.shards": "Шарды",
+	"stats.gateway": "Шлюз",
+	"stats.uptime": "Время работы",
+	"stats.memory": "Память",
+	"stats.commands": "Команды",
+	"shards.title": "Статистика шардов",
+	"shards.shard": "Шард {id}",
+	"shards.empty": "Нет данных о шардах."
+}

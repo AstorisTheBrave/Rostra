@@ -1,0 +1,8 @@
+{
+	"auto": "自动（跟随服务器）",
+	"languageSet": "🌐 你的语言现在是 **{language}**。",
+	"featureOn": "✅ 已为你的账户启用 **{feature}**。",
+	"featureOff": "🚫 已为你的账户禁用 **{feature}**。",
+	"view.title": "# ⚙️ 你的偏好设置",
+	"view.language": "**语言：** {language}"
+}

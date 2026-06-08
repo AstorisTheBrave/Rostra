@@ -1,0 +1,8 @@
+{
+	"auto": "Auto (seguir el servidor)",
+	"languageSet": "🌐 Tu idioma ahora es **{language}**.",
+	"featureOn": "✅ **{feature}** activado para tu cuenta.",
+	"featureOff": "🚫 **{feature}** desactivado para tu cuenta.",
+	"view.title": "# ⚙️ Tus preferencias",
+	"view.language": "**Idioma:** {language}"
+}

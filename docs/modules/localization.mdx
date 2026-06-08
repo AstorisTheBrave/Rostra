@@ -17,7 +17,9 @@ shipped in waves); adding a language is data, not code.
 - ICU engine + ambient locale: `src/i18n/index.ts` (+ `index.test.ts`)
 - supported-locale registry + Discord code map: `src/i18n/locales.ts`
 - translated files: `src/i18n/locales/<code>/<namespace>.json` (+ `_glossary.json`)
-- bundled-file registration: `src/i18n/bundled.ts`
+- bundled-file registration: `src/i18n/bundled.ts` (**generated** - run `npm run i18n:bundle`)
+- tooling: `src/scripts/i18n-bundle.ts` (regenerates the bundle), `src/scripts/i18n-coverage.ts`
+  (per-locale completeness report, `npm run i18n:coverage`)
 - native command-metadata localization: `src/i18n/commandLocalizations.ts`
 - the service (peer to tenant): `src/services/localization.ts`
 - model: `UserPreference` (locale + feature opt-outs)
@@ -60,3 +62,8 @@ localized in each client. Seed data only for now; the rest is translation conten
   discord`, null for Arabic); runtime response localization has no such cap.
 - Translation workflow: `_glossary.json` lists do-not-translate brand/feature terms and ICU placeholder
   rules for community (Crowdin/Weblate) + AI-draft pipelines. English is always the complete source.
+- Adding a translation = drop `locales/<code>/<namespace>.json` (keys mirror the module's English `i18n`),
+  run `npm run i18n:bundle`, commit. `npm run i18n:coverage` shows each language's completeness and which
+  namespaces are missing. Translated so far (wave-1: fr/de/es/pt-BR/ru/zh-CN): `common`, `core`,
+  `preferences`, and `moderation` DM strings (~7%); the rest falls back to English and is content work for
+  the translation waves.

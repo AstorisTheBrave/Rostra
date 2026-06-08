@@ -565,6 +565,15 @@ CREATE TABLE "GuildTenant" (
 );
 
 -- CreateTable
+CREATE TABLE "FeatureFlag" (
+    "name" TEXT NOT NULL,
+    "enabled" BOOLEAN NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "FeatureFlag_pkey" PRIMARY KEY ("name")
+);
+
+-- CreateTable
 CREATE TABLE "LocaleString" (
     "locale" TEXT NOT NULL,
     "namespace" TEXT NOT NULL,

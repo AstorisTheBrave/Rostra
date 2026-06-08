@@ -1,9 +1,14 @@
 import { SlashCommandBuilder } from "discord.js";
 import { config } from "@/config.ts";
 import { t } from "@/i18n/index.ts";
+import { isFeatureLive, registerFeature } from "@/services/featureFlags.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { ask } from "./service.ts";
+
+// On by default, but globally killable in seconds (e.g. if the upstream provider
+// degrades) via `/owner feature set ai off` - no restart, fleet-wide.
+registerFeature("ai", true);
 
 const askCommand: SlashCommand = {
 	data: new SlashCommandBuilder()
@@ -15,7 +20,7 @@ const askCommand: SlashCommand = {
 	cooldownMs: 5000,
 	heartbeat: true,
 	execute: async ({ interaction }) => {
-		if (!config.ai.apiKey || !config.ai.baseUrl) {
+		if (!isFeatureLive("ai") || !config.ai.apiKey || !config.ai.baseUrl) {
 			return void reply.error(interaction, t("ai:unconfigured"));
 		}
 		const question = interaction.options.getString("question", true);

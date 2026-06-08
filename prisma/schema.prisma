@@ -585,6 +585,17 @@ model GuildTenant {
   updatedAt        DateTime @updatedAt
 }
 
+// ── Global feature flags (dormant-by-default, hot-flippable) ─────────────────
+// Fleet-wide on/off for features shipped dormant in a release. A flip writes here
+// and publishes on the control bus, so every shard activates/kills it instantly
+// with no restart. Absent row = the code's registered default.
+
+model FeatureFlag {
+  name      String   @id
+  enabled   Boolean
+  updatedAt DateTime @updatedAt
+}
+
 // ── Live translations (hot-reloadable, no restart) ───────────────────────────
 // Build-time JSON files are the baseline; these rows overlay/extend them at
 // runtime. A write publishes on the Redis control bus so every shard refreshes

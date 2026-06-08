@@ -11,6 +11,26 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (scaling: dormant-by-default feature flags + kill-switches)
+
+**changed**: First piece of the 100K->1M scaling plan (approved: hybrid clustering, blue-green deploys, AI
+drafts + review, dormant-by-default flags). Built the **global feature-flag framework** on the control bus
+so features ship dormant in a release and activate live, and any feature is killable in seconds fleet-wide
+with no restart. New `src/services/featureFlags.ts`: `registerFeature(name, default=false)` (declare at
+module import), `isFeatureLive(name)` (override -> default -> false), `setFeatureLive` (persist + apply +
+publish on `rostra:flags`), `loadFeatureFlags`/`subscribeFeatureFlags` (wired into `BotClient.init`). New
+`FeatureFlag` model. New owner-only **`owner` module**: `/owner feature list|set <name> <enabled>` (gated on
+`config.discord.ownerIds`, autocompletes declared flags). Demonstrated as a real kill-switch: the `ai`
+module registers `ai` (default on) and `/ask` checks `isFeatureLive("ai")`, so a degrading upstream can be
+cut fleet-wide instantly (`/owner feature set ai off`). Pure flag logic tested.
+
+**files touched**: new `src/services/{featureFlags,featureFlags.test}.ts`, `src/modules/owner/index.ts`;
+`src/modules/ai/index.ts`, `src/client/BotClient.ts`, `prisma/schema.prisma` + `0_init`, CLAUDE.md.
+
+**verified**: typecheck clean; flag tests 5/5; full suite 223/223; biome clean; baseline has `FeatureFlag`.
+Next scaling pieces: i18n:draft + ICU/placeholder validator, hybrid clustering (HybridIpc), leader-elected
+manager jobs + blue-green health/runbook.
+
 ### 2026-06-08 (zero-restart hot reload: control bus + live translation overlay)
 
 **changed**: Made translations (and any future "reload this" signal) hot-loadable across the whole shard

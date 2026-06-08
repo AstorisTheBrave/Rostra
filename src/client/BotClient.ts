@@ -66,6 +66,11 @@ export class BotClient extends Client {
 		subscribeLocaleReload();
 		await loadLiveLocales();
 
+		// Load global feature flags and subscribe to live flips/kill-switches.
+		const { loadFeatureFlags, subscribeFeatureFlags } = await import("@/services/featureFlags.ts");
+		subscribeFeatureFlags();
+		await loadFeatureFlags();
+
 		log.info({ modules: modules.length, commands: this.commands.size }, "client initialized");
 	}
 }

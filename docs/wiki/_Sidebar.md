@@ -1,4 +1,11 @@
-### Tutorials
+### Host the bot
+- [[Creating Your Bot]]
+- [[Self-Hosting]]
+- [[Hosting with Docker]]
+- [[Hosting on a VPS]]
+- [[Environment Variables]]
+
+### Using the bot
 - [[Home]]
 - [[Setup Guide]]
 - [[Moderation and Security]]

@@ -4,6 +4,14 @@ Rostra is an all in one, open source Discord bot built to scale to millions of u
 moderation, security, tickets, modmail, economy, leveling, giveaways, music, starboard, and much more, with
 a clean Components V2 interface and full localization.
 
+## Host the bot (no experience needed)
+
+- [[Creating Your Bot]] - make the Discord application and get your token
+- [[Self-Hosting]] - pick how to run it, explained for beginners
+- [[Hosting with Docker]] - the easy one command way
+- [[Hosting on a VPS]] - keep it online 24/7 on a cheap cloud server
+- [[Environment Variables]] - every setting in plain language
+
 ## New here? Start with the tutorials
 
 - [[Setup Guide]] - get your server running in a few minutes

@@ -123,10 +123,13 @@ an in-memory fallback is used for cache and queues.
 ## Docker
 
 ```bash
-docker compose up --build
+# set DISCORD_TOKEN and DISCORD_CLIENT_ID in a .env file first
+docker compose up -d --build
 ```
 
-Brings up the bot, PostgreSQL, pgBouncer (transaction pooling), and Redis.
+Brings up the bot, PostgreSQL, pgBouncer (transaction pooling), and Redis. The container applies database
+migrations on start and the bot auto-registers its slash commands, so this is turnkey. Not a developer? The
+beginner friendly walkthrough is in the wiki: [Self-Hosting](https://github.com/AstorisTheBrave/Rostra/wiki/Self-Hosting).
 
 A prebuilt image is published to the GitHub Container Registry on every push to `main` (tagged `latest`,
 `main`, and the commit sha) and, on a release, the version tags:

@@ -1,5 +1,9 @@
 # Getting Started
 
+This page is the run from source path, for developers comfortable with Node.js. If you just want to run the
+bot and are not a developer, use the beginner friendly [[Self-Hosting]] guide instead, which uses Docker and
+sets up the database for you.
+
 ## Requirements
 
 - Node.js 20 or newer

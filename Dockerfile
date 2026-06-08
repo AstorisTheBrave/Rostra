@@ -21,10 +21,13 @@ RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholde
 # App source
 COPY . .
 
+# Startup script: run migrations, then start. Makes `docker compose up` turnkey.
+RUN chmod +x docker-entrypoint.sh
+
 ENV NODE_ENV=production
 
 # Health endpoint port
 EXPOSE 3000
 
-# Manager process spawns shards
-CMD ["npm", "start"]
+# Apply migrations, then the manager process spawns shards.
+ENTRYPOINT ["./docker-entrypoint.sh"]

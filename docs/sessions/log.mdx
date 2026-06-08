@@ -11,6 +11,26 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (ops: CI fix, security review, wiki + discussions)
+
+**changed**: Repo health pass. (1) **CI was red on main**: the undercover guard caught `gpt-4o-mini` and
+`OpenAI-compatible` in `i18n-draft.ts`; replaced with a required `TRANSLATE_MODEL` (no model-name default)
+and neutral "chat-completions provider" wording. CI green again (667582a). (2) **Security**: `npm audit` 0;
+Dependabot alerts 0; two medium CodeQL alerts (`js/file-access-to-http`, `js/http-to-file-access`) in the
+`i18n-draft` dev tool dismissed as won't-fix with justification (controlled allowlist paths, dev-only
+tooling, operator-configured endpoint - the file/HTTP dataflow is the tool's purpose). 0 open alerts. (3)
+**PRs**: 3 Dependabot CI-action bumps (codeql-action 3->4, setup-node 4->6, metadata-action 5->6) refreshed
+with `@dependabot rebase` for the maintainer to merge; release-please `0.1.2` PR left for a release-timing
+decision. (4) **Discussions**: enabled; created the Welcome announcement (#20). (5) **Wiki**: enabled but
+needs a one-time UI seed before git push works (no API for the first page), so the 7 pages live in
+`docs/wiki/` (Home, Getting-Started, Commands, Localization, Hybrid-Sharding, Feature-Flags, Deploying) with
+`_PUBLISH.md` giving the one-time publish steps. No em dashes in any user-facing text.
+
+**files touched**: `src/scripts/i18n-draft.ts`, `docs/sessions/log.mdx`, new `docs/wiki/*.md`.
+
+**verified**: CI green; undercover guard passes locally; 0 security alerts; typecheck/lint/tests unaffected
+(228 tests).
+
 ### 2026-06-08 (scaling: hybrid clustering wired behind SHARDING_MODE=hybrid)
 
 **changed**: Wired `discord-hybrid-sharding` (^3.0.1, 0 vulns) so the fleet can scale across many cluster

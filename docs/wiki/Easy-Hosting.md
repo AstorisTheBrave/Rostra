@@ -28,16 +28,16 @@ The host fills in `DATABASE_URL` and `REDIS_URL` for you when you add its Postgr
 
 | Host | Best for | Roughly | Notes |
 | --- | --- | --- | --- |
-| Railway | the easiest start | about 5 USD a month | Built in Postgres and Redis with one click. Deploys straight from GitHub. |
-| PebbleHost | cheap and supported | a few USD a month | Friendly support, made for bot and game hosting. |
-| Fly.io | a free leaning option | 0 to a few USD | A bit more technical, needs their command line tool. |
+| [Railway](https://railway.com?referralCode=rostra) | the easiest start | about 5 USD a month | Built in Postgres and Redis with one click. Deploys straight from GitHub. |
+| [PebbleHost](https://pebblehost.com) | cheap and supported | a few USD a month | Friendly support, made for bot and game hosting. |
+| [Fly.io](https://fly.io) | a free leaning option | 0 to a few USD | A bit more technical, needs their command line tool. |
 
 For most people with a handful of servers, Railway is the simplest. PebbleHost is the budget pick with real
 human support. Fly.io has a free leaning tier but expects a little more comfort with tools.
 
 ## Railway, step by step
 
-1. Sign in at Railway with your GitHub account.
+1. Sign in at [Railway](https://railway.com?referralCode=rostra) with your GitHub account.
 2. Click **New Project**, then **Deploy from GitHub repo**, and choose your fork of Rostra. If you have not
    forked it yet, fork `https://github.com/AstorisTheBrave/Rostra` on GitHub first.
 3. In the project, click **New**, then **Database**, and add **PostgreSQL**. Repeat and add **Redis**.
@@ -52,7 +52,7 @@ To update later, push to your GitHub fork (or click **Redeploy**) and Railway re
 
 ## PebbleHost, step by step
 
-1. Buy a **Bot Hosting** plan at PebbleHost and open the client area panel.
+1. Buy a **Bot Hosting** plan at [PebbleHost](https://pebblehost.com) and open the client area panel.
 2. Upload Rostra, or point the panel at the GitHub repo, and set the start command the panel asks for (a
    Node start). PebbleHost docs walk through both.
 3. Add a **PostgreSQL** database and a **Redis** instance from the panel, then copy their connection URLs
@@ -68,11 +68,11 @@ Easy hosting on a single instance comfortably covers a personal bot in 10 to 20 
 that, or you want native sharding across machines for hundreds of thousands of servers, move to the
 technical track: [[Hosting Rostra]] and [[Hybrid Sharding]].
 
-## A note on the referral links above
+## A note on the links above
 
-When you use the host links on this page, the bot maintainer may earn a small referral credit at no extra
-cost to you. It never changes your price. If you would rather not, just search the host name and sign up
-directly. Either way the setup steps are identical.
+Some of the host links on this page (currently Railway) carry a referral code, so the bot maintainer may earn
+a small credit at no extra cost to you. It never changes your price. Prefer not to? Search the host name and
+sign up directly. Either way the setup steps are identical.
 
 ## Next steps
 

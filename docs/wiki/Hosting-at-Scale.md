@@ -34,9 +34,9 @@ sharded processes and your own databases.
 
 | Provider | Why | Roughly |
 | --- | --- | --- |
-| Hetzner | best raw value, strong EU network | a 2 vCPU / 4 GB box around 4 to 5 USD a month |
-| DigitalOcean | broad managed services, great docs | a comparable box around 24 USD a month |
-| Vultr | many regions, simple pricing | between the two |
+| [Hetzner](https://www.hetzner.com) | best raw value, strong EU network | a 2 vCPU / 4 GB box around 4 to 5 USD a month |
+| [DigitalOcean](https://www.digitalocean.com) | broad managed services, great docs | a comparable box around 24 USD a month |
+| [Vultr](https://www.vultr.com/?ref=9905575) | many regions, simple pricing | between the two |
 
 Hetzner is roughly half the price of US providers for the same specs, which matters when you scale up. The
 trade off is that Hetzner has no managed database service, so you either run Postgres and Redis in Docker on
@@ -50,10 +50,10 @@ Split databases onto their own machines only when one box is no longer enough.
 
 - Self run (cheapest): Postgres and Redis in the same Docker stack on your VPS. Good until you need
   redundancy or you are saturating one machine.
-- Managed Postgres: Neon has a generous free tier and scales up cleanly. Good when you want backups and
-  scaling handled for you.
-- Managed Redis: Upstash has a free tier and pay as you go pricing. Good when you do not want to operate
-  Redis yourself.
+- Managed Postgres: [Neon](https://neon.com) has a generous free tier and scales up cleanly. Good when you
+  want backups and scaling handled for you.
+- Managed Redis: [Upstash](https://upstash.com) has a free tier and pay as you go pricing. Good when you do
+  not want to operate Redis yourself.
 
 A common growth path: start all in one on Hetzner, then move Postgres to a managed provider first (it is the
 stateful part you least want to babysit), and keep Redis on the box or on Upstash.
@@ -75,11 +75,11 @@ Ship risky changes dormant and flip them per server with [[Feature Flags]], and 
 - Growth, databases split off: VPS plus managed Postgres and Redis, low tens of dollars a month.
 - Large fleet: several cluster machines plus a sized managed Postgres, scaling with your guild count.
 
-## A note on the referral links above
+## A note on the links above
 
-When you sign up through the provider links on this page, the bot maintainer may earn a referral credit at
-no extra cost to you, and it never changes your price. Prefer to skip it? Search the provider name and sign
-up directly. The instructions are the same.
+Some of the provider links on this page (currently Vultr) carry a referral code, so the bot maintainer may
+earn a credit at no extra cost to you, and it never changes your price. Prefer to skip it? Search the
+provider name and sign up directly. The instructions are the same.
 
 ## Next steps
 

@@ -1,0 +1,10 @@
+name: "Rostra CodeQL config"
+
+# Exclude operator-run dev/ops tooling from security analysis. Scripts in
+# src/scripts (deploy commands, emoji upload, i18n draft/push/validate, lavalink
+# check) are run manually by maintainers, not part of the bot runtime that
+# processes untrusted Discord input, so their file<->network dataflow (e.g. the
+# i18n draft tool sending source strings to a configured translation provider)
+# is intended and not an attack surface.
+paths-ignore:
+  - src/scripts

@@ -64,7 +64,7 @@ pure `src/i18n/validate.ts` (`validateTranslation`: every translated string must
 the same simple `{placeholder}` set as English; `simpleArgs`) + `npm run i18n:validate` CI gate that fails
 on broken translations (missing keys are fine - English fallback). New `npm run i18n:draft`
 (`src/scripts/i18n-draft.ts`): machine-translates every missing key for all 16 langs via a configurable
-OpenAI-compatible provider (`TRANSLATE_*` env added to `config.ts`, neutral names), glossary- and
+chat-completions provider (`TRANSLATE_*` env added to `config.ts`, neutral names), glossary- and
 ICU-aware, **validates each draft before writing**, never overwrites existing translations, and records
 drafted keys in `locales/<code>/_drafts.json` for review. Flow: `i18n:draft` -> review -> `i18n:bundle` ->
 `i18n:push` (live, no restart). Ran the validator on all current translations: clean.

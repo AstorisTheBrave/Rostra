@@ -9,7 +9,7 @@ import { getLogger } from "@/services/logger.ts";
 
 /**
  * Generate machine-translation **drafts** for every missing key in every language
- * via a configurable OpenAI-compatible provider (`TRANSLATE_*` env). Drafts are
+ * via a configurable chat-completions provider (`TRANSLATE_*` env). Drafts are
  * validated (ICU compiles, placeholders preserved) before being written, and the
  * keys are recorded in `locales/<code>/_drafts.json` so the review workflow
  * (Crowdin/Weblate) knows what still needs a human. Existing translations are
@@ -53,7 +53,9 @@ async function translateBatch(
 	batch: Record<string, string>,
 ): Promise<Record<string, string>> {
 	const { apiKey, baseUrl, model } = config.translate;
-	if (!apiKey || !baseUrl) throw new Error("TRANSLATE_API_KEY and TRANSLATE_BASE_URL are required");
+	if (!apiKey || !baseUrl || !model) {
+		throw new Error("TRANSLATE_API_KEY, TRANSLATE_BASE_URL and TRANSLATE_MODEL are required");
+	}
 	const system = [
 		`You are a professional translator localizing a Discord bot into ${localeName}.`,
 		"Return ONLY a JSON object mapping each input key to its translation.",
@@ -66,7 +68,7 @@ async function translateBatch(
 		method: "POST",
 		headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
 		body: JSON.stringify({
-			model: model ?? "gpt-4o-mini",
+			model,
 			temperature: 0.2,
 			response_format: { type: "json_object" },
 			messages: [

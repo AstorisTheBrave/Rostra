@@ -9,16 +9,31 @@ a clean Components V2 interface and full localization.
 - [[Setup Guide]] - get your server running in a few minutes
 - [[Moderation and Security]] - antinuke, anti raid, automod, verification, logging
 - [[Engagement]] - leveling, economy, starboard, welcome, giveaways, polls
+- [[Tickets and Modmail]] - support channels and DM to staff
+- [[Roles and Self-Roles]] - reaction roles, voice roles, vanity roles, bulk role
+- [[Feeds and Notifications]] - YouTube, Twitch, Reddit, RSS
+- [[Music]] - play audio in voice
+- [[Utility and Extras]] - tags, reminders, birthdays, profiles, and more
+- [[Starboard]] - highlight the best messages, in depth
 - [[FAQ]] - common questions and troubleshooting
 
-## Reference and operations
+## Reference
 
-- [[Getting Started]] - run Rostra locally or self host it
 - [[Commands]] - every command at a glance
+- [[Permissions and Intents]] - what each feature needs
 - [[Localization]] - 16 languages, per server and per user, changeable live
+- [[Getting Started]] - run Rostra locally or self host it
+
+## Operations
+
 - [[Hybrid Sharding]] - scaling across clusters and machines
 - [[Feature Flags]] - ship features dormant and flip them on or off with no restart
 - [[Deploying]] - blue green and rolling deploys
+
+## Contributing
+
+- [[Translating Rostra]] - add or improve a language, no code needed
+- [[Contributing]] - project map and how to help
 
 ## Highlights
 

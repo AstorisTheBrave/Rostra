@@ -37,6 +37,7 @@
 		"@top-gg/sdk": "^3.1.6",
 		"bad-words": "^4.0.0",
 		"bullmq": "^5.78.0",
+		"discord-hybrid-sharding": "^3.0.1",
 		"discord.js": "^14.16.3",
 		"fastify": "^5.1.0",
 		"intl-messageformat": "^11.2.8",

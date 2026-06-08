@@ -11,6 +11,30 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (scaling: hybrid clustering wired behind SHARDING_MODE=hybrid)
+
+**changed**: Wired `discord-hybrid-sharding` (^3.0.1, 0 vulns) so the fleet can scale across many cluster
+processes/hosts, opt-in via `SHARDING_MODE=hybrid` (default stays native; no feature-code changes). Real
+`HybridIpc` in `src/cluster/ipc.ts` over the `ClusterClient` bridge (cross-cluster `broadcastEval`);
+`createIpc` picks it by mode. `BotClient` sets `shards`/`shardCount` from `getInfo()` and attaches a
+`ClusterClient` in hybrid mode. New `src/cluster/hybrid.ts` (`runHybridManager`: ClusterManager spawn + web
+server + autopost + command sync + leader-gated crons); `cluster.ts` delegates to it when hybrid. New
+cross-cluster **identify queue** `src/services/identify.ts` (Redis lock serialising cluster logins across
+hosts to respect Discord's identify concurrency; released on `ready`), gated in `bot.ts` for hybrid. New
+config `SHARDS_PER_CLUSTER`. README gained a Sharding-and-clustering section; new tutorial
+`docs/infrastructure/hybrid-sharding.mdx` (setup, env vars, single vs multi host, live-change vs deploy).
+`.env.example` updated. No em dashes in the user-facing docs.
+
+**files touched**: `src/cluster/{ipc,hybrid}.ts`, `src/cluster.ts`, `src/client/BotClient.ts`, `src/bot.ts`,
+`src/services/identify.ts`, `src/config.ts`, `package.json` (+ dep), README, `.env.example`,
+`docs/infrastructure/hybrid-sharding.mdx`.
+
+**verified**: typecheck clean; full suite 228/228 (native path unchanged, default); biome clean. Per the
+plan, the hybrid path is wired + type-checked but needs a real multi-process/multi-host deploy to
+smoke-test before production (same caveat as the Lavalink music path). The whole scaling plan is now built:
+control bus, live i18n overlay, feature flags/kill-switches, leader election, translate-everything pipeline,
+and hybrid clustering.
+
 ### 2026-06-08 (scaling: leader election for single-instance jobs + scaling runbook)
 
 **changed**: New `src/services/leader.ts` - Redis leader election so the manager-process crons (feeds,

@@ -92,7 +92,8 @@ sharded application - built to scale to millions of users.
 - Ask Rostra questions in natural language
 
 ### Built for scale
-- Native sharding, Redis-backed leaderboards & caching
+- Native sharding by default, optional hybrid clustering for very large fleets
+- Redis-backed leaderboards, caching, and a control bus for zero-restart changes
 - Components V2 UI throughout (no legacy embeds)
 
 </td></tr>
@@ -144,15 +145,29 @@ All settings come from environment variables (see [`.env.example`](.env.example)
 | `DATABASE_URL` | PostgreSQL connection (required) |
 | `REDIS_URL` | shared cache, leaderboards, job queues |
 | `OWNER_IDS`, `DEV_GUILD_ID` | owner commands + dev command registration |
-| `TOTAL_SHARDS`, `SHARDING_MODE` | fixed shard count / `native` \| `hybrid` |
+| `TOTAL_SHARDS`, `SHARDING_MODE` | total shard count / `native` (default) or `hybrid` |
+| `SHARDS_PER_CLUSTER` | hybrid clustering only: shards per cluster process |
 | `LAVALINK_NODES` | JSON array of music nodes (multi-node failover) |
 | `TOPGG_TOKEN`, `TOPGG_WEBHOOK_AUTH` | bot-list stats + vote webhook |
 | `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | assistant backend (a standard chat-completions endpoint) |
+| `TRANSLATE_API_KEY`, `TRANSLATE_BASE_URL`, `TRANSLATE_MODEL` | optional, for `npm run i18n:draft` translation drafts |
 
 ### Required intents
 
 Enable these for the bot in the Discord Developer Portal: Server Members, Message Content, and Presence
 (Presence is only needed for vanity status-roles).
+
+### Sharding and clustering
+
+Rostra runs in **native sharding** by default, which is all most bots need. As you grow past what a single
+host can hold, switch to **hybrid clustering** (several cluster processes, optionally across machines) by
+setting `SHARDING_MODE=hybrid` with `REDIS_URL` configured. Everything else stays the same. Full setup
+guide: [docs/infrastructure/hybrid-sharding.mdx](docs/infrastructure/hybrid-sharding.mdx).
+
+Most changes ship without a full restart: translations (`npm run i18n:push`), feature flags and
+kill-switches (`/owner feature set ...`), and per-server settings apply live across every cluster over the
+Redis control bus. Code changes use a blue-green or rolling deploy (see
+[docs/infrastructure/scaling.mdx](docs/infrastructure/scaling.mdx)).
 
 ## Commands
 

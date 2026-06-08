@@ -1,19 +1,36 @@
-import { Client, Collection, GatewayIntentBits, Partials } from "discord.js";
+import { Client, type ClientOptions, Collection, GatewayIntentBits, Partials } from "discord.js";
+import { ClusterClient, getInfo } from "discord-hybrid-sharding";
 import { createIpc, type Ipc } from "@/cluster/ipc.ts";
+import { config } from "@/config.ts";
 import { getLogger } from "@/services/logger.ts";
 import type { ComponentHandler, SlashCommand } from "@/types/module.ts";
 
 const log = getLogger("client");
+
+/**
+ * Shard options. In hybrid mode the cluster manager (discord-hybrid-sharding)
+ * tells this process which shard ids it owns via `getInfo()`; in native mode the
+ * discord.js ShardingManager sets SHARD_LIST/SHARD_COUNT and we leave the
+ * defaults so discord.js reads them.
+ */
+function shardOptions(): Partial<ClientOptions> {
+	if (config.sharding.mode !== "hybrid") return {};
+	const info = getInfo();
+	return { shards: info.SHARD_LIST, shardCount: info.TOTAL_SHARDS };
+}
 
 export class BotClient extends Client {
 	readonly commands = new Collection<string, SlashCommand>();
 	readonly components: ComponentHandler[] = [];
 	/** Per-(command,user) cooldown timestamps for the in-memory fallback path. */
 	readonly cooldowns = new Collection<string, number>();
+	/** Present only in hybrid mode: the cluster bridge for cross-cluster broadcastEval. */
+	readonly cluster?: ClusterClient<Client>;
 	#ipc?: Ipc;
 
 	constructor() {
 		super({
+			...shardOptions(),
 			intents: [
 				GatewayIntentBits.Guilds,
 				GatewayIntentBits.GuildMembers,
@@ -36,6 +53,10 @@ export class BotClient extends Client {
 				Partials.Reaction,
 			],
 		});
+		// Attach the cluster bridge so cross-cluster broadcastEval works in hybrid mode.
+		if (config.sharding.mode === "hybrid") {
+			this.cluster = new ClusterClient(this);
+		}
 	}
 
 	get ipc(): Ipc {

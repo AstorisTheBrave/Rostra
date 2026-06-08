@@ -5,6 +5,7 @@ import { installShutdownHandlers, registerShutdown } from "@/lifecycle/shutdown.
 import { closeBus } from "@/services/bus.ts";
 import { disconnectCache } from "@/services/cache.ts";
 import { disconnectPrisma } from "@/services/database.ts";
+import { acquireIdentifySlot, releaseIdentifySlot } from "@/services/identify.ts";
 import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("bot");
@@ -22,6 +23,13 @@ async function main(): Promise<void> {
 	registerShutdown(disconnectCache);
 	registerShutdown(disconnectPrisma);
 	installShutdownHandlers();
+
+	// Hybrid clustering: serialise cluster logins fleet-wide to respect Discord's
+	// identify concurrency, releasing the slot once this cluster is connected.
+	if (config.sharding.mode === "hybrid") {
+		await acquireIdentifySlot();
+		client.once("ready", () => void releaseIdentifySlot());
+	}
 
 	await client.login(config.discord.token);
 	log.info("shard logged in");

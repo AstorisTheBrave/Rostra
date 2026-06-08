@@ -39,6 +39,14 @@ async function totalGuilds(): Promise<number> {
 }
 
 async function main(): Promise<void> {
+	// Hybrid clustering opt-in: delegate to the cluster manager and skip the native
+	// ShardingManager path entirely. Default stays native.
+	if (config.sharding.mode === "hybrid") {
+		const { runHybridManager } = await import("@/cluster/hybrid.ts");
+		await runHybridManager();
+		return;
+	}
+
 	// Auto-register slash commands when their definitions changed (hash-gated).
 	// Runs once in the manager before shards spawn; failure never blocks boot.
 	await syncCommands().catch((err) => log.error({ err }, "command sync failed (continuing)"));

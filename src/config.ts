@@ -33,6 +33,8 @@ const schema = z.object({
 	// SHARD_COUNT env var that the ShardingManager sets on spawned shard processes.
 	TOTAL_SHARDS: z.coerce.number().int().positive().optional(),
 	SHARDING_MODE: z.enum(["native", "hybrid"]).default("native"),
+	// Hybrid clustering only: how many shards each cluster process runs (omit = lib default).
+	SHARDS_PER_CLUSTER: z.coerce.number().int().positive().optional(),
 	AI_API_KEY: z.string().optional(),
 	AI_BASE_URL: z.string().optional(),
 	AI_MODEL: z.string().optional(),
@@ -58,7 +60,7 @@ export type Config = {
 	database: { url: string };
 	redis: { url?: string };
 	web: { port: number; host: string };
-	sharding: { count?: number; mode: "native" | "hybrid" };
+	sharding: { count?: number; mode: "native" | "hybrid"; shardsPerCluster?: number };
 	ai: { apiKey?: string; baseUrl?: string; model?: string };
 	translate: { apiKey?: string; baseUrl?: string; model?: string };
 	lavalink: {
@@ -94,7 +96,11 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 		database: { url: e.DATABASE_URL },
 		redis: { url: e.REDIS_URL },
 		web: { port: e.PORT, host: e.HOST },
-		sharding: { count: e.TOTAL_SHARDS, mode: e.SHARDING_MODE },
+		sharding: {
+			count: e.TOTAL_SHARDS,
+			mode: e.SHARDING_MODE,
+			shardsPerCluster: e.SHARDS_PER_CLUSTER,
+		},
 		ai: { apiKey: e.AI_API_KEY, baseUrl: e.AI_BASE_URL, model: e.AI_MODEL },
 		translate: {
 			apiKey: e.TRANSLATE_API_KEY,

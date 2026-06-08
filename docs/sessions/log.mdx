@@ -11,6 +11,22 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (wiki: two-track restructure + managed hosting + referrals)
+
+**changed**: Reorganized the wiki into two audience tracks and added managed hosting coverage. (1) New hub
+pages [[Using Rostra]] (no-code user track) and [[Hosting Rostra]] (technical operator/dev track) act as
+tutorial indexes. (2) New [[Easy Hosting]] page: click-and-go managed hosting (Railway, PebbleHost, Fly.io)
+with real per-host steps and referral note. (3) New [[Hosting at Scale]] page: native sharding on a VPS
+(Hetzner/DigitalOcean/Vultr) with self-run or managed Postgres/Redis (Neon/Upstash), tied to `SHARDING_MODE`
+/ `TOTAL_SHARDS` / `SHARDS_PER_CLUSTER`. (4) Rewrote `Home.md` to a "pick your path" fork and regrouped
+`_Sidebar.md` (Start / Using the bot / Hosting the bot / Operations / Contributing). All command names in new
+pages validated against real `.setName()` in `src/modules/*` (e.g. `/setup wizard` confirmed). No em dashes.
+Referral links left as a maintainer task: operator fetches own codes (Railway 15%, PebbleHost 70% first
+invoice, DO/Vultr CPA; Hetzner program ends 31 Aug 2026; Fly.io has none).
+
+**files touched**: `docs/wiki/{Home,_Sidebar,Using-Rostra,Hosting-Rostra,Easy-Hosting,Hosting-at-Scale}.md`,
+`docs/sessions/log.mdx`.
+
 ### 2026-06-08 (ops: CI fix, security review, wiki + discussions)
 
 **changed**: Repo health pass. (1) **CI was red on main**: the undercover guard caught `gpt-4o-mini` and

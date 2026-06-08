@@ -1,13 +1,12 @@
-### Host the bot
-- [[Creating Your Bot]]
-- [[Self-Hosting]]
-- [[Hosting with Docker]]
-- [[Hosting on a VPS]]
-- [[Environment Variables]]
+### Start
+- [[Home]]
+- [[Using Rostra]]
+- [[Hosting Rostra]]
+- [[Easy Hosting]]
 
 ### Using the bot
-- [[Home]]
 - [[Setup Guide]]
+- [[Commands]]
 - [[Moderation and Security]]
 - [[Engagement]]
 - [[Tickets and Modmail]]
@@ -16,12 +15,18 @@
 - [[Music]]
 - [[Utility and Extras]]
 - [[Starboard]]
+- [[Localization]]
 - [[FAQ]]
 
-### Reference
-- [[Commands]]
+### Hosting the bot
+- [[Easy Hosting]]
+- [[Creating Your Bot]]
+- [[Self-Hosting]]
+- [[Hosting with Docker]]
+- [[Hosting on a VPS]]
+- [[Hosting at Scale]]
+- [[Environment Variables]]
 - [[Permissions and Intents]]
-- [[Localization]]
 - [[Getting Started]]
 
 ### Operations

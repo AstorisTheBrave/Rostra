@@ -7,6 +7,7 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { isOptedOut } from "@/services/localization.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
 import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
@@ -89,6 +90,9 @@ async function execute({
 		if (opponent.bot || opponent.id === interaction.user.id) {
 			return void reply.error(interaction, t("games:ttt.badOpponent"));
 		}
+		if (await isOptedOut(opponent.id, "fun")) {
+			return void reply.error(interaction, t("games:optedOut", { user: opponent.username }));
+		}
 		const token = randomUUID().slice(0, 8);
 		const state = startTtt(token, interaction.user.id, opponent.id);
 		await interaction.reply({
@@ -167,6 +171,7 @@ const games: BotModule = {
 	components: [gameComponent],
 	i18n: {
 		"ttt.badOpponent": "Pick a real opponent (not yourself or a bot).",
+		optedOut: "**{user}** has opted out of fun and social commands.",
 		"ttt.over": "That game has ended.",
 		"ttt.notYourTurn": "It's not your turn.",
 		"rps.prompt": "# ✊ Rock-Paper-Scissors\nPick your move:",

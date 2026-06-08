@@ -11,6 +11,26 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (localization - user surfaces: /preferences, /setup language, /help switch, opt-outs)
+
+**changed**: The user-facing half of the localization platform. New **`preferences` module**: `/preferences
+language <lang>` (16 langs + Auto), `/preferences feature <name> <on|off>` (opt in/out of fun /
+dmNotifications / profilePublic / reputationPublic / matchmaking / achievementNotifications), `/preferences
+view`; DM-capable, not guild-gated. **`/setup language <lang>`**: converted `/setup` to subcommands
+(`wizard` = the old panel, `language` = guild language via `setGuildLocale`). **`/help` live language
+switch**: added a language select to the help panel; choosing one calls `setUserLocale` and re-renders the
+panel in the new language (within `runWithLocale`). **Fun opt-out enforcement**: `/roleplay` (ship + all
+targeted gif actions) and `/games tictactoe` now refuse when the **target** has opted out of `fun`. Added
+`preferences` to the `/help` utility category + README.
+
+**files touched**: new `src/modules/preferences/index.ts`; `src/modules/setup/index.ts`,
+`src/modules/core/{index,categories}.ts`, `src/modules/roleplay/index.ts`, `src/modules/games/index.ts`,
+README.
+
+**verified**: typecheck clean; full suite 214/214; biome clean. Note: `/setup` is now `/setup wizard` +
+`/setup language` (subcommand split). Still to come: translated locale files (wave 1) + native Discord
+command-metadata localization.
+
 ### 2026-06-08 (localization platform - core: ICU engine + service + pipeline)
 
 **changed**: Landed the core of the localization platform (per the approved design plan; decisions: ICU +

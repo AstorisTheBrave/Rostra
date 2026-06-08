@@ -1,7 +1,9 @@
 import { MessageFlags, SlashCommandBuilder } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { defineEvent } from "@/client/defineEvent.ts";
-import { t } from "@/i18n/index.ts";
+import { runWithLocale, t } from "@/i18n/index.ts";
+import { SUPPORTED_LOCALES } from "@/i18n/locales.ts";
+import { resolveLocale, setUserLocale } from "@/services/localization.ts";
 import { recoverScheduled } from "@/services/scheduler.ts";
 import type { BotModule, ComponentHandler, RegisteredEvent, SlashCommand } from "@/types/module.ts";
 import {
@@ -41,6 +43,20 @@ function categorySelect(selectedId?: string) {
 	);
 }
 
+function languageSelect() {
+	return stringSelect(
+		"help:lang",
+		[
+			{ label: t("core:help.langAuto"), value: "auto" },
+			...Object.values(SUPPORTED_LOCALES).map((l) => ({
+				label: `${l.native} (${l.name})`.slice(0, 100),
+				value: l.code,
+			})),
+		],
+		{ placeholder: t("core:help.langPlaceholder") },
+	);
+}
+
 function helpOverview(client: BotClient) {
 	const lines = HELP_CATEGORIES.map(
 		(c) => `${emoji(c.emoji)} **${c.label}** - ${c.description}`,
@@ -58,6 +74,7 @@ function helpOverview(client: BotClient) {
 			text(lines),
 		]),
 		categorySelect(),
+		languageSelect(),
 	];
 }
 
@@ -160,12 +177,29 @@ const shards: SlashCommand = {
 
 const helpComponent: ComponentHandler = {
 	prefix: "help",
-	execute: async (interaction, _args, client) => {
+	execute: async (interaction, args, client) => {
 		if (!interaction.isStringSelectMenu()) return;
-		const id = interaction.values[0];
-		if (!id) return;
+		const value = interaction.values[0];
+		if (!value) return;
+
+		if (args[0] === "lang") {
+			await setUserLocale(interaction.user.id, value === "auto" ? null : value);
+			const newLocale = await resolveLocale({
+				userId: interaction.user.id,
+				guildId: interaction.guildId ?? undefined,
+				interactionLocale: interaction.locale,
+				scope: "user",
+			});
+			return void runWithLocale(newLocale, () =>
+				interaction.update({
+					components: helpOverview(client),
+					flags: MessageFlags.IsComponentsV2,
+				}),
+			);
+		}
+
 		await interaction.update({
-			components: helpCategory(client, id),
+			components: helpCategory(client, value),
 			flags: MessageFlags.IsComponentsV2,
 		});
 	},
@@ -203,6 +237,8 @@ const core: BotModule = {
 			"**{commands}** commands across **{categories}** categories. Pick one below to see its commands.",
 		"help.placeholder": "Select a category",
 		"help.empty": "No commands here yet.",
+		"help.langPlaceholder": "🌐 Change your language",
+		"help.langAuto": "Auto (follow the server)",
 		"stats.title": "Rostra Statistics",
 		"stats.servers": "Servers",
 		"stats.users": "Users",

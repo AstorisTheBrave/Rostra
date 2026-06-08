@@ -69,6 +69,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
 		emoji: "utility",
 		commands: [
 			"util",
+			"preferences",
 			"afk",
 			"snipe",
 			"steal",

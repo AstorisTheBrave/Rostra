@@ -9,6 +9,8 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { SUPPORTED_LOCALES } from "@/i18n/locales.ts";
+import { setGuildLocale } from "@/services/localization.ts";
 import { getTenant, isFeatureEnabled, setFeatures, updateTenant } from "@/services/tenant.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
 import {
@@ -86,6 +88,13 @@ async function execute({
 	if (!interaction.guildId) return void reply.error(interaction, t("common:error.guildOnly"));
 	if (!isAdmin(interaction))
 		return void reply.error(interaction, t("common:error.missingPermissions"));
+
+	if (interaction.options.getSubcommand() === "language") {
+		const code = interaction.options.getString("language", true);
+		await setGuildLocale(interaction.guildId, code);
+		const label = SUPPORTED_LOCALES[code]?.native ?? code;
+		return void reply.success(interaction, t("setup:languageSet", { language: label }), true);
+	}
 	const tenant = await getTenant(interaction.guildId);
 	await reply.components(interaction, renderPanel(tenant), true);
 }
@@ -123,11 +132,34 @@ const setupComponent: ComponentHandler = {
 	},
 };
 
-const setupCommand: SlashCommand = {
-	data: new SlashCommandBuilder()
+function buildData(): SlashCommandBuilder {
+	const cmd = new SlashCommandBuilder()
 		.setName("setup")
 		.setDescription("Set up Rostra for this server")
-		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+	cmd.addSubcommand((s) => s.setName("wizard").setDescription("Open the setup panel"));
+	cmd.addSubcommand((s) =>
+		s
+			.setName("language")
+			.setDescription("Set this server's language")
+			.addStringOption((o) =>
+				o
+					.setName("language")
+					.setDescription("Server language")
+					.setRequired(true)
+					.addChoices(
+						...Object.values(SUPPORTED_LOCALES).map((l) => ({
+							name: `${l.native} (${l.name})`.slice(0, 100),
+							value: l.code,
+						})),
+					),
+			),
+	);
+	return cmd;
+}
+
+const setupCommand: SlashCommand = {
+	data: buildData(),
 	guildOnly: true,
 	execute,
 };
@@ -145,6 +177,7 @@ const setup: BotModule = {
 		logSet: "Log channel: {channel}",
 		logNone: "No log channel set yet.",
 		logFailed: "I couldn't create a channel - check my Manage Channels permission.",
+		languageSet: "🌐 Server language set to **{language}**. Bot messages here now use it.",
 	},
 };
 

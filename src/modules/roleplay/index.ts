@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { isOptedOut } from "@/services/localization.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, gallery, reply, text } from "@/ui";
 import {
@@ -47,6 +48,11 @@ async function execute({
 	const action = interaction.options.getString("action", true);
 	const target = interaction.options.getUser("target");
 	const userMention = `<@${interaction.user.id}>`;
+
+	// Respect the target's opt-out of fun/social features.
+	if (target && target.id !== interaction.user.id && (await isOptedOut(target.id, "fun"))) {
+		return void reply.error(interaction, t("roleplay:error.optedOut", { user: target.username }));
+	}
 
 	if (action === "ship") {
 		if (!target) return void reply.error(interaction, t("roleplay:error.shipNeedsTarget"));
@@ -114,6 +120,7 @@ const roleplay: BotModule = {
 		"error.unknown": "That action is not available.",
 		"error.targetNeeded": "Pick someone with the **target** option for that action.",
 		"error.shipNeedsTarget": "Ship needs a **target** to ship you with.",
+		"error.optedOut": "**{user}** has opted out of fun and social commands.",
 		"ship.result": "💘 **Shipping** {user} + {target}\n\n{bar}\n**{score}%** compatible!",
 		"act.hug": "🤗 {user} gives {target} a big hug!",
 		"act.kiss": "😘 {user} kisses {target}!",

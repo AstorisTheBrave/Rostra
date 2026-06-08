@@ -23,7 +23,8 @@
 		"prisma:generate": "prisma generate",
 		"prisma:migrate": "prisma migrate deploy",
 		"i18n:bundle": "node --import tsx src/scripts/i18n-bundle.ts",
-		"i18n:coverage": "node --import tsx --env-file-if-exists=.env src/scripts/i18n-coverage.ts"
+		"i18n:coverage": "node --import tsx --env-file-if-exists=.env src/scripts/i18n-coverage.ts",
+		"i18n:push": "node --import tsx --env-file-if-exists=.env src/scripts/i18n-push.ts"
 	},
 	"dependencies": {
 		"@fastify/rate-limit": "^10.3.0",

@@ -19,7 +19,10 @@ shipped in waves); adding a language is data, not code.
 - translated files: `src/i18n/locales/<code>/<namespace>.json` (+ `_glossary.json`)
 - bundled-file registration: `src/i18n/bundled.ts` (**generated** - run `npm run i18n:bundle`)
 - tooling: `src/scripts/i18n-bundle.ts` (regenerates the bundle), `src/scripts/i18n-coverage.ts`
-  (per-locale completeness report, `npm run i18n:coverage`)
+  (per-locale completeness report, `npm run i18n:coverage`), `src/scripts/i18n-push.ts` (promote files to
+  the live store, `npm run i18n:push`)
+- live overlay + hot reload: `src/i18n/live.ts` (+ `live.test.ts`), `src/services/bus.ts` (Redis control
+  bus), model `LocaleString`
 - native command-metadata localization: `src/i18n/commandLocalizations.ts`
 - the service (peer to tenant): `src/services/localization.ts`
 - model: `UserPreference` (locale + feature opt-outs)
@@ -48,6 +51,14 @@ enforced in `/roleplay` and `/games tictactoe`.
 **native command localization** - `applyCommandLocalizations` (in `collectCommandJSON`) merges per-locale
 command `description_localizations` keyed by Discord locale code, so the slash-command list appears
 localized in each client. Seed data only for now; the rest is translation content.
+
+**hot reload (no restart, fleet-wide)** - build-time files are the baseline; `LocaleString` DB rows are a
+live overlay loaded at boot (`loadLiveLocales`) and layered over the files. Any write (`setLocaleString`, or
+`pushLocaleBundle` from `npm run i18n:push`) persists to the DB and **publishes on the Redis control bus**
+(`src/services/bus.ts`, channel `rostra:i18n`); every shard's `subscribeLocaleReload` re-applies the change
+in its in-memory registry instantly. So adding or fixing a language at scale (78 shards, millions of users)
+is a data push, never a deploy/restart. Without Redis (single process) the writer applies locally and the
+publish is a harmless no-op. Workflow: edit `locales/<code>/*.json` -> `npm run i18n:push` -> live everywhere.
 
 ## gotchas
 

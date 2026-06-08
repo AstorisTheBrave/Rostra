@@ -585,6 +585,22 @@ model GuildTenant {
   updatedAt        DateTime @updatedAt
 }
 
+// ── Live translations (hot-reloadable, no restart) ───────────────────────────
+// Build-time JSON files are the baseline; these rows overlay/extend them at
+// runtime. A write publishes on the Redis control bus so every shard refreshes
+// its in-memory registry instantly - adding or fixing a language needs no deploy.
+
+model LocaleString {
+  locale    String
+  namespace String
+  key       String
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@id([locale, namespace, key])
+  @@index([locale])
+}
+
 // ── Per-user preferences (language + feature opt-outs) ───────────────────────
 // Cross-cutting personal settings the localization service resolves from cache.
 // `features` holds opt-out booleans, e.g. { "fun": false, "dmNotifications": false }.

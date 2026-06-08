@@ -59,6 +59,13 @@ export class BotClient extends Client {
 		registerEvents(this, modules, [interactionRouter]);
 		registerInteractions(this, modules);
 		await registerJobs(modules);
+
+		// Overlay live (DB) translations on the bundled baseline and subscribe to
+		// fleet-wide reloads so language changes apply with no restart.
+		const { loadLiveLocales, subscribeLocaleReload } = await import("@/i18n/live.ts");
+		subscribeLocaleReload();
+		await loadLiveLocales();
+
 		log.info({ modules: modules.length, commands: this.commands.size }, "client initialized");
 	}
 }

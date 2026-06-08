@@ -565,6 +565,17 @@ CREATE TABLE "GuildTenant" (
 );
 
 -- CreateTable
+CREATE TABLE "LocaleString" (
+    "locale" TEXT NOT NULL,
+    "namespace" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LocaleString_pkey" PRIMARY KEY ("locale","namespace","key")
+);
+
+-- CreateTable
 CREATE TABLE "UserPreference" (
     "userId" TEXT NOT NULL,
     "locale" TEXT,
@@ -918,6 +929,9 @@ CREATE INDEX "Reminder_guildId_idx" ON "Reminder"("guildId");
 
 -- CreateIndex
 CREATE INDEX "Reminder_userId_idx" ON "Reminder"("userId");
+
+-- CreateIndex
+CREATE INDEX "LocaleString_locale_idx" ON "LocaleString"("locale");
 
 -- CreateIndex
 CREATE INDEX "Poll_guildId_idx" ON "Poll"("guildId");

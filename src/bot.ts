@@ -2,6 +2,7 @@ import { BotClient } from "@/client/BotClient.ts";
 import { config } from "@/config.ts";
 import { disconnectJobs } from "@/jobs/queue.ts";
 import { installShutdownHandlers, registerShutdown } from "@/lifecycle/shutdown.ts";
+import { closeBus } from "@/services/bus.ts";
 import { disconnectCache } from "@/services/cache.ts";
 import { disconnectPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
@@ -17,6 +18,7 @@ async function main(): Promise<void> {
 
 	registerShutdown(() => client.destroy());
 	registerShutdown(disconnectJobs);
+	registerShutdown(closeBus);
 	registerShutdown(disconnectCache);
 	registerShutdown(disconnectPrisma);
 	installShutdownHandlers();

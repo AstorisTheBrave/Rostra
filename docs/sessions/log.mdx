@@ -11,6 +11,28 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (zero-restart hot reload: control bus + live translation overlay)
+
+**changed**: Made translations (and any future "reload this" signal) hot-loadable across the whole shard
+fleet with **no restart** - the strategic answer to changing things on a running bot at millions-of-users
+scale. New generic **Redis control bus** `src/services/bus.ts` (`publish`/`subscribe`/`closeBus`; the
+subscriber duplicates the cache's ioredis client; no-op without Redis). New **live translation overlay**
+`src/i18n/live.ts`: `LocaleString` DB rows overlay the bundled file baseline, loaded at boot
+(`loadLiveLocales`); `setLocaleString`/`pushLocaleBundle` persist + apply locally + publish on channel
+`rostra:i18n`; every shard's `subscribeLocaleReload` re-applies in-memory instantly. New `npm run i18n:push`
+(`src/scripts/i18n-push.ts`) promotes the file translations into the live store and fans out one reload -
+so "add a language" is a data push, not a deploy. Wired `loadLiveLocales` + `subscribeLocaleReload` into
+`BotClient.init`, and `closeBus` into shutdown. New `LocaleString` model. Pure `groupRows` tested.
+
+**files touched**: new `src/services/bus.ts`, `src/i18n/{live,live.test}.ts`, `src/scripts/i18n-push.ts`;
+`src/client/BotClient.ts`, `src/bot.ts`, `prisma/schema.prisma` + `0_init`, `package.json`,
+`docs/modules/localization.mdx`.
+
+**verified**: typecheck clean; full suite 218/218 (groupRows 2/2); biome clean; baseline includes
+`LocaleString`. (Fixed a self-inflicted bug: the row-key separator was a stray null byte - replaced the
+string-joined map key with an explicit array grouping, now tested.) Net: translations are editable/addable
+live, fleet-wide, with zero downtime.
+
 ### 2026-06-08 (localization - translation pipeline + wave-1 content)
 
 **changed**: Made the translation content pipeline scalable and added real wave-1 content. New

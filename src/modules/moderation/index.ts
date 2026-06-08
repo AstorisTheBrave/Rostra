@@ -2,6 +2,7 @@ import {
 	type ChatInputCommandInteraction,
 	type GuildMember,
 	GuildMember as GuildMemberClass,
+	MessageFlags,
 	PermissionFlagsBits,
 	type PermissionResolvable,
 	type Role,
@@ -9,7 +10,8 @@ import {
 	type TextChannel,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
+import { getTranslator, t } from "@/i18n/index.ts";
+import { isOptedOut, resolveLocale } from "@/services/localization.ts";
 import { registerTaskHandler } from "@/services/scheduler.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
@@ -209,6 +211,34 @@ async function ok(
 	await reply.components(interaction, [container(Accent.success, [text(t(messageKey, vars))])]);
 }
 
+/**
+ * DM the target about a moderation action **in their own language** (the action
+ * was already executed and confirmed to the moderator in the moderator's
+ * language). Skipped if the target opted out of bot DMs.
+ */
+async function notifyTarget(
+	client: BotClient,
+	guild: { id: string; name: string },
+	targetId: string,
+	key: string,
+	vars: Record<string, string | number>,
+): Promise<void> {
+	try {
+		if (await isOptedOut(targetId, "dmNotifications")) return;
+		const locale = await resolveLocale({ userId: targetId, guildId: guild.id, scope: "user" });
+		const tt = getTranslator(locale);
+		const user = await client.users.fetch(targetId).catch(() => null);
+		await user
+			?.send({
+				components: [container(Accent.warn, [text(tt(key, { server: guild.name, ...vars }))])],
+				flags: MessageFlags.IsComponentsV2,
+			})
+			.catch(() => {});
+	} catch {
+		// best-effort; never let a DM failure affect the moderation action
+	}
+}
+
 async function execute({
 	interaction,
 	client,
@@ -237,6 +267,7 @@ async function execute({
 			const days = interaction.options.getInteger("delete_days") ?? 0;
 			const res = await banUser({ guild, target, moderator, reason, deleteSeconds: days * 86400 });
 			if (!res.ok) return void reply.error(interaction, t(res.messageKey, res.vars));
+			await notifyTarget(client, guild, target.id, "moderation:dm.ban", { reason });
 			return ok(interaction, "moderation:success.ban", {
 				user: target.tag,
 				case: res.caseNumber ?? 0,
@@ -255,6 +286,7 @@ async function execute({
 			if (!target) return void reply.error(interaction, t("moderation:error.userNotInServer"));
 			const res = await kickUser({ target, moderator, reason });
 			if (!res.ok) return void reply.error(interaction, t(res.messageKey, res.vars));
+			await notifyTarget(client, guild, target.id, "moderation:dm.kick", { reason });
 			return ok(interaction, "moderation:success.kick", {
 				user: target.user.tag,
 				case: res.caseNumber ?? 0,
@@ -271,6 +303,10 @@ async function execute({
 			}
 			const res = await timeoutUser({ target, moderator, durationMs, reason });
 			if (!res.ok) return void reply.error(interaction, t(res.messageKey, res.vars));
+			await notifyTarget(client, guild, target.id, "moderation:dm.timeout", {
+				reason,
+				duration: formatDuration(durationMs),
+			});
 			return ok(interaction, "moderation:success.timeout", {
 				user: target.user.tag,
 				duration: formatDuration(durationMs),
@@ -297,6 +333,9 @@ async function execute({
 				reason: interaction.options.getString(REASON, true),
 			});
 			if (!res.ok) return void reply.error(interaction, t(res.messageKey, res.vars));
+			await notifyTarget(client, guild, target.id, "moderation:dm.warn", {
+				reason: interaction.options.getString(REASON, true),
+			});
 			return ok(interaction, "moderation:success.warn", {
 				user: target.tag,
 				case: res.caseNumber ?? 0,
@@ -447,6 +486,11 @@ const moderation: BotModule = {
 	name: "moderation",
 	commands: [modCommand],
 	i18n: {
+		"dm.warn": "⚠️ You were **warned** in **{server}**.\n**Reason:** {reason}",
+		"dm.timeout":
+			"⏳ You were **timed out** in **{server}** for **{duration}**.\n**Reason:** {reason}",
+		"dm.ban": "🔨 You were **banned** from **{server}**.\n**Reason:** {reason}",
+		"dm.kick": "👢 You were **kicked** from **{server}**.\n**Reason:** {reason}",
 		"success.ban": "🔨 Banned **{user}** • Case #{case}",
 		"success.unban": "♻️ Unbanned `{user}` • Case #{case}",
 		"success.kick": "👢 Kicked **{user}** • Case #{case}",

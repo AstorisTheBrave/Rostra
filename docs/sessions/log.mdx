@@ -11,6 +11,35 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-08 (localization platform - core: ICU engine + service + pipeline)
+
+**changed**: Landed the core of the localization platform (per the approved design plan; decisions: ICU +
+our layer, ambient `AsyncLocalStorage` + explicit translators for multi-recipient, wave-1 langs, `/setup`
++ `/preferences`). (1) **i18n engine** rewritten: `t()` now formats with **ICU MessageFormat**
+(`intl-messageformat`, 0 vulns) so `{count, plural, ...}`/`select`/`number`/`date` work across all 16 langs
+via `Intl.PluralRules`; malformed ICU falls back to plain `{var}` interpolation (no throw). Locale
+precedence: explicit arg -> ambient (`runWithLocale`) -> English. New `getTranslator(locale)`,
+`runWithLocale`, `getAmbientLocale`. New `src/i18n/locales.ts`: `SUPPORTED_LOCALES` (16, with Discord
+codes + RTL + wave), `normalizeLocale` (maps Discord/regional codes to ours). (2) **Localization service**
+`src/services/localization.ts` (peer to tenant): new `UserPreference` model (locale + feature opt-outs),
+L1/L2 cache like tenant, `resolveLocale({user,guild,interactionLocale,scope})` (user/actor: pref -> Discord
+client locale -> guild -> en; guild: guild -> en), `getUserPreference`/`setUserLocale`/`setUserFeature`/
+`isOptedOut`, `setGuildLocale`, and `localizeAction({actor,target,guild})` -> `{actorT,targetT,guildT}`. (3)
+**Pipeline wired**: `runCommand` + the component router resolve the actor's locale and run within
+`runWithLocale`, so every `t()` in a handler renders in the user's language with zero call-site churn. (4)
+**Multi-audience showcase**: `/mod warn|timeout|ban|kick` now DM the target in **the target's** language
+(`notifyTarget`, respects the `dmNotifications` opt-out) while the moderator's confirmation stays in the
+moderator's language. New `moderation:dm.*` strings.
+
+**files touched**: `src/i18n/{index,locales,index.test}.ts`, `src/services/localization.ts`,
+`src/pipeline/runCommand.ts`, `src/interactions/router.ts`, `src/modules/moderation/index.ts`,
+`prisma/schema.prisma` + `0_init`, `package.json` (+ `intl-messageformat`).
+
+**verified**: typecheck clean; i18n engine tests 7/7 (ICU plural, explicit/ambient locale, fallback); full
+suite 214/214; biome clean; baseline includes `UserPreference`. Still to come: `/preferences` + `/setup
+language` + `/help` switch + opt-out enforcement (ship/fight), translated locale files, native command
+metadata localization.
+
 ### 2026-06-07 (starboard: full engine - blacklists, downvotes, filters, tiers, overrides)
 
 **changed**: Completed the deepest Starboard-bot layer on top of the multi-board base, so starboard now has

@@ -565,6 +565,17 @@ CREATE TABLE "GuildTenant" (
 );
 
 -- CreateTable
+CREATE TABLE "UserPreference" (
+    "userId" TEXT NOT NULL,
+    "locale" TEXT,
+    "features" JSONB NOT NULL DEFAULT '{}',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "UserPreference_pkey" PRIMARY KEY ("userId")
+);
+
+-- CreateTable
 CREATE TABLE "VerificationConfig" (
     "guildId" TEXT NOT NULL,
     "roleId" TEXT,

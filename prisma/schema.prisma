@@ -142,7 +142,9 @@ model AutomodConfig {
   antiMassMention Boolean  @default(false)
   antiProfanity   Boolean  @default(false)
   antiCaps        Boolean  @default(false)
-  action          String   @default("delete") // delete | warn | timeout
+  antiHate        Boolean  @default(true) // built-in slur/hate filter (HIGH severity)
+  escalate        Boolean  @default(true) // use the severity-weighted warn->timeout->kick->ban ladder
+  action          String   @default("delete") // legacy fixed action when escalate=false: delete | warn | timeout
   timeoutMs       Int      @default(300000)
   spamCount       Int      @default(5)
   spamWindowMs    Int      @default(5000)
@@ -166,10 +168,28 @@ model AutomodRule {
   trigger   String   @default("keyword") // keyword | wildcard | regex
   pattern   String
   action    String   @default("delete") // delete | warn | timeout
+  severity  String   @default("LOW") // LOW | MEDIUM | HIGH - weights the escalation ladder
   createdAt DateTime @default(now())
 
   @@unique([guildId, name])
   @@index([guildId])
+}
+
+/// Per-offense automod ledger. Drives the severity-weighted escalation ladder
+/// (see src/modules/automod/escalation.ts). Separate from ModerationCase: this is
+/// the running tally, the Case is the audit record.
+model AutomodWarning {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  severity  String   @default("LOW") // LOW | MEDIUM | HIGH
+  reason    String?
+  ruleId    String? // built-in id (e.g. "hate") or AutomodRule id
+  action    String   @default("WARN") // resulting action: WARN | TIMEOUT | KICK | BAN
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([guildId, userId])
 }
 
 // ── Logging ──────────────────────────────────────────────────────────────────

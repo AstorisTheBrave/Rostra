@@ -1,19 +1,12 @@
 import type { Client, Guild, GuildMember, Role, User } from "discord.js";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
+import { type CaseType, recordCase } from "@/services/moderationCase.ts";
 import { schedule } from "@/services/scheduler.ts";
 
 const log = getLogger("moderation");
 
-export type CaseType =
-	| "ban"
-	| "kick"
-	| "timeout"
-	| "untimeout"
-	| "unban"
-	| "warn"
-	| "note"
-	| "temprole";
+export type { CaseType };
 
 export type ModResult =
 	| { ok: true; caseNumber?: number }
@@ -30,27 +23,7 @@ interface CreateCaseInput {
 
 /** Create a moderation case with a per-guild sequential case number. */
 export async function createCase(input: CreateCaseInput): Promise<number> {
-	const prisma = getPrisma();
-	return prisma.$transaction(async (tx) => {
-		const counter = await tx.guildCaseCounter.upsert({
-			where: { guildId: input.guildId },
-			create: { guildId: input.guildId, count: 1 },
-			update: { count: { increment: 1 } },
-		});
-		const caseNumber = counter.count;
-		await tx.moderationCase.create({
-			data: {
-				guildId: input.guildId,
-				caseNumber,
-				type: input.type,
-				targetId: input.targetId,
-				moderatorId: input.moderatorId,
-				reason: input.reason ?? null,
-				durationMs: input.durationMs ?? null,
-			},
-		});
-		return caseNumber;
-	});
+	return recordCase(input);
 }
 
 /** A moderator may not act on a target with an equal or higher top role (unless guild owner). */

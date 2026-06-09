@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hasDisallowedLink, hasInvite, isCapsAbuse } from "./checks.ts";
+import { hasDisallowedLink, hasHateSpeech, hasInvite, isCapsAbuse } from "./checks.ts";
+
+test("hasHateSpeech catches slurs through spacing, leet, and homoglyph bypasses", () => {
+	assert.equal(hasHateSpeech("you are a r3t4rd"), true);
+	assert.equal(hasHateSpeech("f a g g o t"), true);
+	assert.equal(hasHateSpeech("normal friendly message"), false);
+	assert.equal(hasHateSpeech("the assassin escaped"), false); // no false-positive on 'ass'
+});
 
 test("hasInvite detects discord invites", () => {
 	assert.equal(hasInvite("join discord.gg/abc123"), true);

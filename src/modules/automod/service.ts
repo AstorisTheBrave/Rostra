@@ -3,8 +3,15 @@ import { Filter } from "bad-words";
 import { type Message, MessageFlags } from "discord.js";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
+import { type CaseType, recordCase } from "@/services/moderationCase.ts";
 import { Accent, container, text } from "@/utils/components.ts";
-import { hasDisallowedLink, hasInvite, isCapsAbuse } from "./checks.ts";
+import { hasDisallowedLink, hasHateSpeech, hasInvite, isCapsAbuse } from "./checks.ts";
+import {
+	type AutomodAction,
+	type EscalationResult,
+	resolveEscalation,
+	type Severity,
+} from "./escalation.ts";
 
 const log = getLogger("automod");
 
@@ -107,7 +114,7 @@ function getFilter(config: AutomodConfig): Filter {
 	return filter;
 }
 
-export type Violation = { type: string; reason: string } | null;
+export type Violation = { type: string; reason: string; severity: Severity } | null;
 
 export function isExempt(message: Message, config: AutomodConfig): boolean {
 	if (config.exemptChannels.includes(message.channelId)) return true;
@@ -129,56 +136,187 @@ export function checkMessage(message: Message, config: AutomodConfig): Violation
 	if (!config.enabled || isExempt(message, config)) return null;
 	const content = message.content;
 
-	if (config.antiInvite && hasInvite(content)) {
-		return { type: "invite", reason: "Posted a server invite" };
-	}
-	if (config.antiLink && hasDisallowedLink(content, config.allowedLinks)) {
-		return { type: "link", reason: "Posted a disallowed link" };
+	if (config.antiHate && content && hasHateSpeech(content)) {
+		return { type: "hate", reason: "Hate speech or slur", severity: "HIGH" };
 	}
 	if (config.antiMassMention && message.mentions.users.size > config.mentionLimit) {
-		return { type: "mention", reason: "Mass mentioning members" };
+		return { type: "mention", reason: "Mass mentioning members", severity: "MEDIUM" };
+	}
+	if (config.antiInvite && hasInvite(content)) {
+		return { type: "invite", reason: "Posted a server invite", severity: "LOW" };
+	}
+	if (config.antiLink && hasDisallowedLink(content, config.allowedLinks)) {
+		return { type: "link", reason: "Posted a disallowed link", severity: "LOW" };
 	}
 	if (config.antiCaps && isCapsAbuse(content, config.capsPercent, config.capsMinLength)) {
-		return { type: "caps", reason: "Excessive capitalisation" };
+		return { type: "caps", reason: "Excessive capitalisation", severity: "LOW" };
 	}
 	if (config.antiProfanity && content && getFilter(config).isProfane(content)) {
-		return { type: "profanity", reason: "Profanity" };
+		return { type: "profanity", reason: "Profanity", severity: "LOW" };
 	}
 	if (config.antiSpam) {
 		const key = `${config.guildId}:${message.author.id}`;
 		if (trackSpam(key, config.spamCount, config.spamWindowMs)) {
-			return { type: "spam", reason: "Spamming messages" };
+			return { type: "spam", reason: "Spamming messages", severity: "LOW" };
 		}
 	}
 	return null;
 }
 
-/** Delete the offending message, apply the action (rule override or config default), and log it. */
+function severityFrom(value: string): Severity {
+	return value === "HIGH" || value === "MEDIUM" ? value : "LOW";
+}
+
+/** Prior active automod offenses for a user, as severities (drives escalation). */
+async function priorSeverities(guildId: string, userId: string): Promise<Severity[]> {
+	const rows = await getPrisma()
+		.automodWarning.findMany({
+			where: { guildId, userId, active: true },
+			select: { severity: true },
+		})
+		.catch((err) => {
+			log.error({ err, guildId }, "failed to load automod warnings");
+			return [] as { severity: string }[];
+		});
+	return rows.map((r) => severityFrom(r.severity));
+}
+
+const ACTION_LABEL: Record<AutomodAction, string> = {
+	WARN: "Warning",
+	TIMEOUT: "Timeout",
+	KICK: "Kick",
+	BAN: "Ban",
+};
+
+const ACTION_CASE: Record<AutomodAction, CaseType> = {
+	WARN: "warn",
+	TIMEOUT: "timeout",
+	KICK: "kick",
+	BAN: "ban",
+};
+
+function durationLabel(ms: number | null): string | null {
+	if (!ms) return null;
+	const hours = Math.round(ms / 3_600_000);
+	return hours >= 24 ? `${Math.round(hours / 24)}d` : `${hours}h`;
+}
+
+/**
+ * Enforce automod on a message: delete it, then (when escalation is on) walk the
+ * severity-weighted ladder - record the offense, decide warn/timeout/kick/ban from
+ * the user's cumulative history, apply it, file a moderation case, DM the user, and
+ * log. A first offense never exceeds a timeout.
+ */
 export async function enforce(
 	message: Message,
 	config: AutomodConfig,
-	violation: { type: string; reason: string },
-	actionOverride?: string,
+	violation: { type: string; reason: string; severity: Severity },
 ): Promise<void> {
-	const action = actionOverride ?? config.action;
+	if (!message.inGuild()) return;
+	const guildId = message.guild.id;
+	const userId = message.author.id;
 	if (message.deletable) await message.delete().catch(() => {});
 
-	if (action === "timeout" && message.member?.moderatable) {
-		await message.member.timeout(config.timeoutMs, `[Automod] ${violation.reason}`).catch(() => {});
-	}
-
-	if (config.logChannelId) {
-		const channel = await message.guild?.channels.fetch(config.logChannelId).catch(() => null);
-		if (channel?.isTextBased()) {
-			const block = container(Accent.warn, [
-				text("## 🧹 Automod"),
-				text(
-					`**User:** ${message.author.tag} (\`${message.author.id}\`)\n**Rule:** ${violation.type}\n**Reason:** ${violation.reason}`,
-				),
-			]);
-			await channel
-				.send({ components: [block], flags: MessageFlags.IsComponentsV2 })
+	// Legacy fixed-action mode (escalation disabled): keep the simple behaviour.
+	if (!config.escalate) {
+		if (config.action === "timeout" && message.member?.moderatable) {
+			await message.member
+				.timeout(config.timeoutMs, `[Automod] ${violation.reason}`)
 				.catch(() => {});
 		}
+		await logViolation(message, config, violation, null);
+		return;
 	}
+
+	const prior = await priorSeverities(guildId, userId);
+	const result = resolveEscalation(prior, violation.severity);
+
+	await getPrisma()
+		.automodWarning.create({
+			data: {
+				guildId,
+				userId,
+				severity: violation.severity,
+				reason: violation.reason,
+				ruleId: violation.type,
+				action: result.action,
+			},
+		})
+		.catch((err) => log.error({ err, guildId }, "failed to record automod warning"));
+
+	await applyEscalation(message, result);
+
+	await recordCase({
+		guildId,
+		type: ACTION_CASE[result.action],
+		targetId: userId,
+		moderatorId: "AUTOMOD",
+		reason: `[Automod] ${violation.reason}`,
+		durationMs: result.timeoutMs ?? undefined,
+	}).catch((err) => log.error({ err, guildId }, "failed to record automod case"));
+
+	await dmOffender(message, result, violation);
+	await logViolation(message, config, violation, result);
+}
+
+/** Apply the escalation's Discord action (the message is already deleted). */
+async function applyEscalation(message: Message, result: EscalationResult): Promise<void> {
+	if (result.action === "WARN" || !message.inGuild()) return;
+	const member = await message.guild.members.fetch(message.author.id).catch(() => null);
+	if (!member) return;
+	const reason = `[Automod] offense #${result.offenseCount}`;
+	try {
+		if (result.action === "TIMEOUT") {
+			if (member.moderatable && result.timeoutMs) await member.timeout(result.timeoutMs, reason);
+		} else if (result.action === "KICK") {
+			if (member.kickable) await member.kick(reason);
+		} else if (result.action === "BAN") {
+			if (member.bannable) await message.guild.members.ban(member.id, { reason });
+		}
+	} catch (err) {
+		log.error({ err, action: result.action }, "automod action failed");
+	}
+}
+
+/** DM the offender a Components V2 notice (best-effort; DMs closed is fine). */
+async function dmOffender(
+	message: Message,
+	result: EscalationResult,
+	violation: { reason: string },
+): Promise<void> {
+	if (!message.inGuild()) return;
+	const dur = durationLabel(result.timeoutMs);
+	const accent = result.action === "WARN" ? Accent.warn : Accent.error;
+	const block = container(accent, [
+		text(`## Automod ${ACTION_LABEL[result.action]}${dur ? ` (${dur})` : ""}`),
+		text(
+			`**Server:** ${message.guild.name}\n**Reason:** ${violation.reason}\n**Offense:** #${result.offenseCount}`,
+		),
+	]);
+	await message.author
+		.send({ components: [block], flags: MessageFlags.IsComponentsV2 })
+		.catch(() => {});
+}
+
+/** Post the automod action to the configured log channel. */
+async function logViolation(
+	message: Message,
+	config: AutomodConfig,
+	violation: { type: string; reason: string; severity: Severity },
+	result: EscalationResult | null,
+): Promise<void> {
+	if (!config.logChannelId || !message.inGuild()) return;
+	const channel = await message.guild.channels.fetch(config.logChannelId).catch(() => null);
+	if (!channel?.isTextBased()) return;
+	const dur = result ? durationLabel(result.timeoutMs) : null;
+	const actionLine = result
+		? `\n**Action:** ${ACTION_LABEL[result.action]}${dur ? ` (${dur})` : ""} - offense #${result.offenseCount}`
+		: "";
+	const block = container(result && result.action !== "WARN" ? Accent.error : Accent.warn, [
+		text("## 🧹 Automod"),
+		text(
+			`**User:** ${message.author.tag} (\`${message.author.id}\`)\n**Rule:** ${violation.type} (${violation.severity})\n**Reason:** ${violation.reason}${actionLine}`,
+		),
+	]);
+	await channel.send({ components: [block], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
 }

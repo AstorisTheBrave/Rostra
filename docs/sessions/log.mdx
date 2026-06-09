@@ -11,6 +11,25 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (automod: severity-weighted escalation ladder + case funnel + DM)
+
+**changed**: Ported and improved Anastasia's automod escalation. New pure engine
+`src/modules/automod/escalation.ts` (`resolveEscalation`): severity-weighted points
+(LOW 15 / MEDIUM 21 / HIGH 35), thresholds TIMEOUT>=35, KICK>=105 (3 HIGH / 5 MEDIUM / 7 LOW), BAN>=175;
+**never kick/ban on a first offense** (explicit guard + structural). Schema: `AutomodWarning` ledger (severity
++ active, drives escalation), `AutomodConfig.escalate`/`antiHate`, `AutomodRule.severity`; migration
+`20260609010000_automod_escalation`. Extracted the case-creation funnel to shared
+`src/services/moderationCase.ts#recordCase` (moderation `createCase` now delegates - no behaviour change, no
+cross-module import); automod routes every action through it (`moderatorId AUTOMOD`) so automated bans/kicks
+land in `/mod` case history. Added bypass-resistant slur detection (`checks.ts#hasHateSpeech`: homoglyph fold
++ non-letter strip + leet classes, HIGH severity). `enforce` now records the offense, escalates, applies,
+files a case, DMs the offender (Components V2, undercover), and logs the action + offense count. Legacy fixed
+-action mode kept behind `escalate=false`. Tests: escalation (6) + hate detection. Biome + tsc clean.
+
+**files touched**: `src/modules/automod/{escalation(+test),checks(+test),service,index}.ts`,
+`src/services/moderationCase.ts`, `src/modules/moderation/service.ts`, `prisma/schema.prisma`,
+`prisma/migrations/20260609010000_automod_escalation/`.
+
 ### 2026-06-09 (panel: migrate over DIRECT_URL to dodge pooler advisory-lock)
 
 **changed**: On Ori with a Prisma Postgres **pooled** endpoint (`pooled.db.prisma.io`), `prisma migrate

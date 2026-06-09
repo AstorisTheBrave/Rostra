@@ -419,12 +419,13 @@ const messageGuard = defineEvent("messageCreate", {
 		if (isExempt(message, config)) return;
 		const matched = firstMatchingRule(message.content, await getRules(message.guild.id));
 		if (matched) {
-			await enforce(
-				message,
-				config,
-				{ type: `rule:${matched.name}`, reason: `Matched custom rule "${matched.name}"` },
-				matched.action,
-			);
+			const severity =
+				matched.severity === "HIGH" || matched.severity === "MEDIUM" ? matched.severity : "LOW";
+			await enforce(message, config, {
+				type: `rule:${matched.name}`,
+				reason: `Matched custom rule "${matched.name}"`,
+				severity,
+			});
 		}
 	},
 });

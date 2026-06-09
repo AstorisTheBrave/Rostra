@@ -118,7 +118,7 @@ Match the message you see to the fix.
 | `Skipping git operations, missing variables` | the clone fields are incomplete | Fill **Username** and **Access Token** in the Startup tab |
 | `Killed` during `npm install` | the plan ran out of memory | Use a plan with 1 GB of RAM or more |
 | `Database setup failed. Check DATABASE_URL` | Postgres is unreachable | Check `DATABASE_URL` in `.env` is correct and the database is awake |
-| `P1002` or `advisory lock` timeout | `DATABASE_URL` is a pooled connection, which cannot run migrations | Add `DIRECT_URL` to `.env` with the direct (non-pooled) connection string |
+| `P1002` or `advisory lock` timeout | a pooled `DATABASE_URL` cannot hold a migration lock | The launcher already disables that lock, so just restart on the latest version. If it persists, add a direct `DIRECT_URL` |
 | `npm warn allow-scripts` | the panel blocked install scripts | Harmless. `panel-start.mjs` prepares the database itself |
 
 If MAIN_FILE genuinely reads `panel-start.mjs`, you see Prisma output, and it still fails, paste the full log

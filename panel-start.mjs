@@ -24,20 +24,22 @@ if (existsSync(".env") && typeof process.loadEnvFile === "function") {
 }
 
 // 2. Generate the Prisma client and apply migrations. migrate deploy is safe to re-run.
-//    Migrations need a session-level advisory lock, which connection POOLERS (e.g.
-//    pooled.db.prisma.io, Neon -pooler, Supabase pgbouncer) do not hold - that fails
-//    with P1002. So if a direct connection is provided in DIRECT_URL, migrate over it
-//    while the running bot keeps using the pooled DATABASE_URL.
-const migrateEnv = process.env.DIRECT_URL
-	? { ...process.env, DATABASE_URL: process.env.DIRECT_URL }
-	: process.env;
+//    Migrations normally take a session-level advisory lock, which transaction-mode
+//    POOLERS (pooled.db.prisma.io, Neon -pooler, Supabase pgbouncer) cannot hold, so
+//    migrate fails with P1002. We disable that lock (safe here: a single manager runs
+//    migrations) so it works over a pooled DATABASE_URL with no direct connection. A
+//    DIRECT_URL is still honoured for migrations if one is provided.
+const migrateEnv = {
+	...process.env,
+	PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: "1",
+	...(process.env.DIRECT_URL ? { DATABASE_URL: process.env.DIRECT_URL } : {}),
+};
 try {
 	execFileSync("npx", ["prisma", "generate"], { stdio: "inherit" });
 	execFileSync("npx", ["prisma", "migrate", "deploy"], { stdio: "inherit", env: migrateEnv });
 } catch (err) {
 	console.error(
-		"Database setup failed. If you see P1002 (advisory lock), your DATABASE_URL is a pooled\n" +
-			"connection - set DIRECT_URL in .env to a direct (non-pooled) Postgres URL for migrations.",
+		"Database setup failed. Check DATABASE_URL points at a reachable PostgreSQL.",
 		err instanceof Error ? err.message : err,
 	);
 	process.exit(1);

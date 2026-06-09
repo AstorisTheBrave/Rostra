@@ -29,6 +29,27 @@ function buildData(): SlashCommandBuilder {
 	cmd.addSubcommand((s) =>
 		s.setName("close").setDescription("Close the modmail thread you run this in"),
 	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("appealonly")
+			.setDescription("Only let members with a moderation case open modmail")
+			.addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true)),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("block")
+			.setDescription("Block a member from opening modmail")
+			.addUserOption((o) => o.setName("user").setDescription("Member to block").setRequired(true)),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("unblock")
+			.setDescription("Let a blocked member open modmail again")
+			.addUserOption((o) =>
+				o.setName("user").setDescription("Member to unblock").setRequired(true),
+			),
+	);
+	cmd.addSubcommand((s) => s.setName("blocklist").setDescription("List blocked members"));
 	return cmd;
 }
 
@@ -66,9 +87,44 @@ async function execute({
 						t("modmail:status.body", {
 							state: config?.enabled ? "on" : "off",
 							channel: config?.channelId ? `<#${config.channelId}>` : "—",
+							appeal: config?.appealOnly ? "on" : "off",
+							blocked: config?.blockedUsers.length ?? 0,
 						}),
 					),
 				]),
+			]);
+		}
+		case "appealonly": {
+			const enabled = interaction.options.getBoolean("enabled", true);
+			await upsertConfig(guild.id, { appealOnly: enabled });
+			return void reply.success(
+				interaction,
+				t(enabled ? "modmail:appealOn" : "modmail:appealOff"),
+				true,
+			);
+		}
+		case "block": {
+			const target = interaction.options.getUser("user", true);
+			const config = await getConfig(guild.id);
+			const next = [...new Set([...(config?.blockedUsers ?? []), target.id])];
+			await upsertConfig(guild.id, { blockedUsers: next });
+			return void reply.success(interaction, t("modmail:blocked", { user: target.tag }), true);
+		}
+		case "unblock": {
+			const target = interaction.options.getUser("user", true);
+			const config = await getConfig(guild.id);
+			const next = (config?.blockedUsers ?? []).filter((id) => id !== target.id);
+			await upsertConfig(guild.id, { blockedUsers: next });
+			return void reply.success(interaction, t("modmail:unblocked", { user: target.tag }), true);
+		}
+		case "blocklist": {
+			const config = await getConfig(guild.id);
+			const ids = config?.blockedUsers ?? [];
+			const body = ids.length
+				? ids.map((id) => `<@${id}>`).join(", ")
+				: t("modmail:blocklistEmpty");
+			return void reply.components(interaction, [
+				container(Accent.info, [text(t("modmail:blocklistTitle")), text(body)]),
 			]);
 		}
 		case "close": {
@@ -93,14 +149,22 @@ const modmail: BotModule = {
 	events: modmailEvents,
 	i18n: {
 		setupDone:
-			"📬 Modmail is on. New DMs to the bot open a thread in {channel}. Make sure only staff can see that channel.",
+			"📬 Modmail is on. New DMs to the bot open a thread in {channel}. Make sure only staff can see that channel. To cut abuse, turn on appeal-only with `/modmail appealonly enabled:true`, or block a member with `/modmail block`.",
 		disabled: "📪 Modmail turned off.",
 		notThread: "Run this inside an open modmail thread.",
 		closed: "📪 Modmail thread closed.",
 		closedDm:
 			"📪 Your conversation with **{guild}** staff has been closed. DM again to start a new one.",
+		appealOn:
+			"📪 Modmail is now appeal-only. Only members with a moderation case (warning, timeout, ban) can open a thread.",
+		appealOff: "📬 Modmail is open to all members again.",
+		blocked: "🚫 **{user}** can no longer open modmail.",
+		unblocked: "✅ **{user}** can open modmail again.",
+		blocklistTitle: "# 🚫 Modmail block list",
+		blocklistEmpty: "No one is blocked.",
 		"status.title": "# 📬 Modmail settings",
-		"status.body": "Status: **{state}**\nStaff channel: {channel}",
+		"status.body":
+			"Status: **{state}**\nStaff channel: {channel}\nAppeal-only: **{appeal}**\nBlocked members: **{blocked}**",
 	},
 };
 

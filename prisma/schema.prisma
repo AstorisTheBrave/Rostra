@@ -724,11 +724,13 @@ model CountingConfig {
 // ── Modmail (DM-to-staff threads) ────────────────────────────────────────────
 
 model ModmailConfig {
-  guildId   String   @id
-  channelId String? // staff parent channel where modmail threads are created
-  enabled   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  guildId      String   @id
+  channelId    String? // staff parent channel where modmail threads are created
+  enabled      Boolean  @default(false)
+  appealOnly   Boolean  @default(false) // only members with a moderation case may open a thread
+  blockedUsers String[] @default([]) // user ids barred from opening modmail
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model ModmailThread {

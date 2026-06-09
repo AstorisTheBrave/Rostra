@@ -11,6 +11,19 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (stage 3: modmail abuse controls)
+
+**changed**: Modmail was an open DM funnel once set up, with no way to bar abusers or scope it to appeals.
+Added to `ModmailConfig`: `appealOnly` (bool) and `blockedUsers` (string[]) + migration
+`20260609000000_modmail_block_appeal`. New subcommands: `/modmail appealonly`, `/modmail block`,
+`/modmail unblock`, `/modmail blocklist`; status now shows both. In `service.relayUserMessage`, blocked users
+are silently dropped, and in appeal-only mode a member with no `ModerationCase` (queried read-only via shared
+prisma) gets a DM explaining staff DMs are appeal-only and no thread opens. Biome + tsc clean; Prisma client
+regenerated.
+
+**files touched**: `prisma/schema.prisma`, `prisma/migrations/20260609000000_modmail_block_appeal/`,
+`src/modules/modmail/{index,service}.ts`.
+
 ### 2026-06-09 (stage 2: setup toggles inside the container)
 
 **changed**: The setup wizard's toggle buttons and action row floated outside the accented box because the

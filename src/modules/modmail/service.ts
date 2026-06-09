@@ -36,6 +36,14 @@ export async function upsertConfig(
 	return cfg;
 }
 
+/** True if the user has any moderation case in this guild (drives appeal-only mode). */
+export async function hasModerationCase(guildId: string, userId: string): Promise<boolean> {
+	const count = await getPrisma()
+		.moderationCase.count({ where: { guildId, targetId: userId } })
+		.catch(() => 0);
+	return count > 0;
+}
+
 // ── Threads ──────────────────────────────────────────────────────────────────
 
 export function getThreadByChannel(channelId: string): Promise<ModmailThread | null> {
@@ -157,6 +165,21 @@ export async function relayUserMessage(
 	if (await isFeatureBlocked(guildId, "modmail")) return false;
 	const config = await getConfig(guildId);
 	if (!config?.enabled || !config.channelId) return false;
+
+	// Abuse controls: blocked users are silently ignored; appeal-only mode limits
+	// new conversations to members who actually have a moderation case to appeal.
+	if (config.blockedUsers.includes(user.id)) return false;
+	if (config.appealOnly && !(await getOpenThreadByUser(guildId, user.id))) {
+		if (!(await hasModerationCase(guildId, user.id))) {
+			const u = await client.users.fetch(user.id).catch(() => null);
+			await u
+				?.send(
+					`📪 Staff DMs for **${guild.name}** are only open for appealing a moderation action (a warning, timeout, or ban). If you believe this is a mistake, contact a server admin another way.`,
+				)
+				.catch(() => {});
+			return false;
+		}
+	}
 
 	const record = await getOpenThreadByUser(guildId, user.id);
 	let thread: ThreadChannel | null = null;

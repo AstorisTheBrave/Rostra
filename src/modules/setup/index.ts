@@ -62,16 +62,21 @@ function renderPanel(tenant: GuildTenant) {
 			text(t("setup:intro")),
 			divider(),
 			text(`${emoji("logging")} ${logLine}`),
+			divider(),
+			...settingsPanel("setup", items),
+			actionRow(
+				button({
+					id: "setup:baseline",
+					label: t("setup:applyBaseline"),
+					style: ButtonStyle.Primary,
+				}),
+				button({
+					id: "setup:logchannel",
+					label: t("setup:createLog"),
+					style: ButtonStyle.Secondary,
+				}),
+			),
 		]),
-		...settingsPanel("setup", items),
-		actionRow(
-			button({ id: "setup:baseline", label: t("setup:applyBaseline"), style: ButtonStyle.Primary }),
-			button({
-				id: "setup:logchannel",
-				label: t("setup:createLog"),
-				style: ButtonStyle.Secondary,
-			}),
-		),
 	];
 }
 

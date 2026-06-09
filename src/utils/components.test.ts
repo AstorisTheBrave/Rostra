@@ -27,6 +27,16 @@ test("gallery builds a media gallery from urls", async () => {
 	assert.equal(g.items.length, 2);
 });
 
+test("container nests an action row inside the box", async () => {
+	const { container, Accent, text } = await import("./components.ts");
+	const { actionRow, button } = await import("../ui/interactive.ts");
+	const c = container(Accent.info, [text("hi"), actionRow(button({ id: "x", label: "X" }))]);
+	const json = c.toJSON();
+	// Component type 1 is an action row; it must appear among the container's children.
+	const types = json.components.map((child) => child.type);
+	assert.ok(types.includes(1), "expected an action row inside the container");
+});
+
 test("container accepts mixed children including a gallery", async () => {
 	const { container, text, gallery, Accent } = await import("./components.ts");
 	const c = container(Accent.info, [text("hi"), gallery(["https://example.com/a.png"])]);

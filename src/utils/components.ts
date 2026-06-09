@@ -6,6 +6,7 @@ import {
 	type InteractionReplyOptions,
 	MediaGalleryBuilder,
 	MediaGalleryItemBuilder,
+	type MessageActionRowComponentBuilder,
 	MessageFlags,
 	type RepliableInteraction,
 	SectionBuilder,
@@ -50,15 +51,26 @@ export function section(lines: string[], thumbnailUrl: string): SectionBuilder {
 		.setThumbnailAccessory(new ThumbnailBuilder({ media: { url: thumbnailUrl } }));
 }
 
-type ContainerChild = TextDisplayBuilder | SeparatorBuilder | MediaGalleryBuilder | SectionBuilder;
+type ContainerChild =
+	| TextDisplayBuilder
+	| SeparatorBuilder
+	| MediaGalleryBuilder
+	| SectionBuilder
+	| MessageActionRow;
 
+/**
+ * A Components V2 container. Accepts text, separators, galleries, sections, and
+ * action rows (buttons / selects), so interactive controls can sit INSIDE the
+ * accented box rather than floating beneath it.
+ */
 export function container(accent: number, children: ContainerChild[]): ContainerBuilder {
 	const c = new ContainerBuilder().setAccentColor(accent);
 	for (const child of children) {
 		if (child instanceof TextDisplayBuilder) c.addTextDisplayComponents(child);
 		else if (child instanceof SeparatorBuilder) c.addSeparatorComponents(child);
 		else if (child instanceof MediaGalleryBuilder) c.addMediaGalleryComponents(child);
-		else c.addSectionComponents(child);
+		else if (child instanceof SectionBuilder) c.addSectionComponents(child);
+		else c.addActionRowComponents(child as ActionRowBuilder<MessageActionRowComponentBuilder>);
 	}
 	return c;
 }

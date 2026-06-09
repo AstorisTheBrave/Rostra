@@ -11,6 +11,16 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (stage 2: setup toggles inside the container)
+
+**changed**: The setup wizard's toggle buttons and action row floated outside the accented box because the
+`@/ui` `container()` only accepted text/separator/gallery/section children. Extended `container()` (in
+`src/utils/components.ts`) to also accept action rows via `addActionRowComponents`, then nested the setup
+panel's `settingsPanel` rows and the baseline/log buttons inside the container so the whole wizard is one
+tidy box. Added a `@/ui` test (`components.test.ts`) asserting an action row nests. Biome + tsc clean.
+
+**files touched**: `src/utils/components.ts`, `src/utils/components.test.ts`, `src/modules/setup/index.ts`.
+
 ### 2026-06-09 (stage 1: automod profanity + card fonts)
 
 **changed**: Two live-found bugs. (1) **Automod never caught swears**: the setup-wizard toggle only set the

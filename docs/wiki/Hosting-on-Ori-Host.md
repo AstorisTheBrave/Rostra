@@ -73,10 +73,17 @@ file named exactly `.env` (with the leading dot), and paste this, replacing each
 DISCORD_TOKEN=your-bot-token
 DISCORD_CLIENT_ID=your-application-id
 OWNER_IDS=your-user-id
-DATABASE_URL=your-neon-postgres-url
+DATABASE_URL=your-postgres-url
+DIRECT_URL=your-direct-postgres-url
 REDIS_URL=your-upstash-redis-url
 LAVALINK_NODES=[]
 ```
+
+About the two database URLs: many hosted databases give you a **pooled** string and a **direct** string. Use
+the pooled one for `DATABASE_URL` (the bot opens many connections) and the direct one for `DIRECT_URL`
+(migrations need a direct connection). On Neon the direct URL is the host without `-pooler`. If your provider
+only gives one URL, put it in both. Skipping `DIRECT_URL` on a pooled database causes the `P1002`
+advisory-lock error in the troubleshooting table.
 
 `LAVALINK_NODES=[]` turns music off, which is correct unless you run your own audio node. Every setting is
 explained in [[Environment Variables]].
@@ -110,7 +117,8 @@ Match the message you see to the fix.
 | `MAIN_FILE is not set. Skipping execution.` | misleading. The egg prints this whenever the program exits non-zero, even when MAIN_FILE is set | Ignore this line. Read the real error above it |
 | `Skipping git operations, missing variables` | the clone fields are incomplete | Fill **Username** and **Access Token** in the Startup tab |
 | `Killed` during `npm install` | the plan ran out of memory | Use a plan with 1 GB of RAM or more |
-| `Database setup failed. Check DATABASE_URL` | Postgres is unreachable | Check `DATABASE_URL` in `.env` is correct and the Neon database is awake |
+| `Database setup failed. Check DATABASE_URL` | Postgres is unreachable | Check `DATABASE_URL` in `.env` is correct and the database is awake |
+| `P1002` or `advisory lock` timeout | `DATABASE_URL` is a pooled connection, which cannot run migrations | Add `DIRECT_URL` to `.env` with the direct (non-pooled) connection string |
 | `npm warn allow-scripts` | the panel blocked install scripts | Harmless. `panel-start.mjs` prepares the database itself |
 
 If MAIN_FILE genuinely reads `panel-start.mjs`, you see Prisma output, and it still fails, paste the full log

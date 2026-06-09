@@ -1,4 +1,5 @@
 import { createCanvas, type Image, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
+import { CARD_FONT, cardText, ensureCardFonts } from "@/utils/cardFont.ts";
 
 export interface RankCardData {
 	username: string;
@@ -14,7 +15,7 @@ export interface RankCardData {
 
 const WIDTH = 800;
 const HEIGHT = 240;
-const FONT = "sans-serif";
+const FONT = CARD_FONT;
 
 type Ctx = SKRSContext2D;
 
@@ -44,6 +45,7 @@ const abbreviate = (n: number): string =>
 
 /** Render an 800x240 leveling rank card to a PNG buffer. */
 export async function renderRankCard(data: RankCardData): Promise<Buffer> {
+	ensureCardFonts();
 	const canvas = createCanvas(WIDTH, HEIGHT);
 	const ctx = canvas.getContext("2d");
 
@@ -77,10 +79,10 @@ export async function renderRankCard(data: RankCardData): Promise<Buffer> {
 	// Name + handle.
 	ctx.fillStyle = "#ffffff";
 	ctx.font = `bold 38px ${FONT}`;
-	ctx.fillText(data.displayName.slice(0, 22), textX, 70);
+	ctx.fillText(cardText(data.displayName).slice(0, 22), textX, 70);
 	ctx.fillStyle = "#b9bbbe";
 	ctx.font = `22px ${FONT}`;
-	ctx.fillText(`@${data.username}`.slice(0, 30), textX, 102);
+	ctx.fillText(`@${cardText(data.username)}`.slice(0, 30), textX, 102);
 
 	// Rank + level (right aligned).
 	ctx.textAlign = "right";

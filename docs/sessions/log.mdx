@@ -11,6 +11,21 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (stage 1: automod profanity + card fonts)
+
+**changed**: Two live-found bugs. (1) **Automod never caught swears**: the setup-wizard toggle only set the
+tenant kill-switch flag, and `/automod setup` omitted `antiProfanity`. Added a feature-provisioner registry
+to `services/tenant.ts` (`registerFeatureProvisioner`; `setFeatures` fires it on flag transitions, no
+cross-module imports), and automod registers one that applies the recommended filters (now including
+profanity) when its toggle flips on and disables when off. `/automod setup` now uses the same `RECOMMENDED`
+set. (2) **Image cards rendered tofu boxes** on hosts with no system fonts (Ori): added bundled DejaVu Sans
+(`assets/fonts/`), a shared `src/utils/cardFont.ts` (`ensureCardFonts` lazy-registers via GlobalFonts;
+`cardText` NFKC-folds styled-unicode names like 𝐬𝐲𝐧𝐜 -> sync and strips zero-width/control chars), wired into
+all four renderers (profile, leveling, welcome, roleplay ship). Test: `cardFont.test.ts`. Biome + tsc clean.
+
+**files touched**: `src/services/tenant.ts`, `src/modules/automod/index.ts`, `src/utils/cardFont.ts` (+test),
+`src/modules/{profile,leveling,welcome}/card.ts`, `src/modules/roleplay/shipCard.ts`, `assets/fonts/*.ttf`.
+
 ### 2026-06-08 (panel hosting: launcher fixes + detailed Ori tutorial)
 
 **changed**: Hardened `panel-start.mjs` after live testing on Ori Host. The `--import tsx` loader does NOT

@@ -1,4 +1,5 @@
 import { createCanvas, type Image, loadImage } from "@napi-rs/canvas";
+import { CARD_FONT, cardText, ensureCardFonts } from "@/utils/cardFont.ts";
 
 export interface WelcomeCardData {
 	username: string;
@@ -11,7 +12,7 @@ export interface WelcomeCardData {
 
 const WIDTH = 800;
 const HEIGHT = 280;
-const FONT = "sans-serif";
+const FONT = CARD_FONT;
 const ACCENT = "#5865f2";
 
 async function fetchImage(url: string): Promise<Image | null> {
@@ -26,6 +27,7 @@ async function fetchImage(url: string): Promise<Image | null> {
 
 /** Render an 800x280 centered welcome banner to a PNG buffer. */
 export async function renderWelcomeCard(data: WelcomeCardData): Promise<Buffer> {
+	ensureCardFonts();
 	const canvas = createCanvas(WIDTH, HEIGHT);
 	const ctx = canvas.getContext("2d");
 
@@ -60,11 +62,11 @@ export async function renderWelcomeCard(data: WelcomeCardData): Promise<Buffer> 
 	ctx.textAlign = "center";
 	ctx.fillStyle = "#ffffff";
 	ctx.font = `bold 36px ${FONT}`;
-	ctx.fillText(`${data.heading ?? "Welcome"}, ${data.username}!`.slice(0, 40), cx, 210);
+	ctx.fillText(`${data.heading ?? "Welcome"}, ${cardText(data.username)}!`.slice(0, 40), cx, 210);
 
 	ctx.fillStyle = "#b9bbbe";
 	ctx.font = `22px ${FONT}`;
-	ctx.fillText(`${data.serverName.slice(0, 32)}  ·  member #${data.memberCount}`, cx, 246);
+	ctx.fillText(`${cardText(data.serverName).slice(0, 32)}  ·  member #${data.memberCount}`, cx, 246);
 	ctx.textAlign = "left";
 
 	return canvas.toBuffer("image/png");

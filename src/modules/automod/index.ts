@@ -7,7 +7,12 @@ import {
 import type { BotClient } from "@/client/BotClient.ts";
 import { defineEvent } from "@/client/defineEvent.ts";
 import { t } from "@/i18n/index.ts";
-import { getTenant, isFeatureBlocked, setFeatures } from "@/services/tenant.ts";
+import {
+	getTenant,
+	isFeatureBlocked,
+	registerFeatureProvisioner,
+	setFeatures,
+} from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { firstMatchingRule, RULE_ACTIONS, RULE_TRIGGERS, validateRuleInput } from "./rules.ts";
@@ -24,6 +29,23 @@ import {
 } from "./service.ts";
 
 type ModuleField = Extract<keyof AutomodConfig, `anti${string}`>;
+
+/** Filters enabled by the recommended setup and by the wizard toggle. */
+const RECOMMENDED = {
+	enabled: true,
+	antiInvite: true,
+	antiLink: true,
+	antiSpam: true,
+	antiMassMention: true,
+	antiProfanity: true,
+} satisfies Partial<AutomodConfig>;
+
+// Wire the setup-wizard "Auto-mod" toggle to real automod config: turning it on
+// applies the recommended filters (including profanity), turning it off disables
+// enforcement. Registered once at module load.
+registerFeatureProvisioner("automod", async (guildId, enabled) => {
+	await upsertConfig(guildId, enabled ? { ...RECOMMENDED } : { enabled: false });
+});
 
 const MODULE_CHOICES: { name: string; value: string; field: ModuleField }[] = [
 	{ name: "Anti-invite", value: "invite", field: "antiInvite" },
@@ -305,11 +327,7 @@ async function execute({
 		case "setup": {
 			const tenant = await getTenant(guild.id);
 			await upsertConfig(guild.id, {
-				enabled: true,
-				antiInvite: true,
-				antiLink: true,
-				antiSpam: true,
-				antiMassMention: true,
+				...RECOMMENDED,
 				...(tenant.logChannelId ? { logChannelId: tenant.logChannelId } : {}),
 			});
 			await setFeatures(guild.id, { automod: true });
@@ -417,7 +435,7 @@ const automod: BotModule = {
 	events: [messageGuard],
 	i18n: {
 		"setup.done":
-			"🤖 Auto-mod is on with the recommended filters (invite, link, spam, mass-mention).",
+			"🤖 Auto-mod is on with the recommended filters (invite, link, spam, mass-mention, profanity).",
 		enabled: "🧹 Automod **enabled**.",
 		disabled: "🧹 Automod **disabled**.",
 		"action.set": "⚙️ Automod action set to **{type}**.",

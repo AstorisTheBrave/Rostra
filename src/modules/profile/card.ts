@@ -1,4 +1,5 @@
 import { createCanvas, type Image, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
+import { CARD_FONT, cardText, ensureCardFonts } from "@/utils/cardFont.ts";
 
 export interface ProfileCardData {
 	username: string;
@@ -14,7 +15,7 @@ export interface ProfileCardData {
 
 const WIDTH = 800;
 const HEIGHT = 300;
-const FONT = "sans-serif";
+const FONT = CARD_FONT;
 
 type Ctx = SKRSContext2D;
 
@@ -69,6 +70,7 @@ function wrapText(
 
 /** Render a 800x300 profile card to a PNG buffer. */
 export async function renderProfileCard(data: ProfileCardData): Promise<Buffer> {
+	ensureCardFonts();
 	const canvas = createCanvas(WIDTH, HEIGHT);
 	const ctx = canvas.getContext("2d");
 
@@ -109,16 +111,16 @@ export async function renderProfileCard(data: ProfileCardData): Promise<Buffer> 
 	const textX = 250;
 	ctx.fillStyle = "#ffffff";
 	ctx.font = `bold 42px ${FONT}`;
-	ctx.fillText(data.displayName.slice(0, 24), textX, 112);
+	ctx.fillText(cardText(data.displayName).slice(0, 24), textX, 112);
 
 	ctx.fillStyle = "#b9bbbe";
 	ctx.font = `24px ${FONT}`;
-	ctx.fillText(`@${data.username}`.slice(0, 32), textX, 146);
+	ctx.fillText(`@${cardText(data.username)}`.slice(0, 32), textX, 146);
 
 	if (data.bio) {
 		ctx.fillStyle = "#e3e5e8";
 		ctx.font = `22px ${FONT}`;
-		wrapText(ctx, data.bio, textX, 188, WIDTH - textX - 40, 28);
+		wrapText(ctx, cardText(data.bio), textX, 188, WIDTH - textX - 40, 28);
 	}
 
 	if (data.stats) {

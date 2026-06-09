@@ -1,6 +1,7 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCanvas, type Image, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
+import { CARD_FONT, cardText, ensureCardFonts } from "@/utils/cardFont.ts";
 
 const BG_PATH = join(
 	dirname(fileURLToPath(import.meta.url)),
@@ -56,6 +57,7 @@ function heart(ctx: SKRSContext2D, cx: number, cy: number, s: number, color: str
 
 /** Render the ship card (607x202) using the zyn ship background. */
 export async function renderShipCard(data: ShipCardData): Promise<Buffer> {
+	ensureCardFonts();
 	const bg = await loadImage(BG_PATH).catch(() => null);
 	const W = bg?.width ?? 607;
 	const H = bg?.height ?? 202;
@@ -81,13 +83,13 @@ export async function renderShipCard(data: ShipCardData): Promise<Buffer> {
 
 	ctx.fillStyle = "#ffffff";
 	ctx.textAlign = "center";
-	ctx.font = "bold 26px sans-serif";
+	ctx.font = `bold 26px ${CARD_FONT}`;
 	ctx.fillText(`${data.score}%`, W / 2, cy + 9);
 
-	ctx.font = "bold 20px sans-serif";
+	ctx.font = `bold 20px ${CARD_FONT}`;
 	ctx.fillStyle = "#ffd9e2";
 	ctx.fillText(
-		`${data.nameA.slice(0, 14)}  +  ${data.nameB.slice(0, 14)}`,
+		`${cardText(data.nameA).slice(0, 14)}  +  ${cardText(data.nameB).slice(0, 14)}`,
 		W / 2,
 		Math.round(H * 0.9),
 	);

@@ -106,12 +106,35 @@ export function getSetting<T = unknown>(tenant: GuildTenant, key: string): T | u
 	return map?.[key] as T | undefined;
 }
 
-/** Merge feature flags into the tenant and persist. */
+/**
+ * Optional per-feature provisioner. Config-backed modules (e.g. automod) register
+ * one so that turning the feature on in the setup wizard actually configures and
+ * enables the module, and turning it off disables it. Kept in this shared service
+ * so `setFeatures` never imports a module's internals.
+ */
+export type FeatureProvisioner = (guildId: string, enabled: boolean) => Promise<void>;
+const provisioners = new Map<string, FeatureProvisioner>();
+
+/** Register a provisioner that runs when a feature flag transitions on or off. */
+export function registerFeatureProvisioner(feature: string, fn: FeatureProvisioner): void {
+	provisioners.set(feature, fn);
+}
+
+/** Merge feature flags into the tenant, persist, and run provisioners for changes. */
 export async function setFeatures(
 	guildId: string,
 	flags: Record<string, boolean>,
 ): Promise<GuildTenant> {
 	const current = await getTenant(guildId);
-	const merged = { ...((current.features as Record<string, boolean> | null) ?? {}), ...flags };
-	return updateTenant(guildId, { features: merged });
+	const previous = (current.features as Record<string, boolean> | null) ?? {};
+	const merged = { ...previous, ...flags };
+	const updated = await updateTenant(guildId, { features: merged });
+	// Fire provisioners only for flags that actually changed, so a module's config
+	// is set up the moment its toggle flips, not just when its own command runs.
+	for (const [feature, enabled] of Object.entries(flags)) {
+		if (previous[feature] === enabled) continue;
+		const provision = provisioners.get(feature);
+		if (provision) await provision(guildId, enabled).catch(() => {});
+	}
+	return updated;
 }

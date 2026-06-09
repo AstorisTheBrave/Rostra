@@ -11,6 +11,18 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (stage 4: audit-style logging with actor attribution)
+
+**changed**: Logging mirrored events but never said WHO did them. Added `auditActor()` to
+`logging/service.ts`: a permission-guarded, best-effort `fetchAuditLogs` lookup (10s window, target match)
+returning a "By: tag (id)" line, "" when lacking View Audit Log. Wired actor into message-delete, ban
+(+ reason), unban, role create/delete, channel create/delete. `guildMemberRemove` now distinguishes a kick
+(audit entry present -> "Member kicked" + actor) from a plain leave. `guildMemberUpdate` now also logs member
+role add/remove ("Member roles updated", under the existing `roleChanges` key) alongside nickname changes. No
+schema change. Biome + tsc clean.
+
+**files touched**: `src/modules/logging/{service,events}.ts`.
+
 ### 2026-06-09 (stage 3: modmail abuse controls)
 
 **changed**: Modmail was an open DM funnel once set up, with no way to bar abusers or scope it to appeals.

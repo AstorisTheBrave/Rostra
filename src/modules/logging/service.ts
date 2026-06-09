@@ -1,5 +1,11 @@
 import type { LoggingConfig } from "@prisma/client";
-import { type ContainerBuilder, type Guild, MessageFlags } from "discord.js";
+import {
+	type AuditLogEvent,
+	type ContainerBuilder,
+	type Guild,
+	MessageFlags,
+	PermissionFlagsBits,
+} from "discord.js";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
@@ -70,6 +76,32 @@ export async function sendLog(
 	const channel = await guild.channels.fetch(config.logChannelId).catch(() => null);
 	if (!channel?.isTextBased()) return;
 	await channel.send({ components: [build()], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
+}
+
+/**
+ * Best-effort actor lookup from the guild audit log, so logs can name WHO did an
+ * action the gateway event does not attribute (bans, kicks, role and channel
+ * changes). Returns a ready-to-append "By: tag (id)" line, or "" when the bot
+ * lacks View Audit Log, the entry is missing, or it is too old to be this event.
+ */
+export async function auditActor(
+	guild: Guild,
+	type: AuditLogEvent,
+	targetId?: string,
+): Promise<string> {
+	if (!guild.members.me?.permissions.has(PermissionFlagsBits.ViewAuditLog)) return "";
+	try {
+		const logs = await guild.fetchAuditLogs({ type, limit: 5 });
+		const now = Date.now();
+		const entry = logs.entries.find((e) => {
+			const matchesTarget = !targetId || (e.target as { id?: string } | null)?.id === targetId;
+			return matchesTarget && now - e.createdTimestamp < 10_000;
+		});
+		const executor = entry?.executor;
+		return executor ? `\n**By:** ${executor.tag} (\`${executor.id}\`)` : "";
+	} catch {
+		return "";
+	}
 }
 
 /** Whether a channel id is in the ignore list. */

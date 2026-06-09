@@ -1,18 +1,20 @@
+import { AuditLogEvent } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { Accent, container, text } from "@/utils/components.ts";
-import { isIgnored, sendLog, truncate } from "./service.ts";
+import { auditActor, isIgnored, sendLog, truncate } from "./service.ts";
 
 export const loggingEvents: RegisteredEvent[] = [
 	defineEvent("messageDelete", {
 		execute: async (_c, message) => {
 			if (!message.guild || message.author?.bot) return;
 			if (await isIgnored(message.guild.id, message.channelId)) return;
+			const by = await auditActor(message.guild, AuditLogEvent.MessageDelete, message.author?.id);
 			await sendLog(message.guild, "messageDelete", () =>
 				container(Accent.error, [
 					text("## 🗑️ Message deleted"),
 					text(
-						`**Author:** ${message.author?.tag ?? "Unknown"}\n**Channel:** <#${message.channelId}>\n**Content:** ${truncate(message.content ?? "-")}`,
+						`**Author:** ${message.author?.tag ?? "Unknown"}\n**Channel:** <#${message.channelId}>\n**Content:** ${truncate(message.content ?? "-")}${by}`,
 					),
 				]),
 			);
@@ -45,66 +47,90 @@ export const loggingEvents: RegisteredEvent[] = [
 			),
 	}),
 	defineEvent("guildMemberRemove", {
-		execute: (_c, member) =>
-			sendLog(member.guild, "memberLeave", () =>
+		execute: async (_c, member) => {
+			// A removal is either a voluntary leave or a kick; the audit log tells them apart.
+			const by = await auditActor(member.guild, AuditLogEvent.MemberKick, member.id);
+			if (by) {
+				return sendLog(member.guild, "memberLeave", () =>
+					container(Accent.error, [
+						text("## 👢 Member kicked"),
+						text(`${member.user.tag} (\`${member.id}\`)${by}`),
+					]),
+				);
+			}
+			return sendLog(member.guild, "memberLeave", () =>
 				container(Accent.warn, [
 					text("## 📤 Member left"),
 					text(`${member.user.tag} (\`${member.id}\`)`),
 				]),
-			),
+			);
+		},
 	}),
 	defineEvent("guildBanAdd", {
-		execute: (_c, ban) =>
-			sendLog(ban.guild, "memberBan", () =>
+		execute: async (_c, ban) => {
+			const by = await auditActor(ban.guild, AuditLogEvent.MemberBanAdd, ban.user.id);
+			await sendLog(ban.guild, "memberBan", () =>
 				container(Accent.error, [
 					text("## 🔨 Member banned"),
-					text(`${ban.user.tag} (\`${ban.user.id}\`)`),
+					text(
+						`${ban.user.tag} (\`${ban.user.id}\`)${by}${ban.reason ? `\n**Reason:** ${ban.reason}` : ""}`,
+					),
 				]),
-			),
+			);
+		},
 	}),
 	defineEvent("guildBanRemove", {
-		execute: (_c, ban) =>
-			sendLog(ban.guild, "memberUnban", () =>
+		execute: async (_c, ban) => {
+			const by = await auditActor(ban.guild, AuditLogEvent.MemberBanRemove, ban.user.id);
+			await sendLog(ban.guild, "memberUnban", () =>
 				container(Accent.success, [
 					text("## ♻️ Member unbanned"),
-					text(`${ban.user.tag} (\`${ban.user.id}\`)`),
+					text(`${ban.user.tag} (\`${ban.user.id}\`)${by}`),
 				]),
-			),
+			);
+		},
 	}),
 	defineEvent("roleCreate", {
-		execute: (_c, role) =>
-			sendLog(role.guild, "roleChanges", () =>
+		execute: async (_c, role) => {
+			const by = await auditActor(role.guild, AuditLogEvent.RoleCreate, role.id);
+			await sendLog(role.guild, "roleChanges", () =>
 				container(Accent.success, [
 					text("## ➕ Role created"),
-					text(`**${role.name}** (\`${role.id}\`)`),
+					text(`**${role.name}** (\`${role.id}\`)${by}`),
 				]),
-			),
+			);
+		},
 	}),
 	defineEvent("roleDelete", {
-		execute: (_c, role) =>
-			sendLog(role.guild, "roleChanges", () =>
+		execute: async (_c, role) => {
+			const by = await auditActor(role.guild, AuditLogEvent.RoleDelete, role.id);
+			await sendLog(role.guild, "roleChanges", () =>
 				container(Accent.error, [
 					text("## ➖ Role deleted"),
-					text(`**${role.name}** (\`${role.id}\`)`),
+					text(`**${role.name}** (\`${role.id}\`)${by}`),
 				]),
-			),
+			);
+		},
 	}),
 	defineEvent("channelCreate", {
-		execute: (_c, channel) =>
-			sendLog(channel.guild, "channelChanges", () =>
+		execute: async (_c, channel) => {
+			const by = await auditActor(channel.guild, AuditLogEvent.ChannelCreate, channel.id);
+			await sendLog(channel.guild, "channelChanges", () =>
 				container(Accent.success, [
 					text("## ➕ Channel created"),
-					text(`<#${channel.id}> (\`${channel.id}\`)`),
+					text(`<#${channel.id}> (\`${channel.id}\`)${by}`),
 				]),
-			),
+			);
+		},
 	}),
 	defineEvent("channelDelete", {
-		execute: (_c, channel) => {
+		execute: async (_c, channel) => {
 			if (!("guild" in channel)) return;
-			return sendLog(channel.guild, "channelChanges", () =>
+			const by = await auditActor(channel.guild, AuditLogEvent.ChannelDelete, channel.id);
+			await sendLog(channel.guild, "channelChanges", () =>
 				container(Accent.error, [
 					text("## ➖ Channel deleted"),
-					text(`**${channel.name}** (\`${channel.id}\`)`),
+					text(`**${channel.name}** (\`${channel.id}\`)${by}`),
 				]),
 			);
 		},
@@ -156,16 +182,38 @@ export const loggingEvents: RegisteredEvent[] = [
 		},
 	}),
 	defineEvent("guildMemberUpdate", {
-		execute: (_c, oldMember, newMember) => {
-			if (oldMember.nickname === newMember.nickname) return;
-			return sendLog(newMember.guild, "nicknameChanges", () =>
-				container(Accent.info, [
-					text("## 🏷️ Nickname changed"),
-					text(
-						`${newMember.user.tag} (\`${newMember.id}\`)\n**Before:** ${oldMember.nickname ?? "*none*"}\n**After:** ${newMember.nickname ?? "*none*"}`,
-					),
-				]),
-			);
+		execute: async (_c, oldMember, newMember) => {
+			// Role add/remove (mirrors Discord's "Roles updated" audit entry).
+			const before = oldMember.roles.cache;
+			const after = newMember.roles.cache;
+			const added = after.filter((r) => !before.has(r.id));
+			const removed = before.filter((r) => !after.has(r.id));
+			if (added.size || removed.size) {
+				const by = await auditActor(newMember.guild, AuditLogEvent.MemberRoleUpdate, newMember.id);
+				const lines = [
+					added.size ? `**Added:** ${added.map((r) => `<@&${r.id}>`).join(", ")}` : "",
+					removed.size ? `**Removed:** ${removed.map((r) => `<@&${r.id}>`).join(", ")}` : "",
+				]
+					.filter(Boolean)
+					.join("\n");
+				await sendLog(newMember.guild, "roleChanges", () =>
+					container(Accent.info, [
+						text("## 🎭 Member roles updated"),
+						text(`${newMember.user.tag} (\`${newMember.id}\`)\n${lines}${by}`),
+					]),
+				);
+			}
+			// Nickname change.
+			if (oldMember.nickname !== newMember.nickname) {
+				await sendLog(newMember.guild, "nicknameChanges", () =>
+					container(Accent.info, [
+						text("## 🏷️ Nickname changed"),
+						text(
+							`${newMember.user.tag} (\`${newMember.id}\`)\n**Before:** ${oldMember.nickname ?? "*none*"}\n**After:** ${newMember.nickname ?? "*none*"}`,
+						),
+					]),
+				);
+			}
 		},
 	}),
 ];

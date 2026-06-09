@@ -66,7 +66,11 @@ export async function renderWelcomeCard(data: WelcomeCardData): Promise<Buffer> 
 
 	ctx.fillStyle = "#b9bbbe";
 	ctx.font = `22px ${FONT}`;
-	ctx.fillText(`${cardText(data.serverName).slice(0, 32)}  ·  member #${data.memberCount}`, cx, 246);
+	ctx.fillText(
+		`${cardText(data.serverName).slice(0, 32)}  ·  member #${data.memberCount}`,
+		cx,
+		246,
+	);
 	ctx.textAlign = "left";
 
 	return canvas.toBuffer("image/png");

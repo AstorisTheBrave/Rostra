@@ -21,6 +21,7 @@ page explains each one in plain language. If you use Docker, the database and Re
 | Variable | What it is |
 | --- | --- |
 | `DATABASE_URL` | Where the PostgreSQL database is. With Docker this is set automatically. |
+| `DIRECT_URL` | Optional. A direct (non-pooled) database URL used only for migrations. Set it when `DATABASE_URL` is a pooled connection (for example `pooled.db.prisma.io`, a Neon `-pooler` host, or pgbouncer), otherwise migrations fail with a `P1002` advisory-lock error. Leave unset for a plain or Docker database. |
 | `REDIS_URL` | Where Redis is. Recommended. With Docker this is set automatically. Required for clustering and live reloads. |
 
 If you are not using Docker, you need your own PostgreSQL and Redis, and you put their connection URLs here.

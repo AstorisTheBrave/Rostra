@@ -11,6 +11,22 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (setup: Rostra-native channel/role provisioner)
+
+**changed**: First slice of the setup engine, generalized from Anastasia's task-queue provisioner to Rostra
+(generic multi-tenant, member-role-light). Added `GuildTenant.channelMap` (logical-key -> id registry) +
+migration `20260609020000_tenant_channel_map`, and tenant helpers `getChannelMap`/`setChannelMapEntries`. New
+`src/services/provisioning/{manifest,runProvision}.ts`: a declarative manifest of the channels Rostra's
+systems need (audit-log, mod-logs, automod-logs, welcome, verify, starboard, modmail, feedback - staff/log
+channels created @everyone-deny-view) plus the one role Rostra actually needs (Verified -> VerificationConfig;
+muteRoleId is unused, native timeouts). The engine is idempotent (resolve via channelMap, then by name, then
+create), wires each id into its owning config, writes the channelMap, and doubles as a repair pass; preflight
+checks ManageChannels/ManageRoles. Surfaced as `/setup provision` (admin) with a created/existed/failed
+summary. Verify panel still posted by the admin via `/verification panel`. Biome + tsc clean.
+
+**files touched**: `prisma/schema.prisma`, `prisma/migrations/20260609020000_tenant_channel_map/`,
+`src/services/tenant.ts`, `src/services/provisioning/{manifest,runProvision}.ts`, `src/modules/setup/index.ts`.
+
 ### 2026-06-09 (automod: severity-weighted escalation ladder + case funnel + DM)
 
 **changed**: Ported and improved Anastasia's automod escalation. New pure engine

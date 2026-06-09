@@ -597,6 +597,10 @@ model GuildTenant {
   modLogChannelId  String?
   welcomeChannelId String?
   muteRoleId       String?
+  // Registry of provisioned channels/roles by logical key, e.g.
+  // { "audit-log": "123", "verify": "456", "role:verified": "789" }. Lets setup
+  // resolve and self-heal what it created without hard-coding ids elsewhere.
+  channelMap       Json     @default("{}")
   // Feature enable flags, e.g. { "automod": true, "logging": true }.
   features         Json     @default("{}")
   // Free-form per-guild settings stashed by the wizard/features.

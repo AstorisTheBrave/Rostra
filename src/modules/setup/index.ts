@@ -11,6 +11,7 @@ import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import { SUPPORTED_LOCALES } from "@/i18n/locales.ts";
 import { setGuildLocale } from "@/services/localization.ts";
+import { runProvision } from "@/services/provisioning/runProvision.ts";
 import { getTenant, isFeatureEnabled, setFeatures, updateTenant } from "@/services/tenant.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
 import {
@@ -94,11 +95,46 @@ async function execute({
 	if (!isAdmin(interaction))
 		return void reply.error(interaction, t("common:error.missingPermissions"));
 
-	if (interaction.options.getSubcommand() === "language") {
+	const sub = interaction.options.getSubcommand();
+	if (sub === "language") {
 		const code = interaction.options.getString("language", true);
 		await setGuildLocale(interaction.guildId, code);
 		const label = SUPPORTED_LOCALES[code]?.native ?? code;
 		return void reply.success(interaction, t("setup:languageSet", { language: label }), true);
+	}
+	if (sub === "provision") {
+		const guild = interaction.guild;
+		if (!guild) return void reply.error(interaction, t("common:error.guildOnly"));
+		const result = await runProvision(guild);
+		if (result.missingPerms.length > 0) {
+			return void reply.error(
+				interaction,
+				t("setup:provision.perms", { perms: result.missingPerms.join(", ") }),
+			);
+		}
+		const label = (i: { kind: string; id?: string; name: string }) =>
+			!i.id ? i.name : i.kind === "channel" ? `<#${i.id}>` : `<@&${i.id}>`;
+		const created = result.items.filter((i) => i.status === "created");
+		const existed = result.items.filter((i) => i.status === "existed");
+		const failed = result.items.filter((i) => i.status === "failed");
+		const body = [
+			`**Created:** ${created.length ? created.map(label).join(", ") : "none"}`,
+			`**Already there:** ${existed.length ? existed.map(label).join(", ") : "none"}`,
+			...(failed.length
+				? [`**Failed:** ${failed.map((i) => `${i.name} (${i.error ?? "error"})`).join(", ")}`]
+				: []),
+		].join("\n");
+		return void reply.components(
+			interaction,
+			[
+				container(failed.length ? Accent.warn : Accent.success, [
+					text(`# ${emoji("wizard")} ${t("setup:provision.title")}`),
+					text(body),
+					text(t("setup:provision.hint")),
+				]),
+			],
+			true,
+		);
 	}
 	const tenant = await getTenant(interaction.guildId);
 	await reply.components(interaction, renderPanel(tenant), true);
@@ -145,6 +181,11 @@ function buildData(): SlashCommandBuilder {
 	cmd.addSubcommand((s) => s.setName("wizard").setDescription("Open the setup panel"));
 	cmd.addSubcommand((s) =>
 		s
+			.setName("provision")
+			.setDescription("Create the channels and roles Rostra's systems need (idempotent)"),
+	);
+	cmd.addSubcommand((s) =>
+		s
 			.setName("language")
 			.setDescription("Set this server's language")
 			.addStringOption((o) =>
@@ -183,6 +224,10 @@ const setup: BotModule = {
 		logNone: "No log channel set yet.",
 		logFailed: "I couldn't create a channel - check my Manage Channels permission.",
 		languageSet: "🌐 Server language set to **{language}**. Bot messages here now use it.",
+		"provision.title": "Server provisioning",
+		"provision.perms": "I need these permissions first: **{perms}**. Grant them and run it again.",
+		"provision.hint":
+			"Channels and roles are wired into their systems. Post the verify panel with `/verification panel` in the verify channel. Re-run any time to repair missing pieces.",
 	},
 };
 

@@ -51,6 +51,7 @@ export interface TenantPatch {
 	modLogChannelId?: string | null;
 	welcomeChannelId?: string | null;
 	muteRoleId?: string | null;
+	channelMap?: Record<string, string>;
 	features?: Record<string, boolean>;
 	settings?: Record<string, unknown>;
 }
@@ -63,6 +64,9 @@ export async function updateTenant(guildId: string, patch: TenantPatch): Promise
 		...(patch.modLogChannelId !== undefined ? { modLogChannelId: patch.modLogChannelId } : {}),
 		...(patch.welcomeChannelId !== undefined ? { welcomeChannelId: patch.welcomeChannelId } : {}),
 		...(patch.muteRoleId !== undefined ? { muteRoleId: patch.muteRoleId } : {}),
+		...(patch.channelMap !== undefined
+			? { channelMap: patch.channelMap as Prisma.InputJsonValue }
+			: {}),
 		...(patch.features !== undefined ? { features: patch.features } : {}),
 		...(patch.settings !== undefined ? { settings: patch.settings as Prisma.InputJsonValue } : {}),
 	};
@@ -104,6 +108,21 @@ export async function isFeatureBlocked(guildId: string, feature: string): Promis
 export function getSetting<T = unknown>(tenant: GuildTenant, key: string): T | undefined {
 	const map = tenant.settings as Record<string, unknown> | null;
 	return map?.[key] as T | undefined;
+}
+
+/** The tenant's logical-key -> channel/role id registry (written by /setup provision). */
+export function getChannelMap(tenant: GuildTenant): Record<string, string> {
+	return (tenant.channelMap as Record<string, string> | null) ?? {};
+}
+
+/** Merge entries into the tenant channel map and persist. */
+export async function setChannelMapEntries(
+	guildId: string,
+	entries: Record<string, string>,
+): Promise<GuildTenant> {
+	const current = await getTenant(guildId);
+	const merged = { ...getChannelMap(current), ...entries };
+	return updateTenant(guildId, { channelMap: merged });
 }
 
 /**

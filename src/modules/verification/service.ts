@@ -12,7 +12,12 @@ export async function getConfig(guildId: string): Promise<VerificationConfig | n
 
 export async function upsertConfig(
 	guildId: string,
-	data: Partial<Pick<VerificationConfig, "roleId" | "enabled" | "captcha" | "kickAfterMin">>,
+	data: Partial<
+		Pick<
+			VerificationConfig,
+			"roleId" | "enabled" | "captcha" | "kickAfterMin" | "minAccountAgeDays"
+		>
+	>,
 ): Promise<VerificationConfig> {
 	const row = await getPrisma().verificationConfig.upsert({
 		where: { guildId },

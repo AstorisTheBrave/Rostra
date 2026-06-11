@@ -656,6 +656,7 @@ model VerificationConfig {
   enabled     Boolean  @default(false)
   captcha     Boolean  @default(false) // require a simple math captcha before granting
   kickAfterMin Int? // auto-kick members who do not verify within N minutes (null = off)
+  minAccountAgeDays Int? // kick accounts younger than N days on join (null = off; cheap ban-evasion gate)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

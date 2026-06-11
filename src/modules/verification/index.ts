@@ -70,6 +70,19 @@ function buildData(): SlashCommandBuilder {
 					.setMaxValue(1440),
 			),
 	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("minage")
+			.setDescription("Kick accounts younger than N days on join (0 to disable)")
+			.addIntegerOption((o) =>
+				o
+					.setName("days")
+					.setDescription("Minimum account age in days (0 = off)")
+					.setRequired(true)
+					.setMinValue(0)
+					.setMaxValue(365),
+			),
+	);
 	cmd.addSubcommand((s) => s.setName("disable").setDescription("Turn verification off"));
 	cmd.addSubcommand((s) => s.setName("status").setDescription("Show verification settings"));
 	return cmd;
@@ -121,6 +134,15 @@ async function execute({
 				true,
 			);
 		}
+		case "minage": {
+			const days = interaction.options.getInteger("days", true);
+			await upsertConfig(guild.id, { minAccountAgeDays: days === 0 ? null : days });
+			return void reply.success(
+				interaction,
+				days === 0 ? t("verification:minage.off") : t("verification:minage.on", { days }),
+				true,
+			);
+		}
 		case "disable": {
 			await upsertConfig(guild.id, { enabled: false });
 			return void reply.success(interaction, t("verification:disabled"), true);
@@ -136,6 +158,7 @@ async function execute({
 							role: config?.roleId ? `<@&${config.roleId}>` : "—",
 							captcha: config?.captcha ? "on" : "off",
 							autokick: config?.kickAfterMin ? `${config.kickAfterMin} min` : "off",
+							minage: config?.minAccountAgeDays ? `${config.minAccountAgeDays} days` : "off",
 						}),
 					),
 				]),
@@ -232,12 +255,17 @@ const verification: BotModule = {
 		"captcha.wrong": "❌ Not quite. Tap **Verify** to try again.",
 		"autokick.on": "⏳ Members who do not verify within **{minutes} min** will be kicked.",
 		"autokick.off": "⏳ Auto-kick disabled.",
+		"minage.on":
+			"🛡️ Accounts younger than **{days} days** will be kicked on join. A cheap ban-evasion gate.",
+		"minage.off": "🛡️ Account-age gate disabled.",
+		"ageKick.dm":
+			"🛡️ Your account is too new to join **{server}**. Accounts must be at least **{days} days** old. Try again after {eligible}.",
 		"panel.title": "# 🔓 Verification",
 		"panel.body": "Click the button below to verify and unlock the server.",
 		"panel.button": "Verify",
 		"status.title": "# 🔓 Verification settings",
 		"status.body":
-			"Status: **{state}**\nVerified role: {role}\nCaptcha: **{captcha}**\nAuto-kick: **{autokick}**",
+			"Status: **{state}**\nVerified role: {role}\nCaptcha: **{captcha}**\nAuto-kick: **{autokick}**\nMin account age: **{minage}**",
 	},
 };
 

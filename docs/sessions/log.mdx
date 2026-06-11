@@ -11,6 +11,19 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (verification: account-age ban-evasion gate)
+
+**changed**: Adapted Anastasia's account-age gate (their cheapest ban-evasion signal). New pure
+`src/modules/verification/accountAge.ts` (+test): decode account creation from the snowflake (no API call),
+`accountAgeDays` returns Infinity for malformed ids so a bad snowflake never trips the gate. Schema:
+`VerificationConfig.minAccountAgeDays` + migration `20260609030000_verification_min_account_age`. Wired into
+the `guildMemberAdd` handler (independent of the verify gate): too-new accounts get a DM then a kick (owner
+exempt, DM-first since the kick severs the DM channel, never throws). New `/verification minage <days>` (0 =
+off) + status line. Biome + tsc clean; test 4/4.
+
+**files touched**: `prisma/schema.prisma`, `prisma/migrations/20260609030000_verification_min_account_age/`,
+`src/modules/verification/{accountAge(+test),events,service,index}.ts`.
+
 ### 2026-06-09 (setup: read-only health probe /setup check)
 
 **changed**: Adapted Anastasia's `/checksystem` probe. New `src/services/provisioning/probe.ts#probeProvision`

@@ -11,6 +11,16 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (moderation: case lookup + moderator stats)
+
+**changed**: Cases-forensics slice adapted from Anastasia's cases module. Added `getCase`,
+`getModeratorBreakdown`, `getModeratorLeaderboard` to moderation service (prisma groupBy over `ModerationCase`),
+and `/mod case <number>` (detailed single-case view incl. AUTOMOD attribution + active flag) and `/mod modstats
+[moderator]` (a moderator's per-type breakdown, or a top-moderators leaderboard, automod included). Read-only,
+builds on the existing `recordCase` funnel. Biome + tsc clean.
+
+**files touched**: `src/modules/moderation/{service,index}.ts`.
+
 ### 2026-06-09 (setup: Rostra-native channel/role provisioner)
 
 **changed**: First slice of the setup engine, generalized from Anastasia's task-queue provisioner to Rostra

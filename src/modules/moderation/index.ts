@@ -23,7 +23,10 @@ import {
 	banUser,
 	type CaseType,
 	deactivateCase,
+	getCase,
 	getCases,
+	getModeratorBreakdown,
+	getModeratorLeaderboard,
 	kickUser,
 	liftTempBanTask,
 	removeTempRoleTask,
@@ -117,6 +120,22 @@ function buildData(): SlashCommandBuilder {
 			.setName("cases")
 			.setDescription("List a member's moderation history")
 			.addUserOption((o) => o.setName("user").setDescription("Member").setRequired(true)),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("case")
+			.setDescription("View a moderation case by number")
+			.addIntegerOption((o) =>
+				o.setName("number").setDescription("Case number").setRequired(true).setMinValue(1),
+			),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("modstats")
+			.setDescription("Moderator activity stats (leaderboard, or one moderator)")
+			.addUserOption((o) =>
+				o.setName("moderator").setDescription("A moderator (leave empty for the leaderboard)"),
+			),
 	);
 	cmd.addSubcommand((s) =>
 		s
@@ -363,6 +382,60 @@ async function execute({
 				container(Accent.info, [text(t(titleKey, { user: target.tag })), text(body)]),
 			]);
 		}
+		case "case": {
+			if (!hasPerm(interaction, PermissionFlagsBits.ModerateMembers))
+				return denyNoPerm(interaction);
+			const number = interaction.options.getInteger("number", true);
+			const c = await getCase(guild.id, number);
+			if (!c) return void reply.error(interaction, t("moderation:case.notFound", { case: number }));
+			const when = Math.floor(c.createdAt.getTime() / 1000);
+			const mod = c.moderatorId === "AUTOMOD" ? "Automod" : `<@${c.moderatorId}>`;
+			const lines = [
+				`**Type:** \`${c.type}\``,
+				`**Member:** <@${c.targetId}> (\`${c.targetId}\`)`,
+				`**Moderator:** ${mod}`,
+				`**Reason:** ${c.reason ?? "-"}`,
+				...(c.durationMs ? [`**Duration:** ${formatDuration(c.durationMs)}`] : []),
+				`**When:** <t:${when}:F>`,
+				`**Active:** ${c.active ? "yes" : "no"}`,
+			];
+			return void reply.components(interaction, [
+				container(Accent.info, [
+					text(t("moderation:case.title", { case: c.caseNumber })),
+					text(lines.join("\n")),
+				]),
+			]);
+		}
+		case "modstats": {
+			if (!hasPerm(interaction, PermissionFlagsBits.ModerateMembers))
+				return denyNoPerm(interaction);
+			const who = interaction.options.getUser("moderator");
+			if (who) {
+				const rows = await getModeratorBreakdown(guild.id, who.id);
+				const total = rows.reduce((sum, r) => sum + r.count, 0);
+				const body = rows.length
+					? rows.map((r) => `\`${r.type}\` **${r.count}**`).join(" • ")
+					: t("moderation:modstats.none");
+				return void reply.components(interaction, [
+					container(Accent.info, [
+						text(t("moderation:modstats.userTitle", { user: who.tag, total })),
+						text(body),
+					]),
+				]);
+			}
+			const board = await getModeratorLeaderboard(guild.id);
+			const body = board.length
+				? board
+						.map(
+							(r, i) =>
+								`**${i + 1}.** ${r.moderatorId === "AUTOMOD" ? "Automod" : `<@${r.moderatorId}>`} - ${r.count}`,
+						)
+						.join("\n")
+				: t("moderation:modstats.none");
+			return void reply.components(interaction, [
+				container(Accent.info, [text(t("moderation:modstats.boardTitle")), text(body)]),
+			]);
+		}
 		case "removewarn": {
 			if (!hasPerm(interaction, PermissionFlagsBits.ModerateMembers))
 				return denyNoPerm(interaction);
@@ -509,6 +582,11 @@ const moderation: BotModule = {
 		"warnings.none": "**{user}** has no warnings.",
 		"cases.title": "# Moderation history for {user}",
 		"cases.none": "**{user}** has no moderation history.",
+		"case.title": "# Case #{case}",
+		"case.notFound": "No case #{case} found.",
+		"modstats.userTitle": "# Mod stats for {user} ({total} total)",
+		"modstats.boardTitle": "# Top moderators",
+		"modstats.none": "No moderation activity yet.",
 		"removewarn.success": "🗑️ Removed case #{case}.",
 		"removewarn.notFound": "No case #{case} found.",
 		"error.targetHigher": "You can't moderate a member with an equal or higher role.",

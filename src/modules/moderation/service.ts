@@ -331,6 +331,44 @@ export async function getCases(guildId: string, targetId: string, type?: CaseTyp
 	});
 }
 
+/** A single case by its per-guild number, or null. */
+export async function getCase(guildId: string, caseNumber: number) {
+	return getPrisma().moderationCase.findUnique({
+		where: { guildId_caseNumber: { guildId, caseNumber } },
+	});
+}
+
+/** One moderator's active-case counts broken down by action type, busiest first. */
+export async function getModeratorBreakdown(
+	guildId: string,
+	moderatorId: string,
+): Promise<{ type: string; count: number }[]> {
+	const grouped = await getPrisma().moderationCase.groupBy({
+		by: ["type"],
+		where: { guildId, moderatorId, active: true },
+		_count: { _all: true },
+	});
+	return grouped
+		.map((g) => ({ type: g.type, count: g._count._all }))
+		.sort((a, b) => b.count - a.count);
+}
+
+/** Top moderators in a guild by active-case count (includes AUTOMOD). */
+export async function getModeratorLeaderboard(
+	guildId: string,
+	limit = 10,
+): Promise<{ moderatorId: string; count: number }[]> {
+	const grouped = await getPrisma().moderationCase.groupBy({
+		by: ["moderatorId"],
+		where: { guildId, active: true },
+		_count: { _all: true },
+	});
+	return grouped
+		.map((g) => ({ moderatorId: g.moderatorId, count: g._count._all }))
+		.sort((a, b) => b.count - a.count)
+		.slice(0, limit);
+}
+
 /** Mark a case inactive (used to remove a warning). Returns whether it existed. */
 export async function deactivateCase(guildId: string, caseNumber: number): Promise<boolean> {
 	const prisma = getPrisma();

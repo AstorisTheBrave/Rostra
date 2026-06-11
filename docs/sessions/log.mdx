@@ -11,6 +11,15 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (setup: read-only health probe /setup check)
+
+**changed**: Adapted Anastasia's `/checksystem` probe. New `src/services/provisioning/probe.ts#probeProvision`
+(read-only): resolves every manifest channel/role via the tenant channelMap (then by name) and reports `ok`
+(resolved), `missing` (mapped id gone = drift), or `unmapped` (never provisioned). Surfaced as `/setup check`
+with a per-item ✅/⚠️/❔ report and a "run /setup provision" hint when anything is off. Biome + tsc clean.
+
+**files touched**: `src/services/provisioning/probe.ts`, `src/modules/setup/index.ts`.
+
 ### 2026-06-09 (moderation: case lookup + moderator stats)
 
 **changed**: Cases-forensics slice adapted from Anastasia's cases module. Added `getCase`,

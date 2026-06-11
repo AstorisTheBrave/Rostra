@@ -11,6 +11,7 @@ import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import { SUPPORTED_LOCALES } from "@/i18n/locales.ts";
 import { setGuildLocale } from "@/services/localization.ts";
+import { probeProvision } from "@/services/provisioning/probe.ts";
 import { runProvision } from "@/services/provisioning/runProvision.ts";
 import { getTenant, isFeatureEnabled, setFeatures, updateTenant } from "@/services/tenant.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
@@ -136,6 +137,27 @@ async function execute({
 			true,
 		);
 	}
+	if (sub === "check") {
+		const guild = interaction.guild;
+		if (!guild) return void reply.error(interaction, t("common:error.guildOnly"));
+		const items = await probeProvision(guild);
+		const glyph = (s: string) => (s === "ok" ? "✅" : s === "missing" ? "⚠️" : "❔");
+		const label = (i: { kind: string; id?: string; name: string }) =>
+			i.id ? (i.kind === "channel" ? `<#${i.id}>` : `<@&${i.id}>`) : `\`${i.name}\``;
+		const body = items.map((i) => `${glyph(i.status)} ${label(i)} - ${i.status}`).join("\n");
+		const healthy = items.every((i) => i.status === "ok");
+		return void reply.components(
+			interaction,
+			[
+				container(healthy ? Accent.success : Accent.warn, [
+					text(`# ${emoji("logging")} ${t("setup:check.title")}`),
+					text(body),
+					...(healthy ? [] : [text(t("setup:check.hint"))]),
+				]),
+			],
+			true,
+		);
+	}
 	const tenant = await getTenant(interaction.guildId);
 	await reply.components(interaction, renderPanel(tenant), true);
 }
@@ -186,6 +208,11 @@ function buildData(): SlashCommandBuilder {
 	);
 	cmd.addSubcommand((s) =>
 		s
+			.setName("check")
+			.setDescription("Health-check the provisioned channels and roles (read-only)"),
+	);
+	cmd.addSubcommand((s) =>
+		s
 			.setName("language")
 			.setDescription("Set this server's language")
 			.addStringOption((o) =>
@@ -228,6 +255,9 @@ const setup: BotModule = {
 		"provision.perms": "I need these permissions first: **{perms}**. Grant them and run it again.",
 		"provision.hint":
 			"Channels and roles are wired into their systems. Post the verify panel with `/verification panel` in the verify channel. Re-run any time to repair missing pieces.",
+		"check.title": "Provisioning health",
+		"check.hint":
+			"Some pieces are missing or drifted. Run `/setup provision` to create and repair them.",
 	},
 };
 

@@ -11,6 +11,18 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (F2: shared owner-bypass permission helper)
+
+**changed**: New `src/services/permissions.ts` - the Rostra-fit slice of Anastasia's permission model.
+`isBotOwner(userId)` (config `OWNER_IDS`) and `memberCan(member, perm)` (native Discord permission OR owner
+bypass), centralising the one cross-cutting rule worth sharing so the bot operator can support/recover any
+server without being granted roles. Wired owner bypass into tickets `isSupport` and moderation `hasPerm`.
+Rostra stays role-light + native-perm based by design; this adds the owner escape hatch without a role
+hierarchy. Biome + tsc clean.
+
+**files touched**: `src/services/permissions.ts`, `src/modules/tickets/service.ts`,
+`src/modules/moderation/index.ts`.
+
 ### 2026-06-09 (tickets phase 12: staff performance stats)
 
 **changed**: `getStaffStats` (claimed / closed / open-assigned for one staffer) and `getStaffLeaderboard`

@@ -10,6 +10,7 @@ import {
 } from "discord.js";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
+import { isBotOwner } from "@/services/permissions.ts";
 import {
 	type CategorySpec,
 	escalatePriority,
@@ -154,6 +155,7 @@ async function buildTranscript(
 
 /** Whether a member may manage tickets (a support role or Manage Server). */
 export function isSupport(member: GuildMember, config: TicketConfig): boolean {
+	if (isBotOwner(member.id)) return true;
 	if (member.permissions.has(PermissionFlagsBits.ManageGuild)) return true;
 	return config.supportRoleIds.some((r) => member.roles.cache.has(r));
 }

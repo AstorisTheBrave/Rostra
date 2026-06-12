@@ -12,6 +12,7 @@ import {
 import type { BotClient } from "@/client/BotClient.ts";
 import { getTranslator, t } from "@/i18n/index.ts";
 import { isOptedOut, resolveLocale } from "@/services/localization.ts";
+import { isBotOwner } from "@/services/permissions.ts";
 import { registerTaskHandler } from "@/services/scheduler.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
@@ -202,6 +203,7 @@ function buildData(): SlashCommandBuilder {
 }
 
 function hasPerm(interaction: ChatInputCommandInteraction, perm: PermissionResolvable): boolean {
+	if (isBotOwner(interaction.user.id)) return true;
 	return interaction.memberPermissions?.has(perm) ?? false;
 }
 

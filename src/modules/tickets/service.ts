@@ -364,6 +364,22 @@ export async function reopenTicket(guild: Guild, number: number): Promise<string
 	return ticket.channelId;
 }
 
+/** Add or remove a tag on an open ticket. Returns the new tag list, or null. */
+export async function tagTicket(
+	channelId: string,
+	tag: string,
+	add: boolean,
+): Promise<string[] | null> {
+	const prisma = getPrisma();
+	const ticket = await prisma.ticket.findUnique({ where: { channelId } });
+	if (!ticket?.open) return null;
+	const clean = tag.toLowerCase().trim().slice(0, 30);
+	if (!clean) return ticket.tags;
+	const next = add ? [...new Set([...ticket.tags, clean])] : ticket.tags.filter((x) => x !== clean);
+	await prisma.ticket.update({ where: { channelId }, data: { tags: next } });
+	return next;
+}
+
 /** Move a ticket to a different queue (category), adopting that queue's SLA. */
 export async function transferTicket(
 	channel: TextChannel,

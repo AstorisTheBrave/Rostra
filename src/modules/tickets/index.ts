@@ -35,6 +35,7 @@ import {
 	isSupport,
 	reopenTicket,
 	setTicketPriority,
+	tagTicket,
 	transferTicket,
 	upsertConfig,
 } from "./service.ts";
@@ -89,7 +90,12 @@ function buildData(): SlashCommandBuilder {
 			.setDescription("Where closed-ticket logs go")
 			.addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true)),
 	);
-	cmd.addSubcommand((s) => s.setName("close").setDescription("Close the current ticket"));
+	cmd.addSubcommand((s) =>
+		s
+			.setName("close")
+			.setDescription("Close the current ticket")
+			.addStringOption((o) => o.setName("reason").setDescription("Why it's being closed")),
+	);
 	cmd.addSubcommand((s) =>
 		s
 			.setName("reopen")
@@ -140,6 +146,23 @@ function buildData(): SlashCommandBuilder {
 			.setName("add")
 			.setDescription("Add a user to the current ticket")
 			.addUserOption((o) => o.setName("user").setDescription("User").setRequired(true)),
+	);
+	cmd.addSubcommandGroup((g) =>
+		g
+			.setName("tag")
+			.setDescription("Tag the current ticket")
+			.addSubcommand((s) =>
+				s
+					.setName("add")
+					.setDescription("Add a tag")
+					.addStringOption((o) => o.setName("tag").setDescription("Tag").setRequired(true)),
+			)
+			.addSubcommand((s) =>
+				s
+					.setName("remove")
+					.setDescription("Remove a tag")
+					.addStringOption((o) => o.setName("tag").setDescription("Tag").setRequired(true)),
+			),
 	);
 	cmd.addSubcommandGroup((g) =>
 		g
@@ -198,6 +221,20 @@ async function execute({
 				: cfg.supportRoleIds.filter((r) => r !== role.id);
 		await upsertConfig(guild.id, { supportRoleIds: next });
 		return ok(interaction, `tickets:supportrole.${sub}`, { role: role.name });
+	}
+
+	if (group === "tag") {
+		const channel = interaction.channel as TextChannel | null;
+		if (!channel || !member || !isSupport(member, await ensureConfig(guild.id))) {
+			return void reply.error(interaction, t("common:error.missingPermissions"));
+		}
+		const tag = interaction.options.getString("tag", true);
+		const next = await tagTicket(channel.id, tag, sub === "add");
+		if (next === null) return void reply.error(interaction, t("tickets:error.notTicket"));
+		return ok(interaction, `tickets:tag.${sub}`, {
+			tag,
+			tags: next.length ? next.join(", ") : "none",
+		});
 	}
 
 	switch (sub) {
@@ -302,6 +339,7 @@ async function execute({
 				`**Status:** ${ticket.status} • **Priority:** ${ticket.priority}`,
 				`**Queue:** ${ticket.category} • **SLA:** ${ticket.slaMinutes}m`,
 				`**Claimed by:** ${ticket.claimedBy ? `<@${ticket.claimedBy}>` : "unclaimed"}`,
+				`**Tags:** ${ticket.tags.length ? ticket.tags.map((x) => `\`${x}\``).join(" ") : "none"}`,
 				`**Opened:** <t:${opened}:R>`,
 			];
 			return void reply.components(interaction, [
@@ -359,7 +397,11 @@ async function execute({
 			if (!channel || !("name" in channel)) {
 				return void reply.error(interaction, t("tickets:error.notTicket"));
 			}
-			await closeAndArchive(channel, interaction.user.tag);
+			await closeAndArchive(
+				channel,
+				interaction.user.tag,
+				interaction.options.getString("reason") ?? undefined,
+			);
 			return void reply.success(interaction, t("tickets:closing"), true);
 		}
 		case "status": {
@@ -545,6 +587,8 @@ const tickets: BotModule = {
 		"reopen.notFound":
 			"No reopenable ticket #{number} (it may have been deleted after the 7-day window).",
 		"dashboard.title": "# 🎟️ Ticket dashboard",
+		"tag.add": "🏷️ Added tag **{tag}**. Tags: {tags}",
+		"tag.remove": "🏷️ Removed tag **{tag}**. Tags: {tags}",
 		added: "➕ Added **{user}** to the ticket.",
 		closing: "🔒 Closing this ticket…",
 		"status.title": "# 🎫 Ticket settings",

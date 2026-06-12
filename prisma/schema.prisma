@@ -272,6 +272,7 @@ model Ticket {
   closedBy        String?
   closeReason     String?
   summary         String?
+  tags            String[]  @default([])
   createdAt DateTime @default(now())
 
   @@unique([guildId, number])

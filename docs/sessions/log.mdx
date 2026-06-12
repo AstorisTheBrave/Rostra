@@ -11,6 +11,16 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 9: close reason + tags)
+
+**changed**: `/ticket close` now takes an optional `reason` (threaded into the close summary, log, and opener
+DM). Added ticket tags: `Ticket.tags String[]` + migration `20260609050000_ticket_tags`, `tagTicket` service
+helper, a `/ticket tag add|remove <tag>` group (support-gated), and tags shown in `/ticket info`. Biome + tsc
+clean. This completes the tickets overhaul (9 phases).
+
+**files touched**: `prisma/schema.prisma`, `prisma/migrations/20260609050000_ticket_tags/`,
+`src/modules/tickets/{service,index}.ts`.
+
 ### 2026-06-09 (tickets phase 8: live dashboard)
 
 **changed**: `getDashboard(guildId)` aggregates open tickets (total, unassigned, SLA-breached, by priority /

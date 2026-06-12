@@ -9,7 +9,14 @@ import {
 } from "discord.js";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
-import { escalatePriority, PRIORITY_SUFFIX, type TicketPriority } from "./queue.ts";
+import {
+	type CategorySpec,
+	categoryByKey,
+	escalatePriority,
+	PRIORITY_SUFFIX,
+	type TicketPriority,
+	ticketChannelName,
+} from "./queue.ts";
 
 const log = getLogger("tickets");
 
@@ -148,13 +155,14 @@ async function nextNumber(guildId: string): Promise<number> {
 }
 
 export type CreateResult =
-	| { ok: true; channel: TextChannel; number: number }
+	| { ok: true; channel: TextChannel; number: number; category: CategorySpec }
 	| { ok: false; messageKey: string };
 
 export async function createTicket(
 	guild: Guild,
 	config: TicketConfig,
 	user: User,
+	categoryKey = "general",
 ): Promise<CreateResult> {
 	const prisma = getPrisma();
 	const existing = await prisma.ticket.findFirst({
@@ -162,11 +170,12 @@ export async function createTicket(
 	});
 	if (existing) return { ok: false, messageKey: "tickets:error.alreadyOpen" };
 
+	const spec = categoryByKey(categoryKey);
 	const number = await nextNumber(guild.id);
 	const me = guild.members.me;
 	try {
 		const channel = await guild.channels.create({
-			name: `ticket-${number}`,
+			name: ticketChannelName(user.username, number, "NORMAL"),
 			type: ChannelType.GuildText,
 			parent: config.categoryId ?? null,
 			permissionOverwrites: [
@@ -202,10 +211,17 @@ export async function createTicket(
 			],
 		});
 		await prisma.ticket.create({
-			data: { guildId: guild.id, channelId: channel.id, userId: user.id, number },
+			data: {
+				guildId: guild.id,
+				channelId: channel.id,
+				userId: user.id,
+				number,
+				category: spec.key,
+				slaMinutes: spec.slaMinutes,
+			},
 		});
 		markTicketChannel(channel.id);
-		return { ok: true, channel, number };
+		return { ok: true, channel, number, category: spec };
 	} catch (err) {
 		log.error({ err, guild: guild.id }, "failed to create ticket channel");
 		return { ok: false, messageKey: "tickets:error.createFailed" };

@@ -14,7 +14,7 @@ import { t } from "@/i18n/index.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
 import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import { ticketEvents } from "./events.ts";
-import type { TicketPriority } from "./queue.ts";
+import { DEFAULT_CATEGORIES, type TicketPriority } from "./queue.ts";
 import {
 	claimTicket,
 	closeTicket,
@@ -28,7 +28,14 @@ import {
 
 function panelRow() {
 	return actionRow(
-		button({ id: "ticket:open", label: "Open Ticket", emoji: "🎫", style: ButtonStyle.Primary }),
+		...DEFAULT_CATEGORIES.map((c) =>
+			button({
+				id: `ticket:open:${c.key}`,
+				label: c.label,
+				emoji: c.emoji,
+				style: ButtonStyle.Primary,
+			}),
+		),
 	);
 }
 
@@ -322,12 +329,15 @@ const ticketComponents: ComponentHandler = {
 			if (!config?.enabled) {
 				return void reply.error(interaction, t("tickets:error.disabled"));
 			}
-			const result = await createTicket(guild, config, interaction.user);
+			const result = await createTicket(guild, config, interaction.user, args[1] ?? "general");
 			if (!result.ok) return void reply.error(interaction, t(result.messageKey));
 			await result.channel.send({
 				components: [
-					container(Accent.success, [text(`<@${interaction.user.id}>`), text(config.openMessage)]),
-					controlRow(),
+					container(Accent.success, [
+						text(`<@${interaction.user.id}>`),
+						text(`${result.category.emoji} **${result.category.label}**\n${config.openMessage}`),
+						controlRow(),
+					]),
 				],
 				flags: MessageFlags.IsComponentsV2,
 			});

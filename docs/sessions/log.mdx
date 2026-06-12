@@ -11,6 +11,16 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 5: category-queue panel)
+
+**changed**: The ticket panel now posts one button per default category (General/Support/Appeal/Bug) instead
+of a single Open button; the customId carries the queue key (`ticket:open:<key>`). `createTicket` takes a
+category key, sets the ticket's `category` + `slaMinutes` from the category spec, names the channel via
+`ticketChannelName` (slug-number-suffix), and the opening message shows the category. Each queue carries its
+own SLA, so the phase-4 monitor now alerts per queue correctly. Biome + tsc clean.
+
+**files touched**: `src/modules/tickets/{service,index}.ts`.
+
 ### 2026-06-09 (tickets phase 4: SLA-breach monitor cron)
 
 **changed**: New `src/modules/tickets/monitor.ts#sweepTicketSla` and a `tickets-sla` built-in cron (10-min

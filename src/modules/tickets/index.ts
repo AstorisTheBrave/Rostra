@@ -16,8 +16,7 @@ import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.t
 import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import { ticketEvents } from "./events.ts";
 import {
-	categoryByKey,
-	DEFAULT_CATEGORIES,
+	type CategorySpec,
 	PRIORITY_EMOJI,
 	REOPEN_WINDOW_MS,
 	STATE_EMOJI,
@@ -31,9 +30,11 @@ import {
 	escalateTicket,
 	getConfig,
 	getDashboard,
+	getGuildCategories,
 	getTicket,
 	isSupport,
 	reopenTicket,
+	setGuildCategories,
 	setTicketPriority,
 	tagTicket,
 	transferTicket,
@@ -45,9 +46,9 @@ const TICKET_ARCHIVE_DELETE = "ticket_archive_delete";
 // Delete archived ticket channels when their reopen window expires (durable across restarts).
 registerTaskHandler(TICKET_ARCHIVE_DELETE, archiveDeleteTask);
 
-function panelRow() {
+function panelRow(categories: CategorySpec[]) {
 	return actionRow(
-		...DEFAULT_CATEGORIES.map((c) =>
+		...categories.map((c) =>
 			button({
 				id: `ticket:open:${c.key}`,
 				label: c.label,
@@ -132,9 +133,8 @@ function buildData(): SlashCommandBuilder {
 			.addStringOption((o) =>
 				o
 					.setName("queue")
-					.setDescription("Target queue")
-					.setRequired(true)
-					.addChoices(...DEFAULT_CATEGORIES.map((c) => ({ name: c.label, value: c.key }))),
+					.setDescription("Target queue key (see /ticket queue list)")
+					.setRequired(true),
 			),
 	);
 	cmd.addSubcommand((s) => s.setName("info").setDescription("Show the current ticket's details"));
@@ -146,6 +146,33 @@ function buildData(): SlashCommandBuilder {
 			.setName("add")
 			.setDescription("Add a user to the current ticket")
 			.addUserOption((o) => o.setName("user").setDescription("User").setRequired(true)),
+	);
+	cmd.addSubcommandGroup((g) =>
+		g
+			.setName("queue")
+			.setDescription("Manage custom ticket queues")
+			.addSubcommand((s) =>
+				s
+					.setName("add")
+					.setDescription("Add or update a queue")
+					.addStringOption((o) =>
+						o.setName("key").setDescription("Short key (a-z, 0-9)").setRequired(true),
+					)
+					.addStringOption((o) =>
+						o.setName("label").setDescription("Display label").setRequired(true),
+					)
+					.addStringOption((o) => o.setName("emoji").setDescription("Button emoji"))
+					.addIntegerOption((o) =>
+						o.setName("sla").setDescription("SLA in minutes").setMinValue(5).setMaxValue(10080),
+					),
+			)
+			.addSubcommand((s) =>
+				s
+					.setName("remove")
+					.setDescription("Remove a queue")
+					.addStringOption((o) => o.setName("key").setDescription("Queue key").setRequired(true)),
+			)
+			.addSubcommand((s) => s.setName("list").setDescription("List the queues")),
 	);
 	cmd.addSubcommandGroup((g) =>
 		g
@@ -223,6 +250,45 @@ async function execute({
 		return ok(interaction, `tickets:supportrole.${sub}`, { role: role.name });
 	}
 
+	if (group === "queue") {
+		if (sub === "list") {
+			const cats = await getGuildCategories(guild.id);
+			const body = cats
+				.map((c) => `${c.emoji} \`${c.key}\` ${c.label} - SLA ${c.slaMinutes}m`)
+				.join("\n");
+			return void reply.components(interaction, [
+				container(Accent.info, [text(t("tickets:queue.title")), text(body)]),
+			]);
+		}
+		const cats = await getGuildCategories(guild.id);
+		const key = interaction.options
+			.getString("key", true)
+			.toLowerCase()
+			.replace(/[^a-z0-9]/g, "")
+			.slice(0, 20);
+		if (!key) return void reply.error(interaction, t("tickets:queue.badKey"));
+		if (sub === "add") {
+			const label = interaction.options.getString("label", true);
+			const next: CategorySpec[] = [
+				...cats.filter((c) => c.key !== key),
+				{
+					key,
+					label,
+					emoji: interaction.options.getString("emoji") ?? "🎫",
+					slaMinutes: interaction.options.getInteger("sla") ?? 60,
+				},
+			].slice(0, 5);
+			await setGuildCategories(guild.id, next);
+			return ok(interaction, "tickets:queue.added", { key, label });
+		}
+		const next = cats.filter((c) => c.key !== key);
+		if (next.length === cats.length) {
+			return void reply.error(interaction, t("tickets:queue.notFound", { key }));
+		}
+		await setGuildCategories(guild.id, next);
+		return ok(interaction, "tickets:queue.removed", { key });
+	}
+
 	if (group === "tag") {
 		const channel = interaction.channel as TextChannel | null;
 		if (!channel || !member || !isSupport(member, await ensureConfig(guild.id))) {
@@ -263,7 +329,7 @@ async function execute({
 			await channel.send({
 				components: [
 					container(Accent.info, [text(`# ${cfg.panelTitle}`), text(cfg.panelMessage)]),
-					panelRow(),
+					panelRow(await getGuildCategories(guild.id)),
 				],
 				flags: MessageFlags.IsComponentsV2,
 			});
@@ -320,10 +386,13 @@ async function execute({
 			if (!channel || !member || !isSupport(member, await ensureConfig(guild.id))) {
 				return void reply.error(interaction, t("common:error.missingPermissions"));
 			}
-			const spec = await transferTicket(channel, interaction.options.getString("queue", true));
+			const spec = await transferTicket(
+				channel,
+				interaction.options.getString("queue", true).toLowerCase(),
+			);
 			return spec
 				? ok(interaction, "tickets:transferred", { queue: spec.label })
-				: void reply.error(interaction, t("tickets:error.notTicket"));
+				: void reply.error(interaction, t("tickets:transfer.fail"));
 		}
 		case "info": {
 			const channel = interaction.channel;
@@ -354,6 +423,8 @@ async function execute({
 				return void reply.error(interaction, t("common:error.missingPermissions"));
 			}
 			const d = await getDashboard(guild.id);
+			const cats = await getGuildCategories(guild.id);
+			const cat = (k: string) => cats.find((c) => c.key === k) ?? { emoji: "🎫", label: k };
 			const emoji = (map: Record<string, string>, key: string) => map[key] ?? "";
 			const counts = (
 				m: Record<string, number>,
@@ -370,8 +441,8 @@ async function execute({
 				`**Status:** ${counts(d.byStatus, (k) => emoji(STATE_EMOJI, k))}`,
 				`**Queues:** ${counts(
 					d.byCategory,
-					(k) => categoryByKey(k).emoji,
-					(k) => categoryByKey(k).label,
+					(k) => cat(k).emoji,
+					(k) => cat(k).label,
 				)}`,
 				`**Workload:** ${d.byAssignee.length ? d.byAssignee.map((a) => `<@${a.id}> **${a.count}**`).join(" • ") : "no assignments"}`,
 			];
@@ -582,6 +653,12 @@ const tickets: BotModule = {
 		"priority.set": "🎚️ Priority set to **{level}**.",
 		escalated: "🚨 Ticket escalated to **{level}**.",
 		transferred: "🔀 Ticket moved to the **{queue}** queue.",
+		"transfer.fail": "Run this in a ticket and use a valid queue key (see `/ticket queue list`).",
+		"queue.title": "# 🎫 Ticket queues",
+		"queue.added": "✅ Queue **{label}** (`{key}`) saved.",
+		"queue.removed": "➖ Queue `{key}` removed.",
+		"queue.notFound": "No queue with key `{key}`.",
+		"queue.badKey": "Queue key must contain letters or numbers.",
 		"info.title": "# 🎫 Ticket #{number}",
 		reopened: "♻️ Ticket reopened: {channel}",
 		"reopen.notFound":

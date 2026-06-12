@@ -1,4 +1,4 @@
-import type { TicketConfig } from "@prisma/client";
+import type { Prisma, TicketConfig } from "@prisma/client";
 import {
 	ChannelType,
 	type Client,
@@ -12,9 +12,10 @@ import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
 import {
 	type CategorySpec,
-	categoryByKey,
 	escalatePriority,
 	PRIORITY_SUFFIX,
+	parseCategories,
+	resolveCategory,
 	type TicketPriority,
 	ticketChannelName,
 } from "./queue.ts";
@@ -42,8 +43,8 @@ export async function upsertConfig(
 ): Promise<TicketConfig> {
 	const cfg = await getPrisma().ticketConfig.upsert({
 		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
+		create: { guildId, ...data } as Prisma.TicketConfigUncheckedCreateInput,
+		update: data as Prisma.TicketConfigUncheckedUpdateInput,
 	});
 	cache.set(guildId, cfg);
 	return cfg;
@@ -51,6 +52,17 @@ export async function upsertConfig(
 
 export function invalidate(guildId: string): void {
 	cache.delete(guildId);
+}
+
+/** The guild's ticket queues (custom if configured, else the built-in defaults). */
+export async function getGuildCategories(guildId: string): Promise<CategorySpec[]> {
+	const config = await getConfig(guildId);
+	return parseCategories(config?.categories);
+}
+
+/** Persist a guild's custom ticket queues (sanitised + capped on read). */
+export async function setGuildCategories(guildId: string, cats: CategorySpec[]): Promise<void> {
+	await upsertConfig(guildId, { categories: cats as unknown as TicketConfig["categories"] });
 }
 
 // Hot-path cache so the global messageCreate listener does not hit the DB for every
@@ -171,7 +183,7 @@ export async function createTicket(
 	});
 	if (existing) return { ok: false, messageKey: "tickets:error.alreadyOpen" };
 
-	const spec = categoryByKey(categoryKey);
+	const spec = resolveCategory(parseCategories(config.categories), categoryKey);
 	const number = await nextNumber(guild.id);
 	const me = guild.members.me;
 	try {
@@ -387,7 +399,9 @@ export async function transferTicket(
 ): Promise<CategorySpec | null> {
 	const ticket = await getPrisma().ticket.findUnique({ where: { channelId: channel.id } });
 	if (!ticket?.open) return null;
-	const spec = categoryByKey(categoryKey);
+	const cats = parseCategories((await getConfig(channel.guild.id))?.categories);
+	const spec = cats.find((c) => c.key === categoryKey);
+	if (!spec) return null;
 	await getPrisma().ticket.update({
 		where: { channelId: channel.id },
 		data: { category: spec.key, slaMinutes: spec.slaMinutes },

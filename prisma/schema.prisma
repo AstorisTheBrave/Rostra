@@ -242,6 +242,8 @@ model TicketConfig {
   categoryId     String?
   logChannelId   String?
   supportRoleIds String[] @default([])
+  // Custom queues: [{ key, label, emoji, slaMinutes }]. Empty = the built-in defaults.
+  categories     Json     @default("[]")
   panelTitle     String   @default("Need help?")
   panelMessage   String   @default("Click the button below to open a ticket.")
   openMessage    String   @default("Thanks for opening a ticket. Support will be with you shortly.")

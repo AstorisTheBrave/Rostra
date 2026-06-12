@@ -11,6 +11,18 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 10: per-guild custom queues)
+
+**changed**: Ticket queues are now per-guild configurable. `TicketConfig.categories` (Json) + migration
+`20260609060000_ticket_custom_categories`. Pure `parseCategories` (sanitise + cap at 5, fall back to defaults)
+and `resolveCategory` in queue.ts (+tests). Service `getGuildCategories`/`setGuildCategories`; createTicket +
+transferTicket resolve against the guild's queues. The panel buttons, dashboard labels, and transfer all use
+them. New `/ticket queue add|remove|list`; transfer switched to a free-text key (validated). Biome + tsc
+clean; queue tests added.
+
+**files touched**: `prisma/schema.prisma`, `prisma/migrations/20260609060000_ticket_custom_categories/`,
+`src/modules/tickets/{queue(+test),service,index}.ts`.
+
 ### 2026-06-09 (tickets phase 9: close reason + tags)
 
 **changed**: `/ticket close` now takes an optional `reason` (threaded into the close summary, log, and opener

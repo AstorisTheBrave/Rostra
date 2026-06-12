@@ -73,6 +73,37 @@ export function categoryByKey(key: string): CategorySpec {
 	return DEFAULT_CATEGORIES.find((c) => c.key === key) ?? GENERAL;
 }
 
+/** Sanitise a raw stored category list into specs; empty/invalid falls back to defaults. */
+export function parseCategories(raw: unknown): CategorySpec[] {
+	if (!Array.isArray(raw) || raw.length === 0) return DEFAULT_CATEGORIES;
+	const out: CategorySpec[] = [];
+	for (const item of raw) {
+		if (!item || typeof item !== "object") continue;
+		const c = item as Record<string, unknown>;
+		if (typeof c.key !== "string") continue;
+		const key = c.key
+			.toLowerCase()
+			.replace(/[^a-z0-9]/g, "")
+			.slice(0, 20);
+		if (!key) continue;
+		out.push({
+			key,
+			label: typeof c.label === "string" && c.label ? c.label.slice(0, 40) : key,
+			emoji: typeof c.emoji === "string" && c.emoji ? c.emoji : "🎫",
+			slaMinutes:
+				typeof c.slaMinutes === "number" && c.slaMinutes > 0
+					? Math.min(Math.floor(c.slaMinutes), 10_080)
+					: 60,
+		});
+	}
+	return out.length ? out.slice(0, 5) : DEFAULT_CATEGORIES; // panel button row caps at 5
+}
+
+/** Resolve a category key against a specific list, falling back to its first entry. */
+export function resolveCategory(categories: CategorySpec[], key: string): CategorySpec {
+	return categories.find((c) => c.key === key) ?? categories[0] ?? GENERAL;
+}
+
 export const PRIORITY_SUFFIX: Record<TicketPriority, string> = {
 	LOW: "-l",
 	NORMAL: "",

@@ -11,6 +11,15 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 11: watchers)
+
+**changed**: `Ticket.watchers String[]` + migration `20260609070000_ticket_watchers`. `watchTicket` (toggle
+self) and `notifyWatchers` (DM every watcher) in the service. New `/ticket watch` and `/ticket unwatch`
+(support-gated); watchers are DM'd when a ticket is escalated (command + button) or closed. Biome + tsc clean.
+
+**files touched**: `prisma/schema.prisma`, `prisma/migrations/20260609070000_ticket_watchers/`,
+`src/modules/tickets/{service,index}.ts`.
+
 ### 2026-06-09 (tickets phase 10: per-guild custom queues)
 
 **changed**: Ticket queues are now per-guild configurable. `TicketConfig.categories` (Json) + migration

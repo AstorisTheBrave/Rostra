@@ -275,6 +275,7 @@ model Ticket {
   closeReason     String?
   summary         String?
   tags            String[]  @default([])
+  watchers        String[]  @default([]) // staff who get DM'd on escalate/close
   createdAt DateTime @default(now())
 
   @@unique([guildId, number])

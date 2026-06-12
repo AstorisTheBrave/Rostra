@@ -376,6 +376,33 @@ export async function reopenTicket(guild: Guild, number: number): Promise<string
 	return ticket.channelId;
 }
 
+/** Add or remove the caller as a watcher on an open ticket. Returns the new count, or null. */
+export async function watchTicket(
+	channelId: string,
+	userId: string,
+	add: boolean,
+): Promise<number | null> {
+	const ticket = await getPrisma().ticket.findUnique({ where: { channelId } });
+	if (!ticket?.open) return null;
+	const next = add
+		? [...new Set([...ticket.watchers, userId])]
+		: ticket.watchers.filter((x) => x !== userId);
+	await getPrisma().ticket.update({ where: { channelId }, data: { watchers: next } });
+	return next.length;
+}
+
+/** DM every watcher of a ticket a short update. Best-effort. */
+export async function notifyWatchers(channel: TextChannel, message: string): Promise<void> {
+	const ticket = await getPrisma()
+		.ticket.findUnique({ where: { channelId: channel.id }, select: { watchers: true } })
+		.catch(() => null);
+	if (!ticket?.watchers.length) return;
+	for (const id of ticket.watchers) {
+		const user = await channel.client.users.fetch(id).catch(() => null);
+		await user?.send(message).catch(() => {});
+	}
+}
+
 /** Add or remove a tag on an open ticket. Returns the new tag list, or null. */
 export async function tagTicket(
 	channelId: string,

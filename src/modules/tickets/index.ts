@@ -33,12 +33,14 @@ import {
 	getGuildCategories,
 	getTicket,
 	isSupport,
+	notifyWatchers,
 	reopenTicket,
 	setGuildCategories,
 	setTicketPriority,
 	tagTicket,
 	transferTicket,
 	upsertConfig,
+	watchTicket,
 } from "./service.ts";
 
 const TICKET_ARCHIVE_DELETE = "ticket_archive_delete";
@@ -137,6 +139,10 @@ function buildData(): SlashCommandBuilder {
 					.setRequired(true),
 			),
 	);
+	cmd.addSubcommand((s) =>
+		s.setName("watch").setDescription("Get DM'd when this ticket escalates or closes"),
+	);
+	cmd.addSubcommand((s) => s.setName("unwatch").setDescription("Stop watching this ticket"));
 	cmd.addSubcommand((s) => s.setName("info").setDescription("Show the current ticket's details"));
 	cmd.addSubcommand((s) =>
 		s.setName("dashboard").setDescription("Live overview of all open tickets"),
@@ -377,9 +383,21 @@ async function execute({
 				return void reply.error(interaction, t("common:error.missingPermissions"));
 			}
 			const next = await escalateTicket(channel);
-			return next
-				? ok(interaction, "tickets:escalated", { level: next.toLowerCase() })
-				: void reply.error(interaction, t("tickets:error.notTicket"));
+			if (!next) return void reply.error(interaction, t("tickets:error.notTicket"));
+			await notifyWatchers(channel, `🚨 A ticket in ${guild.name} was escalated to ${next}.`);
+			return ok(interaction, "tickets:escalated", { level: next.toLowerCase() });
+		}
+		case "watch":
+		case "unwatch": {
+			const channel = interaction.channel as TextChannel | null;
+			if (!channel || !member || !isSupport(member, await ensureConfig(guild.id))) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
+			}
+			const count = await watchTicket(channel.id, interaction.user.id, sub === "watch");
+			if (count === null) return void reply.error(interaction, t("tickets:error.notTicket"));
+			return ok(interaction, sub === "watch" ? "tickets:watching" : "tickets:unwatching", {
+				count,
+			});
 		}
 		case "transfer": {
 			const channel = interaction.channel as TextChannel | null;
@@ -504,6 +522,10 @@ async function closeAndArchive(
 		setTimeout(() => void channel.delete().catch(() => {}), 5000);
 		return;
 	}
+	await notifyWatchers(
+		channel,
+		`🔒 Ticket #${info.number} in ${channel.guild.name} was closed by ${closedBy}.`,
+	);
 	const config = await getConfig(channel.guild.id);
 
 	// Log the close with a summary and the transcript file.
@@ -611,9 +633,9 @@ const ticketComponents: ComponentHandler = {
 				return void reply.error(interaction, t("common:error.missingPermissions"));
 			}
 			const next = await escalateTicket(channel);
-			return next
-				? void reply.success(interaction, t("tickets:escalated", { level: next.toLowerCase() }))
-				: void reply.error(interaction, t("tickets:error.notTicket"));
+			if (!next) return void reply.error(interaction, t("tickets:error.notTicket"));
+			await notifyWatchers(channel, `🚨 A ticket in ${guild.name} was escalated to ${next}.`);
+			return void reply.success(interaction, t("tickets:escalated", { level: next.toLowerCase() }));
 		}
 
 		if (action === "close") {
@@ -664,6 +686,9 @@ const tickets: BotModule = {
 		"reopen.notFound":
 			"No reopenable ticket #{number} (it may have been deleted after the 7-day window).",
 		"dashboard.title": "# 🎟️ Ticket dashboard",
+		watching:
+			"👀 You're watching this ticket ({count} watching). You'll be DM'd on escalate/close.",
+		unwatching: "🙈 You stopped watching this ticket ({count} watching).",
 		"tag.add": "🏷️ Added tag **{tag}**. Tags: {tags}",
 		"tag.remove": "🏷️ Removed tag **{tag}**. Tags: {tags}",
 		added: "➕ Added **{user}** to the ticket.",

@@ -11,6 +11,18 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 2: message capture + transcripts on close)
+
+**changed**: New `src/modules/tickets/events.ts` (messageCreate) captures messages in ticket channels to
+`TicketMessage`, guarded by a hot-path cache (`markTicketChannel`/`notTicketChannels`) so normal channels are
+queried at most once - no per-message DB hit fleet-wide. `recordTicketMessage` also advances
+`lastActivityAt`/`firstResponseAt` (first non-opener reply). Rewrote `closeTicket(channel, closedBy, reason?)`
+to set the close fields + summary and return `CloseInfo` (duration, first-response, message count, transcript
+text). `index.ts` close now posts a summary + a `.txt` transcript attachment to the log channel and DMs the
+opener a closing notice. `claimTicket` advances status to CLAIMED. Biome + tsc clean.
+
+**files touched**: `src/modules/tickets/{events,service,index}.ts`.
+
 ### 2026-06-09 (tickets phase 1: state-machine foundation + schema)
 
 **changed**: First phase of the tickets overhaul (adapting Anastasia's ticket system, community-specific

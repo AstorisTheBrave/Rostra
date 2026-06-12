@@ -1,5 +1,6 @@
 import type { TicketConfig } from "@prisma/client";
 import {
+	AttachmentBuilder,
 	ButtonStyle,
 	type ChatInputCommandInteraction,
 	type GuildMember,
@@ -12,6 +13,7 @@ import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
 import { Accent, actionRow, button, container, reply, text } from "@/ui";
+import { ticketEvents } from "./events.ts";
 import {
 	claimTicket,
 	closeTicket,
@@ -212,27 +214,54 @@ async function execute({
 	}
 }
 
-async function closeAndDelete(channel: TextChannel, closedBy: string): Promise<void> {
-	const result = await closeTicket(channel);
+async function closeAndDelete(
+	channel: TextChannel,
+	closedBy: string,
+	reason?: string,
+): Promise<void> {
+	const info = await closeTicket(channel, closedBy, reason);
+	if (!info) {
+		setTimeout(() => void channel.delete().catch(() => {}), 5000);
+		return;
+	}
 	const config = await getConfig(channel.guild.id);
-	if (result && config?.logChannelId) {
+
+	// Log the close with a summary and the transcript file.
+	if (config?.logChannelId) {
 		const logChannel = await channel.guild.channels.fetch(config.logChannelId).catch(() => null);
 		if (logChannel?.isTextBased()) {
+			const summary = [
+				`**Ticket #${info.number}** • opener <@${info.userId}> • closed by ${closedBy}`,
+				`**Category:** ${info.category} • **Duration:** ${info.durationMins}m • **First response:** ${info.firstResponseMins ?? "-"}m • **Messages:** ${info.messageCount}`,
+				...(reason ? [`**Reason:** ${reason}`] : []),
+			].join("\n");
 			await logChannel
 				.send({
-					components: [
-						container(Accent.warn, [
-							text("## 🔒 Ticket closed"),
-							text(
-								`**Ticket #${result.number}** • opener <@${result.userId}> • closed by ${closedBy}`,
-							),
-						]),
-					],
+					components: [container(Accent.warn, [text("## 🔒 Ticket closed"), text(summary)])],
 					flags: MessageFlags.IsComponentsV2,
 				})
 				.catch(() => {});
+			const file = new AttachmentBuilder(Buffer.from(info.transcript, "utf8"), {
+				name: `transcript-${info.number}.txt`,
+			});
+			await logChannel.send({ files: [file] }).catch(() => {});
 		}
 	}
+
+	// DM the opener a closing notice.
+	const opener = await channel.client.users.fetch(info.userId).catch(() => null);
+	await opener
+		?.send({
+			components: [
+				container(Accent.info, [
+					text(`## 🔒 Your ticket #${info.number} in ${channel.guild.name} was closed`),
+					text(reason ? `**Reason:** ${reason}` : "Thanks for reaching out."),
+				]),
+			],
+			flags: MessageFlags.IsComponentsV2,
+		})
+		.catch(() => {});
+
 	setTimeout(() => void channel.delete().catch(() => {}), 5000);
 }
 
@@ -301,6 +330,7 @@ const tickets: BotModule = {
 	name: "tickets",
 	commands: [ticketCommand],
 	components: [ticketComponents],
+	events: ticketEvents,
 	i18n: {
 		enabled: "🎫 Tickets **enabled**.",
 		disabled: "🎫 Tickets **disabled**.",

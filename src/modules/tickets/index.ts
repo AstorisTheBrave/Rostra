@@ -15,7 +15,14 @@ import { registerTaskHandler, schedule } from "@/services/scheduler.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
 import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import { ticketEvents } from "./events.ts";
-import { DEFAULT_CATEGORIES, REOPEN_WINDOW_MS, type TicketPriority } from "./queue.ts";
+import {
+	categoryByKey,
+	DEFAULT_CATEGORIES,
+	PRIORITY_EMOJI,
+	REOPEN_WINDOW_MS,
+	STATE_EMOJI,
+	type TicketPriority,
+} from "./queue.ts";
 import {
 	archiveDeleteTask,
 	claimTicket,
@@ -23,6 +30,7 @@ import {
 	createTicket,
 	escalateTicket,
 	getConfig,
+	getDashboard,
 	getTicket,
 	isSupport,
 	reopenTicket,
@@ -124,6 +132,9 @@ function buildData(): SlashCommandBuilder {
 			),
 	);
 	cmd.addSubcommand((s) => s.setName("info").setDescription("Show the current ticket's details"));
+	cmd.addSubcommand((s) =>
+		s.setName("dashboard").setDescription("Live overview of all open tickets"),
+	);
 	cmd.addSubcommand((s) =>
 		s
 			.setName("add")
@@ -298,6 +309,36 @@ async function execute({
 					text(t("tickets:info.title", { number: ticket.number })),
 					text(lines.join("\n")),
 				]),
+			]);
+		}
+		case "dashboard": {
+			if (!member || !isSupport(member, await ensureConfig(guild.id))) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
+			}
+			const d = await getDashboard(guild.id);
+			const emoji = (map: Record<string, string>, key: string) => map[key] ?? "";
+			const counts = (
+				m: Record<string, number>,
+				glyph: (k: string) => string,
+				label: (k: string) => string = (k) => k,
+			) =>
+				Object.entries(m)
+					.sort((a, b) => b[1] - a[1])
+					.map(([k, v]) => `${glyph(k)} ${label(k)} **${v}**`)
+					.join(" • ") || "none";
+			const lines = [
+				`**Open:** ${d.total} • **Unassigned:** ${d.unassigned} • **SLA breached:** ${d.slaBreached}`,
+				`**Priority:** ${counts(d.byPriority, (k) => emoji(PRIORITY_EMOJI, k))}`,
+				`**Status:** ${counts(d.byStatus, (k) => emoji(STATE_EMOJI, k))}`,
+				`**Queues:** ${counts(
+					d.byCategory,
+					(k) => categoryByKey(k).emoji,
+					(k) => categoryByKey(k).label,
+				)}`,
+				`**Workload:** ${d.byAssignee.length ? d.byAssignee.map((a) => `<@${a.id}> **${a.count}**`).join(" • ") : "no assignments"}`,
+			];
+			return void reply.components(interaction, [
+				container(Accent.info, [text(t("tickets:dashboard.title")), text(lines.join("\n"))]),
 			]);
 		}
 		case "add": {
@@ -503,6 +544,7 @@ const tickets: BotModule = {
 		reopened: "♻️ Ticket reopened: {channel}",
 		"reopen.notFound":
 			"No reopenable ticket #{number} (it may have been deleted after the 7-day window).",
+		"dashboard.title": "# 🎟️ Ticket dashboard",
 		added: "➕ Added **{user}** to the ticket.",
 		closing: "🔒 Closing this ticket…",
 		"status.title": "# 🎫 Ticket settings",

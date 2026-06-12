@@ -11,6 +11,15 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 8: live dashboard)
+
+**changed**: `getDashboard(guildId)` aggregates open tickets (total, unassigned, SLA-breached, by priority /
+status / queue, and top-10 staff workload) from a single bounded query. New `/ticket dashboard` (support-
+gated) renders it as a Components V2 overview with priority/state/queue emoji. No migration. Biome + tsc
+clean.
+
+**files touched**: `src/modules/tickets/{service,index}.ts`.
+
 ### 2026-06-09 (tickets phase 7: close-to-archive + reopen)
 
 **changed**: Close no longer deletes the channel after 5s - it now archives: locks the opener out (deny

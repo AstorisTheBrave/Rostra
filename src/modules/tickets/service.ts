@@ -274,6 +274,55 @@ export async function getTicket(channelId: string) {
 	return getPrisma().ticket.findUnique({ where: { channelId } });
 }
 
+export interface Dashboard {
+	total: number;
+	unassigned: number;
+	slaBreached: number;
+	byPriority: Record<string, number>;
+	byStatus: Record<string, number>;
+	byCategory: Record<string, number>;
+	byAssignee: { id: string; count: number }[];
+}
+
+/** Aggregate a guild's open tickets for the live dashboard. */
+export async function getDashboard(guildId: string): Promise<Dashboard> {
+	const open = await getPrisma()
+		.ticket.findMany({
+			where: { guildId, open: true },
+			take: 1000,
+			select: { priority: true, status: true, category: true, claimedBy: true, slaBreached: true },
+		})
+		.catch(() => []);
+	const byPriority: Record<string, number> = {};
+	const byStatus: Record<string, number> = {};
+	const byCategory: Record<string, number> = {};
+	const assignees = new Map<string, number>();
+	let unassigned = 0;
+	let slaBreached = 0;
+	for (const ticket of open) {
+		byPriority[ticket.priority] = (byPriority[ticket.priority] ?? 0) + 1;
+		byStatus[ticket.status] = (byStatus[ticket.status] ?? 0) + 1;
+		byCategory[ticket.category] = (byCategory[ticket.category] ?? 0) + 1;
+		if (ticket.claimedBy)
+			assignees.set(ticket.claimedBy, (assignees.get(ticket.claimedBy) ?? 0) + 1);
+		else unassigned++;
+		if (ticket.slaBreached) slaBreached++;
+	}
+	const byAssignee = [...assignees.entries()]
+		.map(([id, count]) => ({ id, count }))
+		.sort((a, b) => b.count - a.count)
+		.slice(0, 10);
+	return {
+		total: open.length,
+		unassigned,
+		slaBreached,
+		byPriority,
+		byStatus,
+		byCategory,
+		byAssignee,
+	};
+}
+
 /** Scheduler handler: delete an archived ticket channel once its reopen window expires - unless it was reopened. */
 export async function archiveDeleteTask(payload: unknown, client: Client): Promise<void> {
 	const { channelId } = (payload ?? {}) as { channelId?: string };

@@ -1,5 +1,6 @@
 import { pollAllFeeds } from "@/modules/feeds/service.ts";
 import { pollStatsChannels } from "@/modules/serverstats/service.ts";
+import { sweepTicketSla } from "@/modules/tickets/monitor.ts";
 import { registerCron } from "@/services/cron.ts";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
@@ -37,5 +38,12 @@ export function registerBuiltinCron(): void {
 		name: "poll-stats-channels",
 		everyMs: 10 * 60_000,
 		handler: () => pollStatsChannels(),
+	});
+
+	// Flag SLA-breached open tickets and alert their log channel (manager-only, REST).
+	registerCron({
+		name: "tickets-sla",
+		everyMs: 10 * 60_000,
+		handler: () => sweepTicketSla(),
 	});
 }

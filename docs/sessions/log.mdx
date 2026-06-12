@@ -11,6 +11,16 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 4: SLA-breach monitor cron)
+
+**changed**: New `src/modules/tickets/monitor.ts#sweepTicketSla` and a `tickets-sla` built-in cron (10-min
+cadence) registered in `jobs/builtins.ts`. Runs in the manager over REST (like the feeds/serverstats pollers,
+no gateway client): finds open tickets past their `slaMinutes`, flags `slaBreached` once, and posts a
+plain-text SLA-breach alert (compliant: no embed/components) to the guild's ticket log channel. Channel-level
+actions (escalate/close) stay on the shards. Biome + tsc clean.
+
+**files touched**: `src/modules/tickets/monitor.ts`, `src/jobs/builtins.ts`.
+
 ### 2026-06-09 (tickets phase 3: priority + escalation)
 
 **changed**: `setTicketPriority` and `escalateTicket` in the service (update DB + reflect the priority in the

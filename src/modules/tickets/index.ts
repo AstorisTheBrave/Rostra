@@ -14,12 +14,15 @@ import { t } from "@/i18n/index.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
 import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import { ticketEvents } from "./events.ts";
+import type { TicketPriority } from "./queue.ts";
 import {
 	claimTicket,
 	closeTicket,
 	createTicket,
+	escalateTicket,
 	getConfig,
 	isSupport,
+	setTicketPriority,
 	upsertConfig,
 } from "./service.ts";
 
@@ -32,6 +35,7 @@ function panelRow() {
 function controlRow() {
 	return actionRow(
 		button({ id: "ticket:claim", label: "Claim", style: ButtonStyle.Secondary }),
+		button({ id: "ticket:escalate", label: "Escalate", emoji: "🚨", style: ButtonStyle.Secondary }),
 		button({ id: "ticket:close", label: "Close", emoji: "🔒", style: ButtonStyle.Danger }),
 	);
 }
@@ -62,6 +66,26 @@ function buildData(): SlashCommandBuilder {
 	);
 	cmd.addSubcommand((s) => s.setName("close").setDescription("Close the current ticket"));
 	cmd.addSubcommand((s) => s.setName("claim").setDescription("Claim the current ticket"));
+	cmd.addSubcommand((s) =>
+		s
+			.setName("priority")
+			.setDescription("Set the current ticket's priority")
+			.addStringOption((o) =>
+				o
+					.setName("level")
+					.setDescription("Priority")
+					.setRequired(true)
+					.addChoices(
+						{ name: "Low", value: "LOW" },
+						{ name: "Normal", value: "NORMAL" },
+						{ name: "High", value: "HIGH" },
+						{ name: "Urgent", value: "URGENT" },
+					),
+			),
+	);
+	cmd.addSubcommand((s) =>
+		s.setName("escalate").setDescription("Bump the current ticket up one priority level"),
+	);
 	cmd.addSubcommand((s) =>
 		s
 			.setName("add")
@@ -172,6 +196,27 @@ async function execute({
 			const claimed = await claimTicket(channel.id, interaction.user.id);
 			return claimed
 				? ok(interaction, "tickets:claimed", { user: interaction.user.tag })
+				: void reply.error(interaction, t("tickets:error.notTicket"));
+		}
+		case "priority": {
+			const channel = interaction.channel as TextChannel | null;
+			if (!channel || !member || !isSupport(member, await ensureConfig(guild.id))) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
+			}
+			const level = interaction.options.getString("level", true) as TicketPriority;
+			const done = await setTicketPriority(channel, level);
+			return done
+				? ok(interaction, "tickets:priority.set", { level: level.toLowerCase() })
+				: void reply.error(interaction, t("tickets:error.notTicket"));
+		}
+		case "escalate": {
+			const channel = interaction.channel as TextChannel | null;
+			if (!channel || !member || !isSupport(member, await ensureConfig(guild.id))) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
+			}
+			const next = await escalateTicket(channel);
+			return next
+				? ok(interaction, "tickets:escalated", { level: next.toLowerCase() })
 				: void reply.error(interaction, t("tickets:error.notTicket"));
 		}
 		case "add": {
@@ -307,6 +352,16 @@ const ticketComponents: ComponentHandler = {
 				: void reply.error(interaction, t("tickets:error.notTicket"));
 		}
 
+		if (action === "escalate") {
+			if (!member || !isSupport(member, config)) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
+			}
+			const next = await escalateTicket(channel);
+			return next
+				? void reply.success(interaction, t("tickets:escalated", { level: next.toLowerCase() }))
+				: void reply.error(interaction, t("tickets:error.notTicket"));
+		}
+
 		if (action === "close") {
 			const isOwner = await import("@/services/database.ts").then(({ getPrisma }) =>
 				getPrisma().ticket.findUnique({ where: { channelId: channel.id } }),
@@ -341,6 +396,8 @@ const tickets: BotModule = {
 		"supportrole.remove": "➖ **{role}** can no longer manage tickets.",
 		opened: "🎫 Your ticket is ready: {channel}",
 		claimed: "🙋 Ticket claimed by **{user}**.",
+		"priority.set": "🎚️ Priority set to **{level}**.",
+		escalated: "🚨 Ticket escalated to **{level}**.",
 		added: "➕ Added **{user}** to the ticket.",
 		closing: "🔒 Closing this ticket…",
 		"status.title": "# 🎫 Ticket settings",

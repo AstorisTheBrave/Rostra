@@ -11,6 +11,15 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 3: priority + escalation)
+
+**changed**: `setTicketPriority` and `escalateTicket` in the service (update DB + reflect the priority in the
+channel name via the suffix helper; escalate bumps one level, sets status ESCALATED + `escalatedAt`). New
+`/ticket priority <level>` and `/ticket escalate` subcommands plus an Escalate button on the control row, all
+support-gated. Biome + tsc clean.
+
+**files touched**: `src/modules/tickets/{service,index}.ts`.
+
 ### 2026-06-09 (tickets phase 2: message capture + transcripts on close)
 
 **changed**: New `src/modules/tickets/events.ts` (messageCreate) captures messages in ticket channels to

@@ -9,6 +9,7 @@ import {
 } from "discord.js";
 import { getPrisma } from "@/services/database.ts";
 import { getLogger } from "@/services/logger.ts";
+import { escalatePriority, PRIORITY_SUFFIX, type TicketPriority } from "./queue.ts";
 
 const log = getLogger("tickets");
 
@@ -219,6 +220,36 @@ export async function claimTicket(channelId: string, moderatorId: string): Promi
 		data: { claimedBy: moderatorId, status: "CLAIMED" },
 	});
 	return true;
+}
+
+/** Replace any trailing priority suffix on a channel name with the new one. */
+function applyPrioritySuffix(name: string, priority: TicketPriority): string {
+	return `${name.replace(/-(?:l|h|u)$/, "")}${PRIORITY_SUFFIX[priority]}`.slice(0, 95);
+}
+
+/** Set a ticket's priority and reflect it in the channel name. */
+export async function setTicketPriority(
+	channel: TextChannel,
+	priority: TicketPriority,
+): Promise<boolean> {
+	const ticket = await getPrisma().ticket.findUnique({ where: { channelId: channel.id } });
+	if (!ticket?.open) return false;
+	await getPrisma().ticket.update({ where: { channelId: channel.id }, data: { priority } });
+	await channel.setName(applyPrioritySuffix(channel.name, priority)).catch(() => {});
+	return true;
+}
+
+/** Bump a ticket one priority level, mark it escalated, and rename the channel. */
+export async function escalateTicket(channel: TextChannel): Promise<TicketPriority | null> {
+	const ticket = await getPrisma().ticket.findUnique({ where: { channelId: channel.id } });
+	if (!ticket?.open) return null;
+	const next = escalatePriority((ticket.priority as TicketPriority) ?? "NORMAL");
+	await getPrisma().ticket.update({
+		where: { channelId: channel.id },
+		data: { priority: next, status: "ESCALATED", escalatedAt: new Date() },
+	});
+	await channel.setName(applyPrioritySuffix(channel.name, next)).catch(() => {});
+	return next;
 }
 
 export interface CloseInfo {

@@ -258,10 +258,38 @@ model Ticket {
   number    Int
   claimedBy String?
   open      Boolean  @default(true)
+  // State machine + queue fields (see src/modules/tickets/queue.ts).
+  status          String    @default("OPEN") // OPEN | CLAIMED | ESCALATED | RESOLVED | CLOSED
+  priority        String    @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+  category        String    @default("general")
+  subject         String?
+  slaMinutes      Int       @default(60)
+  slaBreached     Boolean   @default(false)
+  lastActivityAt  DateTime?
+  firstResponseAt DateTime?
+  escalatedAt     DateTime?
+  closedAt        DateTime?
+  closedBy        String?
+  closeReason     String?
+  summary         String?
   createdAt DateTime @default(now())
 
   @@unique([guildId, number])
   @@index([guildId, userId])
+  @@index([guildId, open])
+}
+
+/// One relayed message in a ticket, captured for the transcript built on close.
+model TicketMessage {
+  id        String   @id @default(cuid())
+  channelId String
+  guildId   String
+  authorId  String
+  authorTag String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([channelId])
 }
 
 /// Per-guild ticket number counter.

@@ -11,6 +11,20 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 1: state-machine foundation + schema)
+
+**changed**: First phase of the tickets overhaul (adapting Anastasia's ticket system, community-specific
+queues dropped). Pure `src/modules/tickets/queue.ts` (+test): priority levels (LOW/NORMAL/HIGH/URGENT, colors
++ emoji), a state machine (`canTransition`: OPEN/CLAIMED/ESCALATED/RESOLVED/CLOSED), `escalatePriority`,
+default category queues with SLA minutes, and `ticketChannelName` (slug + zero-padded number + priority
+suffix). Schema: extended `Ticket` (status, priority, category, subject, slaMinutes, slaBreached, +
+lastActivity/firstResponse/escalated/closed timestamps, closedBy/closeReason/summary, `@@index([guildId,
+open])`) and new `TicketMessage` (transcript capture); migration `20260609040000_ticket_state_machine`. All
+new fields defaulted so the existing live module keeps working unchanged. Biome + tsc clean; test 4/4.
+
+**files touched**: `prisma/schema.prisma`, `prisma/migrations/20260609040000_ticket_state_machine/`,
+`src/modules/tickets/queue.ts` (+test).
+
 ### 2026-06-09 (verification: account-age ban-evasion gate)
 
 **changed**: Adapted Anastasia's account-age gate (their cheapest ban-evasion signal). New pure

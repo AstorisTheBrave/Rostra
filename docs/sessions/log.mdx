@@ -11,6 +11,14 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 12: staff performance stats)
+
+**changed**: `getStaffStats` (claimed / closed / open-assigned for one staffer) and `getStaffLeaderboard`
+(top closers, prisma groupBy) - derived from the Ticket table, no migration. New `/ticket staffstats [user]`
+(support-gated): one staffer's throughput, or a top-closers leaderboard. Biome + tsc clean.
+
+**files touched**: `src/modules/tickets/{service,index}.ts`.
+
 ### 2026-06-09 (tickets phase 11: watchers)
 
 **changed**: `Ticket.watchers String[]` + migration `20260609070000_ticket_watchers`. `watchTicket` (toggle

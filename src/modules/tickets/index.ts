@@ -31,6 +31,8 @@ import {
 	getConfig,
 	getDashboard,
 	getGuildCategories,
+	getStaffLeaderboard,
+	getStaffStats,
 	getTicket,
 	isSupport,
 	notifyWatchers,
@@ -146,6 +148,14 @@ function buildData(): SlashCommandBuilder {
 	cmd.addSubcommand((s) => s.setName("info").setDescription("Show the current ticket's details"));
 	cmd.addSubcommand((s) =>
 		s.setName("dashboard").setDescription("Live overview of all open tickets"),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("staffstats")
+			.setDescription("Ticket throughput per staff member")
+			.addUserOption((o) =>
+				o.setName("user").setDescription("Staff member (empty for a leaderboard)"),
+			),
 	);
 	cmd.addSubcommand((s) =>
 		s
@@ -468,6 +478,30 @@ async function execute({
 				container(Accent.info, [text(t("tickets:dashboard.title")), text(lines.join("\n"))]),
 			]);
 		}
+		case "staffstats": {
+			if (!member || !isSupport(member, await ensureConfig(guild.id))) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
+			}
+			const who = interaction.options.getUser("user");
+			if (who) {
+				const s = await getStaffStats(guild.id, who.id);
+				return void reply.components(interaction, [
+					container(Accent.info, [
+						text(t("tickets:staffstats.userTitle", { user: who.tag })),
+						text(
+							`**Claimed:** ${s.claimed} • **Closed:** ${s.closed} • **Open assigned:** ${s.openAssigned}`,
+						),
+					]),
+				]);
+			}
+			const board = await getStaffLeaderboard(guild.id);
+			const body = board.length
+				? board.map((r, i) => `**${i + 1}.** <@${r.id}> - ${r.closed} closed`).join("\n")
+				: t("tickets:staffstats.none");
+			return void reply.components(interaction, [
+				container(Accent.info, [text(t("tickets:staffstats.boardTitle")), text(body)]),
+			]);
+		}
 		case "add": {
 			const channel = interaction.channel as TextChannel | null;
 			const user = interaction.options.getUser("user", true);
@@ -689,6 +723,9 @@ const tickets: BotModule = {
 		watching:
 			"👀 You're watching this ticket ({count} watching). You'll be DM'd on escalate/close.",
 		unwatching: "🙈 You stopped watching this ticket ({count} watching).",
+		"staffstats.userTitle": "# 📊 Ticket stats for {user}",
+		"staffstats.boardTitle": "# 📊 Top ticket closers",
+		"staffstats.none": "No closed tickets yet.",
 		"tag.add": "🏷️ Added tag **{tag}**. Tags: {tags}",
 		"tag.remove": "🏷️ Removed tag **{tag}**. Tags: {tags}",
 		added: "➕ Added **{user}** to the ticket.",

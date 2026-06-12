@@ -286,6 +286,39 @@ export async function getTicket(channelId: string) {
 	return getPrisma().ticket.findUnique({ where: { channelId } });
 }
 
+/** A staff member's ticket throughput in a guild. */
+export async function getStaffStats(
+	guildId: string,
+	userId: string,
+): Promise<{ claimed: number; closed: number; openAssigned: number }> {
+	const prisma = getPrisma();
+	const [claimed, closed, openAssigned] = await Promise.all([
+		prisma.ticket.count({ where: { guildId, claimedBy: userId } }),
+		prisma.ticket.count({ where: { guildId, closedBy: userId } }),
+		prisma.ticket.count({ where: { guildId, claimedBy: userId, open: true } }),
+	]);
+	return { claimed, closed, openAssigned };
+}
+
+/** Top staff by tickets closed in a guild. */
+export async function getStaffLeaderboard(
+	guildId: string,
+	limit = 10,
+): Promise<{ id: string; closed: number }[]> {
+	const grouped = await getPrisma()
+		.ticket.groupBy({
+			by: ["closedBy"],
+			where: { guildId, closedBy: { not: null } },
+			_count: { _all: true },
+		})
+		.catch(() => []);
+	return grouped
+		.map((g) => ({ id: g.closedBy ?? "", closed: g._count._all }))
+		.filter((r) => r.id)
+		.sort((a, b) => b.closed - a.closed)
+		.slice(0, limit);
+}
+
 export interface Dashboard {
 	total: number;
 	unassigned: number;

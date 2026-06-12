@@ -11,11 +11,13 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
+import { registerTaskHandler, schedule } from "@/services/scheduler.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
 import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import { ticketEvents } from "./events.ts";
-import { DEFAULT_CATEGORIES, type TicketPriority } from "./queue.ts";
+import { DEFAULT_CATEGORIES, REOPEN_WINDOW_MS, type TicketPriority } from "./queue.ts";
 import {
+	archiveDeleteTask,
 	claimTicket,
 	closeTicket,
 	createTicket,
@@ -23,10 +25,16 @@ import {
 	getConfig,
 	getTicket,
 	isSupport,
+	reopenTicket,
 	setTicketPriority,
 	transferTicket,
 	upsertConfig,
 } from "./service.ts";
+
+const TICKET_ARCHIVE_DELETE = "ticket_archive_delete";
+
+// Delete archived ticket channels when their reopen window expires (durable across restarts).
+registerTaskHandler(TICKET_ARCHIVE_DELETE, archiveDeleteTask);
 
 function panelRow() {
 	return actionRow(
@@ -74,6 +82,14 @@ function buildData(): SlashCommandBuilder {
 			.addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true)),
 	);
 	cmd.addSubcommand((s) => s.setName("close").setDescription("Close the current ticket"));
+	cmd.addSubcommand((s) =>
+		s
+			.setName("reopen")
+			.setDescription("Reopen a recently closed ticket (within 7 days)")
+			.addIntegerOption((o) =>
+				o.setName("number").setDescription("Ticket number").setRequired(true).setMinValue(1),
+			),
+	);
 	cmd.addSubcommand((s) => s.setName("claim").setDescription("Claim the current ticket"));
 	cmd.addSubcommand((s) =>
 		s
@@ -205,6 +221,16 @@ async function execute({
 			});
 			return ok(interaction, "tickets:panel.posted");
 		}
+		case "reopen": {
+			if (!member || !isSupport(member, await ensureConfig(guild.id))) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
+			}
+			const number = interaction.options.getInteger("number", true);
+			const channelId = await reopenTicket(guild, number);
+			return channelId
+				? ok(interaction, "tickets:reopened", { channel: `<#${channelId}>` })
+				: void reply.error(interaction, t("tickets:reopen.notFound", { number }));
+		}
 		case "claim": {
 			const channel = interaction.channel;
 			if (
@@ -292,7 +318,7 @@ async function execute({
 			if (!channel || !("name" in channel)) {
 				return void reply.error(interaction, t("tickets:error.notTicket"));
 			}
-			await closeAndDelete(channel, interaction.user.tag);
+			await closeAndArchive(channel, interaction.user.tag);
 			return void reply.success(interaction, t("tickets:closing"), true);
 		}
 		case "status": {
@@ -314,7 +340,7 @@ async function execute({
 	}
 }
 
-async function closeAndDelete(
+async function closeAndArchive(
 	channel: TextChannel,
 	closedBy: string,
 	reason?: string,
@@ -348,21 +374,37 @@ async function closeAndDelete(
 		}
 	}
 
-	// DM the opener a closing notice.
+	// DM the opener a closing notice, with the reopen window.
 	const opener = await channel.client.users.fetch(info.userId).catch(() => null);
 	await opener
 		?.send({
 			components: [
 				container(Accent.info, [
 					text(`## 🔒 Your ticket #${info.number} in ${channel.guild.name} was closed`),
-					text(reason ? `**Reason:** ${reason}` : "Thanks for reaching out."),
+					text(
+						`${reason ? `**Reason:** ${reason}\n` : ""}A staff member can reopen it within 7 days with \`/ticket reopen ${info.number}\`.`,
+					),
 				]),
 			],
 			flags: MessageFlags.IsComponentsV2,
 		})
 		.catch(() => {});
 
-	setTimeout(() => void channel.delete().catch(() => {}), 5000);
+	// Archive instead of deleting: lock the opener out, mark the name, and schedule a
+	// durable delete after the reopen window so the ticket can be reopened until then.
+	await channel.permissionOverwrites.edit(info.userId, { SendMessages: false }).catch(() => {});
+	await channel
+		.setName(`${channel.name.replace(/-(?:l|h|u)$/, "")}-closed`.slice(0, 95))
+		.catch(() => {});
+	await schedule(
+		{
+			type: TICKET_ARCHIVE_DELETE,
+			runAt: new Date(Date.now() + REOPEN_WINDOW_MS),
+			guildId: channel.guild.id,
+			payload: { channelId: channel.id },
+		},
+		channel.client,
+	).catch(() => {});
 }
 
 const ticketComponents: ComponentHandler = {
@@ -428,7 +470,7 @@ const ticketComponents: ComponentHandler = {
 				(member && isSupport(member, config)) || isOwner?.userId === interaction.user.id;
 			if (!allowed) return void reply.error(interaction, t("common:error.missingPermissions"));
 			await reply.success(interaction, t("tickets:closing"), true);
-			await closeAndDelete(channel, interaction.user.tag);
+			await closeAndArchive(channel, interaction.user.tag);
 		}
 	},
 };
@@ -458,6 +500,9 @@ const tickets: BotModule = {
 		escalated: "🚨 Ticket escalated to **{level}**.",
 		transferred: "🔀 Ticket moved to the **{queue}** queue.",
 		"info.title": "# 🎫 Ticket #{number}",
+		reopened: "♻️ Ticket reopened: {channel}",
+		"reopen.notFound":
+			"No reopenable ticket #{number} (it may have been deleted after the 7-day window).",
 		added: "➕ Added **{user}** to the ticket.",
 		closing: "🔒 Closing this ticket…",
 		"status.title": "# 🎫 Ticket settings",

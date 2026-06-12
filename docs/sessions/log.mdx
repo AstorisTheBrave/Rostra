@@ -11,6 +11,17 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 7: close-to-archive + reopen)
+
+**changed**: Close no longer deletes the channel after 5s - it now archives: locks the opener out (deny
+SendMessages), renames to `-closed`, and schedules a durable delete after a 7-day reopen window via the
+crash-safe scheduler (`ticket_archive_delete` task, guild-bound). `archiveDeleteTask` deletes only if the
+ticket is still closed (skips reopened ones). New `reopenTicket` + `/ticket reopen <number>` (support-gated)
+unlocks the opener, restores the name, and marks the ticket OPEN. Close DM now tells the opener about the
+reopen window. Renamed the close helper `closeAndDelete` -> `closeAndArchive`. Biome + tsc clean; tests 4/4.
+
+**files touched**: `src/modules/tickets/{queue,service,index}.ts`.
+
 ### 2026-06-09 (tickets phase 6: transfer between queues + info)
 
 **changed**: `getTicket` and `transferTicket` (move a ticket to another queue, adopting that queue's SLA) in

@@ -100,3 +100,6 @@ export function ticketChannelName(
 
 export const fmtPriority = (p: TicketPriority): string => p.charAt(0) + p.slice(1).toLowerCase();
 export const fmtState = (s: TicketState): string => s.charAt(0) + s.slice(1).toLowerCase();
+
+/** How long a closed ticket channel stays archived before deletion (reopen window). */
+export const REOPEN_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;

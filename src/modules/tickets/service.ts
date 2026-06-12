@@ -1,6 +1,7 @@
 import type { TicketConfig } from "@prisma/client";
 import {
 	ChannelType,
+	type Client,
 	type Guild,
 	type GuildMember,
 	PermissionFlagsBits,
@@ -271,6 +272,47 @@ export async function escalateTicket(channel: TextChannel): Promise<TicketPriori
 /** The ticket row for a channel, or null. */
 export async function getTicket(channelId: string) {
 	return getPrisma().ticket.findUnique({ where: { channelId } });
+}
+
+/** Scheduler handler: delete an archived ticket channel once its reopen window expires - unless it was reopened. */
+export async function archiveDeleteTask(payload: unknown, client: Client): Promise<void> {
+	const { channelId } = (payload ?? {}) as { channelId?: string };
+	if (!channelId) return;
+	const ticket = await getPrisma()
+		.ticket.findUnique({ where: { channelId } })
+		.catch(() => null);
+	if (!ticket || ticket.open) return; // reopened or already gone
+	const guild = client.guilds.cache.get(ticket.guildId);
+	const channel = guild?.channels.cache.get(channelId);
+	if (channel) await channel.delete("Ticket reopen window expired").catch(() => {});
+}
+
+/** Reopen a closed-but-not-yet-deleted ticket: unlock the opener, restore the name, mark open. */
+export async function reopenTicket(guild: Guild, number: number): Promise<string | null> {
+	const prisma = getPrisma();
+	const ticket = await prisma.ticket
+		.findUnique({ where: { guildId_number: { guildId: guild.id, number } } })
+		.catch(() => null);
+	if (!ticket || ticket.open) return null;
+	const channel = guild.channels.cache.get(ticket.channelId);
+	if (!channel || !("permissionOverwrites" in channel) || !("setName" in channel)) return null;
+	await channel.permissionOverwrites
+		.edit(ticket.userId, { SendMessages: true, ViewChannel: true })
+		.catch(() => {});
+	await channel.setName(channel.name.replace(/-closed$/, "")).catch(() => {});
+	await prisma.ticket.update({
+		where: { channelId: ticket.channelId },
+		data: {
+			open: true,
+			status: "OPEN",
+			closedAt: null,
+			closedBy: null,
+			closeReason: null,
+			slaBreached: false,
+		},
+	});
+	markTicketChannel(ticket.channelId);
+	return ticket.channelId;
 }
 
 /** Move a ticket to a different queue (category), adopting that queue's SLA. */

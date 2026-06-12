@@ -21,8 +21,10 @@ import {
 	createTicket,
 	escalateTicket,
 	getConfig,
+	getTicket,
 	isSupport,
 	setTicketPriority,
+	transferTicket,
 	upsertConfig,
 } from "./service.ts";
 
@@ -93,6 +95,19 @@ function buildData(): SlashCommandBuilder {
 	cmd.addSubcommand((s) =>
 		s.setName("escalate").setDescription("Bump the current ticket up one priority level"),
 	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("transfer")
+			.setDescription("Move the current ticket to another queue")
+			.addStringOption((o) =>
+				o
+					.setName("queue")
+					.setDescription("Target queue")
+					.setRequired(true)
+					.addChoices(...DEFAULT_CATEGORIES.map((c) => ({ name: c.label, value: c.key }))),
+			),
+	);
+	cmd.addSubcommand((s) => s.setName("info").setDescription("Show the current ticket's details"));
 	cmd.addSubcommand((s) =>
 		s
 			.setName("add")
@@ -225,6 +240,39 @@ async function execute({
 			return next
 				? ok(interaction, "tickets:escalated", { level: next.toLowerCase() })
 				: void reply.error(interaction, t("tickets:error.notTicket"));
+		}
+		case "transfer": {
+			const channel = interaction.channel as TextChannel | null;
+			if (!channel || !member || !isSupport(member, await ensureConfig(guild.id))) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
+			}
+			const spec = await transferTicket(channel, interaction.options.getString("queue", true));
+			return spec
+				? ok(interaction, "tickets:transferred", { queue: spec.label })
+				: void reply.error(interaction, t("tickets:error.notTicket"));
+		}
+		case "info": {
+			const channel = interaction.channel;
+			if (!channel || !("id" in channel)) {
+				return void reply.error(interaction, t("tickets:error.notTicket"));
+			}
+			const ticket = await getTicket(channel.id);
+			if (!ticket) return void reply.error(interaction, t("tickets:error.notTicket"));
+			const opened = Math.floor(ticket.createdAt.getTime() / 1000);
+			const lines = [
+				`**Ticket:** #${ticket.number}`,
+				`**Opener:** <@${ticket.userId}>`,
+				`**Status:** ${ticket.status} • **Priority:** ${ticket.priority}`,
+				`**Queue:** ${ticket.category} • **SLA:** ${ticket.slaMinutes}m`,
+				`**Claimed by:** ${ticket.claimedBy ? `<@${ticket.claimedBy}>` : "unclaimed"}`,
+				`**Opened:** <t:${opened}:R>`,
+			];
+			return void reply.components(interaction, [
+				container(Accent.info, [
+					text(t("tickets:info.title", { number: ticket.number })),
+					text(lines.join("\n")),
+				]),
+			]);
 		}
 		case "add": {
 			const channel = interaction.channel as TextChannel | null;
@@ -408,6 +456,8 @@ const tickets: BotModule = {
 		claimed: "🙋 Ticket claimed by **{user}**.",
 		"priority.set": "🎚️ Priority set to **{level}**.",
 		escalated: "🚨 Ticket escalated to **{level}**.",
+		transferred: "🔀 Ticket moved to the **{queue}** queue.",
+		"info.title": "# 🎫 Ticket #{number}",
 		added: "➕ Added **{user}** to the ticket.",
 		closing: "🔒 Closing this ticket…",
 		"status.title": "# 🎫 Ticket settings",

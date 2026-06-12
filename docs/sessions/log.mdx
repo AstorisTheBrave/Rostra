@@ -11,6 +11,15 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (tickets phase 6: transfer between queues + info)
+
+**changed**: `getTicket` and `transferTicket` (move a ticket to another queue, adopting that queue's SLA) in
+the service. New `/ticket transfer <queue>` (support-gated, choices from the default queues) and `/ticket
+info` (number, opener, status, priority, queue, SLA, claimed-by, age). Reopen deferred - it needs the
+close-to-archive rework (the channel is currently deleted shortly after close). Biome + tsc clean.
+
+**files touched**: `src/modules/tickets/{service,index}.ts`.
+
 ### 2026-06-09 (tickets phase 5: category-queue panel)
 
 **changed**: The ticket panel now posts one button per default category (General/Support/Appeal/Bug) instead

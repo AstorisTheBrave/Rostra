@@ -268,6 +268,26 @@ export async function escalateTicket(channel: TextChannel): Promise<TicketPriori
 	return next;
 }
 
+/** The ticket row for a channel, or null. */
+export async function getTicket(channelId: string) {
+	return getPrisma().ticket.findUnique({ where: { channelId } });
+}
+
+/** Move a ticket to a different queue (category), adopting that queue's SLA. */
+export async function transferTicket(
+	channel: TextChannel,
+	categoryKey: string,
+): Promise<CategorySpec | null> {
+	const ticket = await getPrisma().ticket.findUnique({ where: { channelId: channel.id } });
+	if (!ticket?.open) return null;
+	const spec = categoryByKey(categoryKey);
+	await getPrisma().ticket.update({
+		where: { channelId: channel.id },
+		data: { category: spec.key, slaMinutes: spec.slaMinutes },
+	});
+	return spec;
+}
+
 export interface CloseInfo {
 	number: number;
 	userId: string;

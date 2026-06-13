@@ -11,6 +11,15 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (security: bump transitive esbuild to 0.28.1)
+
+**changed**: Cleared Dependabot GHSA-g7r4-m6w7-qqqr (low, CVSS 2.5): esbuild dev-server path traversal on
+Windows, vulnerable < 0.28.1. Transitive via tsx; Rostra never runs esbuild's dev server so real exposure was
+nil, but added an `esbuild: ^0.28.1` override to force the patched version. `npm install --package-lock-only`
+reports 0 vulnerabilities.
+
+**files touched**: `package.json`, `package-lock.json`.
+
 ### 2026-06-09 (fix: reply race with safeAck auto-defer)
 
 **changed**: `/setup provision` (and any handler slower than safeAck's 2.3s auto-defer) could throw 40060

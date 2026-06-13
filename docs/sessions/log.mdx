@@ -11,6 +11,16 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (fix: reply race with safeAck auto-defer)
+
+**changed**: `/setup provision` (and any handler slower than safeAck's 2.3s auto-defer) could throw 40060
+"Interaction has already been acknowledged" - `reply.components` reached the `i.reply()` path while the
+interaction was already deferred, surfacing as an unhandled rejection (the action itself had succeeded). Made
+`send` in `src/utils/components.ts` recover: if the initial `reply()` fails, fall back to `editReply` then
+`followUp`. Fixes it globally for every slow command, not just provisioning. Biome + tsc clean; tests 6/6.
+
+**files touched**: `src/utils/components.ts`.
+
 ### 2026-06-09 (F2: shared owner-bypass permission helper)
 
 **changed**: New `src/services/permissions.ts` - the Rostra-fit slice of Anastasia's permission model.

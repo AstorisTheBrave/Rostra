@@ -119,7 +119,18 @@ async function send(
 			await i.followUp(payload as unknown as InteractionReplyOptions);
 		}
 	} else {
-		await i.reply(payload as unknown as InteractionReplyOptions);
+		try {
+			await i.reply(payload as unknown as InteractionReplyOptions);
+		} catch {
+			// Raced with safeAck's auto-defer: between the check above and this call the
+			// interaction was acknowledged (40060). Recover by editing the deferred reply,
+			// then a follow-up, so a slow handler's response is never lost.
+			try {
+				await i.editReply(payload as unknown as InteractionEditReplyOptions);
+			} catch {
+				await i.followUp(payload as unknown as InteractionReplyOptions);
+			}
+		}
 	}
 }
 

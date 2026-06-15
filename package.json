@@ -30,7 +30,7 @@
 		"i18n:draft": "node --import tsx --env-file-if-exists=.env src/scripts/i18n-draft.ts"
 	},
 	"dependencies": {
-		"@fastify/rate-limit": "^10.3.0",
+		"@fastify/rate-limit": "^11.0.0",
 		"@keyv/redis": "^5.1.6",
 		"@napi-rs/canvas": "^1.0.0",
 		"@prisma/adapter-pg": "^7.8.0",

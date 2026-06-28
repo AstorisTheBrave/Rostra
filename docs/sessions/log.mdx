@@ -11,6 +11,15 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-06-09 (deps: merge Dependabot PRs + patch undici)
+
+**changed**: Merged 3 green Dependabot PRs (checkout v7; bullmq 5.79.1 / lavalink-client 2.10.3 /
+lucide-static 1.21.0; @types/node 26). Bumped the `undici` override `^6.26.0` -> `^6.27.0` to clear 4
+Dependabot alerts (incl. a high: undici WebSocket DoS via fragment-count bypass - relevant since discord.js
+uses undici for the gateway). `npm install` reports 0 vulnerabilities. CodeQL: 0 open code-scanning alerts.
+
+**files touched**: `package.json`, `package-lock.json`.
+
 ### 2026-06-09 (security: bump transitive esbuild to 0.28.1)
 
 **changed**: Cleared Dependabot GHSA-g7r4-m6w7-qqqr (low, CVSS 2.5): esbuild dev-server path traversal on

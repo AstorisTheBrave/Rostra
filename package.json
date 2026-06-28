@@ -60,7 +60,7 @@
 		"typescript": "^6.0.3"
 	},
 	"overrides": {
-		"undici": "^6.26.0",
+		"undici": "^6.27.0",
 		"@hono/node-server": "^1.19.13",
 		"esbuild": "^0.28.1"
 	}

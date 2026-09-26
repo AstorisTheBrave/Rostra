@@ -161,6 +161,10 @@ export async function removeTimeout(opts: {
 	moderator: GuildMember;
 	reason: string;
 }): Promise<ModResult> {
+	const bot = checkBotHierarchy(opts.target);
+	if (!bot.ok) return bot;
+	const mod = checkHierarchy(opts.moderator, opts.target);
+	if (!mod.ok) return mod;
 	if (!opts.target.moderatable) return { ok: false, messageKey: "moderation:error.notModeratable" };
 	if (!opts.target.isCommunicationDisabled()) {
 		return { ok: false, messageKey: "moderation:error.notTimedOut" };

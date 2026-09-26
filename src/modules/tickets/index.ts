@@ -559,7 +559,7 @@ async function execute({
 				return void reply.error(interaction, t("common:error.missingPermissions"));
 			}
 			const ticket = await getTicket(channel.id);
-			if (!ticket) return void reply.error(interaction, t("tickets:error.notTicket"));
+			if (!ticket?.open) return void reply.error(interaction, t("tickets:error.notTicket"));
 			const user = interaction.options.getUser("user", true);
 			await channel.permissionOverwrites.edit(user.id, {
 				ViewChannel: true,
@@ -576,14 +576,17 @@ async function execute({
 			const cfg = await ensureConfig(guild.id);
 			const ticket = await getTicket(channel.id);
 			if (!ticket) return void reply.error(interaction, t("tickets:error.notTicket"));
+			if (!ticket.open) return void reply.error(interaction, t("tickets:error.alreadyClosed"));
 			const allowed = isSupport(member, cfg) || ticket.userId === interaction.user.id;
 			if (!allowed) return void reply.error(interaction, t("common:error.missingPermissions"));
-			await closeAndArchive(
+			const closed = await closeAndArchive(
 				channel,
 				interaction.user.tag,
 				interaction.options.getString("reason") ?? undefined,
 			);
-			return void reply.success(interaction, t("tickets:closing"), true);
+			return closed
+				? void reply.success(interaction, t("tickets:closing"), true)
+				: void reply.error(interaction, t("tickets:error.alreadyClosed"));
 		}
 		case "status": {
 			const cfg = await getConfig(guild.id);
@@ -608,12 +611,9 @@ async function closeAndArchive(
 	channel: TextChannel,
 	closedBy: string,
 	reason?: string,
-): Promise<void> {
+): Promise<boolean> {
 	const info = await closeTicket(channel, closedBy, reason);
-	if (!info) {
-		setTimeout(() => void channel.delete().catch(() => {}), 5000);
-		return;
-	}
+	if (!info) return false;
 	await notifyWatchers(
 		channel,
 		`🔒 Ticket #${info.number} in ${channel.guild.name} was closed by ${closedBy}.`,
@@ -673,6 +673,7 @@ async function closeAndArchive(
 		},
 		channel.client,
 	).catch(() => {});
+	return true;
 }
 
 const ticketComponents: ComponentHandler = {
@@ -731,14 +732,16 @@ const ticketComponents: ComponentHandler = {
 		}
 
 		if (action === "close") {
-			const isOwner = await import("@/services/database.ts").then(({ getPrisma }) =>
-				getPrisma().ticket.findUnique({ where: { channelId: channel.id } }),
-			);
+			const ticket = await getTicket(channel.id);
+			if (!ticket) return void reply.error(interaction, t("tickets:error.notTicket"));
+			if (!ticket.open) return void reply.error(interaction, t("tickets:error.alreadyClosed"));
 			const allowed =
-				(member && isSupport(member, config)) || isOwner?.userId === interaction.user.id;
+				(member && isSupport(member, config)) || ticket.userId === interaction.user.id;
 			if (!allowed) return void reply.error(interaction, t("common:error.missingPermissions"));
-			await reply.success(interaction, t("tickets:closing"), true);
-			await closeAndArchive(channel, interaction.user.tag);
+			const closed = await closeAndArchive(channel, interaction.user.tag);
+			return closed
+				? void reply.success(interaction, t("tickets:closing"), true)
+				: void reply.error(interaction, t("tickets:error.alreadyClosed"));
 		}
 	},
 };
@@ -795,6 +798,7 @@ const tickets: BotModule = {
 		"status.unconfigured": "Tickets are not set up. Use `/ticket enable` and `/ticket panel`.",
 		"error.disabled": "The ticket system is disabled here.",
 		"error.alreadyOpen": "You already have an open ticket.",
+		"error.alreadyClosed": "This ticket is already closed.",
 		"error.createFailed": "Couldn't create the ticket channel - check my permissions.",
 		"error.categoryUnavailable":
 			"The configured ticket category is missing or invalid. Set it again with `/ticket category`.",

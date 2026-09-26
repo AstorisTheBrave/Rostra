@@ -504,7 +504,7 @@ export async function closeTicket(
 ): Promise<CloseInfo | null> {
 	const prisma = getPrisma();
 	const ticket = await prisma.ticket.findUnique({ where: { channelId: channel.id } });
-	if (!ticket) return null;
+	if (!ticket?.open) return null;
 	const now = new Date();
 	const durationMins = Math.floor((now.getTime() - ticket.createdAt.getTime()) / 60_000);
 	const firstResponseMins = ticket.firstResponseAt
@@ -514,8 +514,8 @@ export async function closeTicket(
 		.count({ where: { channelId: channel.id } })
 		.catch(() => 0);
 	const transcript = await buildTranscript(channel.id, ticket, now);
-	await prisma.ticket.update({
-		where: { channelId: channel.id },
+	const closed = await prisma.ticket.updateMany({
+		where: { channelId: channel.id, open: true },
 		data: {
 			open: false,
 			status: "CLOSED",
@@ -525,6 +525,7 @@ export async function closeTicket(
 			summary: `Closed by ${closedBy} after ${durationMins}m, ${messageCount} messages`,
 		},
 	});
+	if (closed.count === 0) return null;
 	unmarkTicketChannel(channel.id);
 	return {
 		number: ticket.number,

@@ -21,6 +21,9 @@ reconfiguration error. The pending ticket patch also grants support roles operat
 gating configuration by server-manager permission, checks ticket access for add/close, rejects unsafe support
 roles, and reports the five-queue limit. Added a command schema regression test.
 
+**follow-up**: Closing now updates only an open ticket and returns an already-closed error on repeated slash
+or button actions. Missing ticket records no longer schedule channel deletion, preserving the reopen window.
+
 **files touched**: `src/modules/tickets/{index,index.test,service}.ts`, `docs/modules/tickets.mdx`,
 `docs/sessions/log.mdx`.
 

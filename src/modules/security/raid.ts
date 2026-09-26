@@ -2,20 +2,82 @@ import type { AntinukeConfig } from "@prisma/client";
 import { type Client, type Guild, GuildVerificationLevel, MessageFlags } from "discord.js";
 import { getLogger } from "@/services/logger.ts";
 import { schedule } from "@/services/scheduler.ts";
+import { getTenant, updateTenant } from "@/services/tenant.ts";
 import { Accent, container, text } from "@/utils/components.ts";
 
 /**
  * Anti-raid: detect join floods (N joins within M seconds) and put the server
  * into a temporary lockdown by raising the verification level, then auto-lift
- * via the durable scheduler. State is in-memory per shard, which is safe because
- * a guild is always owned by a single shard.
+ * via the durable scheduler. Hot state stays in-memory per shard, while the
+ * restore metadata is also persisted so a process restart cannot create a
+ * second overlapping lockdown with the wrong restore level.
  */
 
 const log = getLogger("security:raid");
 const LOCK_LEVEL = GuildVerificationLevel.VeryHigh;
+const RAID_SETTING = "securityRaidLock";
 
 const joinWindows = new Map<string, number[]>(); // guildId -> recent join timestamps
 const locked = new Map<string, GuildVerificationLevel>(); // guildId -> level to restore on lift
+
+export interface PersistedRaidLock {
+	active: true;
+	restoreLevel: number;
+	unlockAt: number;
+}
+
+function parsePersistedRaidLock(settings: unknown): PersistedRaidLock | null {
+	if (!settings || typeof settings !== "object" || Array.isArray(settings)) return null;
+	const value = (settings as Record<string, unknown>)[RAID_SETTING];
+	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+	const record = value as Record<string, unknown>;
+	if (
+		record.active !== true ||
+		typeof record.restoreLevel !== "number" ||
+		typeof record.unlockAt !== "number"
+	) {
+		return null;
+	}
+	return {
+		active: true,
+		restoreLevel: record.restoreLevel,
+		unlockAt: record.unlockAt,
+	};
+}
+
+export async function getPersistedRaidLock(guildId: string): Promise<PersistedRaidLock | null> {
+	const tenant = await getTenant(guildId);
+	return parsePersistedRaidLock(tenant.settings);
+}
+
+async function persistRaidLock(
+	guildId: string,
+	restoreLevel: GuildVerificationLevel,
+	unlockAt: number,
+): Promise<void> {
+	const tenant = await getTenant(guildId);
+	const settings =
+		tenant.settings && typeof tenant.settings === "object" && !Array.isArray(tenant.settings)
+			? (tenant.settings as Record<string, unknown>)
+			: {};
+	await updateTenant(guildId, {
+		settings: {
+			...settings,
+			[RAID_SETTING]: { active: true, restoreLevel, unlockAt },
+		},
+	});
+}
+
+export async function clearPersistedRaidLock(guildId: string): Promise<void> {
+	const tenant = await getTenant(guildId);
+	const settings =
+		tenant.settings && typeof tenant.settings === "object" && !Array.isArray(tenant.settings)
+			? { ...(tenant.settings as Record<string, unknown>) }
+			: {};
+	if (!(RAID_SETTING in settings)) return;
+	delete settings[RAID_SETTING];
+	await updateTenant(guildId, { settings });
+}
 
 /** Push a join time, drop ones outside the window, and report whether the flood threshold is met. */
 export function recordJoin(
@@ -65,30 +127,50 @@ export async function triggerLockdown(
 	lockMinutes = config.raidLockMinutes,
 ): Promise<boolean> {
 	if (locked.has(guild.id)) return false;
+	if (lockMinutes > 0 && (await getPersistedRaidLock(guild.id))) return false;
+
 	const restoreLevel = guild.verificationLevel;
+	const unlockAt = Date.now() + Math.max(0, lockMinutes) * 60_000;
+	if (lockMinutes > 0) {
+		await persistRaidLock(guild.id, restoreLevel, unlockAt);
+	}
 	locked.set(guild.id, restoreLevel);
+
 	try {
 		if (guild.verificationLevel !== LOCK_LEVEL) {
 			await guild.setVerificationLevel(LOCK_LEVEL, "[Anti-raid] lockdown");
 		}
 	} catch (err) {
+		locked.delete(guild.id);
+		if (lockMinutes > 0) await clearPersistedRaidLock(guild.id).catch(() => {});
 		log.warn({ err, guild: guild.id }, "could not raise verification level");
+		return false;
 	}
+
 	await alert(
 		guild,
 		config,
 		`${reason}\nVerification raised to **Very High**.${lockMinutes > 0 ? ` Auto-lifts in ${lockMinutes} min.` : " Lift it with `/security panic state:off`."}`,
 	);
 	if (lockMinutes > 0) {
-		await schedule(
-			{
-				type: "raid_unlock",
-				runAt: new Date(Date.now() + lockMinutes * 60_000),
-				guildId: guild.id,
-				payload: { guildId: guild.id, restoreLevel },
-			},
-			client,
-		);
+		try {
+			await schedule(
+				{
+					type: "raid_unlock",
+					runAt: new Date(unlockAt),
+					guildId: guild.id,
+					payload: { guildId: guild.id, restoreLevel },
+				},
+				client,
+			);
+		} catch (err) {
+			log.error({ err, guild: guild.id }, "could not schedule raid auto-lift");
+			await alert(
+				guild,
+				config,
+				"Automatic unlock scheduling failed. Use `/security panic state:off` to restore the previous verification level.",
+			);
+		}
 	}
 	return true;
 }
@@ -96,20 +178,23 @@ export async function triggerLockdown(
 /**
  * Lift a lockdown immediately, restoring the prior verification level. Uses the
  * in-memory restore level; `fallbackLevel` covers a process restart that lost it.
+ * Returns whether Discord accepted the restore operation.
  */
 export async function liftLockdown(
 	guild: Guild,
 	fallbackLevel?: GuildVerificationLevel,
-): Promise<void> {
+): Promise<boolean> {
 	const restoreLevel = locked.get(guild.id) ?? fallbackLevel ?? GuildVerificationLevel.Low;
-	locked.delete(guild.id);
-	joinWindows.delete(guild.id);
 	try {
 		if (guild.verificationLevel !== restoreLevel) {
 			await guild.setVerificationLevel(restoreLevel, "[Anti-raid] lockdown lifted");
 		}
+		locked.delete(guild.id);
+		joinWindows.delete(guild.id);
+		return true;
 	} catch (err) {
 		log.warn({ err, guild: guild.id }, "could not restore verification level");
+		return false;
 	}
 }
 
@@ -122,6 +207,12 @@ export async function raidUnlockTask(payload: unknown, client: Client): Promise<
 		locked.delete(data.guildId);
 		return;
 	}
-	const restoreLevel = (data.restoreLevel ?? GuildVerificationLevel.Low) as GuildVerificationLevel;
-	await liftLockdown(guild, restoreLevel);
+	const persisted = await getPersistedRaidLock(data.guildId).catch(() => null);
+	const restoreLevel = (
+		data.restoreLevel ??
+		persisted?.restoreLevel ??
+		GuildVerificationLevel.Low
+	) as GuildVerificationLevel;
+	const lifted = await liftLockdown(guild, restoreLevel);
+	if (lifted) await clearPersistedRaidLock(data.guildId).catch(() => {});
 }

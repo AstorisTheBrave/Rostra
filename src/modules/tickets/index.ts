@@ -3,6 +3,7 @@ import {
 	AttachmentBuilder,
 	ButtonStyle,
 	type ChatInputCommandInteraction,
+	ChannelType,
 	type GuildMember,
 	MessageFlags,
 	PermissionFlagsBits,
@@ -87,7 +88,13 @@ function buildData(): SlashCommandBuilder {
 		s
 			.setName("category")
 			.setDescription("Category new tickets are created under")
-			.addChannelOption((o) => o.setName("category").setDescription("Category").setRequired(true)),
+			.addChannelOption((o) =>
+				o
+					.setName("category")
+					.setDescription("Category")
+					.addChannelTypes(ChannelType.GuildCategory)
+					.setRequired(true),
+			),
 	);
 	cmd.addSubcommand((s) =>
 		s
@@ -328,6 +335,9 @@ async function execute({
 			return ok(interaction, "tickets:disabled");
 		case "category": {
 			const category = interaction.options.getChannel("category", true);
+			if (category.type !== ChannelType.GuildCategory) {
+				return void reply.error(interaction, t("tickets:error.categoryOnly"));
+			}
 			await upsertConfig(guild.id, { categoryId: category.id });
 			return ok(interaction, "tickets:category.set", { name: category.name ?? "category" });
 		}
@@ -739,6 +749,7 @@ const tickets: BotModule = {
 		"error.createFailed": "Couldn't create the ticket channel - check my permissions.",
 		"error.notTicket": "This isn't a ticket channel.",
 		"error.badChannel": "Use this in a text channel.",
+		"error.categoryOnly": "Please select a Discord category, not a text, voice, or forum channel.",
 	},
 };
 

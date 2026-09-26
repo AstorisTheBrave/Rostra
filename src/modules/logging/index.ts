@@ -1,6 +1,7 @@
 import type { LoggingConfig } from "@prisma/client";
 import {
 	type ChatInputCommandInteraction,
+	ChannelType,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
@@ -26,6 +27,10 @@ const EVENTS: { name: string; value: LogEvent }[] = [
 	{ name: "Nickname changes", value: "nicknameChanges" },
 ];
 
+function isLogChannelType(type: ChannelType): boolean {
+	return type === ChannelType.GuildText || type === ChannelType.GuildAnnouncement;
+}
+
 function buildData(): SlashCommandBuilder {
 	const cmd = new SlashCommandBuilder()
 		.setName("logging")
@@ -37,7 +42,11 @@ function buildData(): SlashCommandBuilder {
 			.setName("channel")
 			.setDescription("Set the log channel")
 			.addChannelOption((o) =>
-				o.setName("channel").setDescription("Log channel").setRequired(true),
+				o
+					.setName("channel")
+					.setDescription("Log channel")
+					.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+					.setRequired(true),
 			),
 	);
 	cmd.addSubcommand((s) =>
@@ -124,12 +133,19 @@ async function execute({
 		case "setup": {
 			const tenant = await getTenant(guild.id);
 			const channelId = tenant.logChannelId ?? interaction.channelId;
+			const channel = await guild.channels.fetch(channelId).catch(() => null);
+			if (!channel || !isLogChannelType(channel.type)) {
+				return void reply.error(interaction, t("logging:error.logChannelType"));
+			}
 			await upsertConfig(guild.id, { logChannelId: channelId });
 			await setFeatures(guild.id, { logging: true });
 			return ok(interaction, "logging:setup.done", { channel: `<#${channelId}>` });
 		}
 		case "channel": {
 			const channel = interaction.options.getChannel("channel", true);
+			if (!isLogChannelType(channel.type)) {
+				return void reply.error(interaction, t("logging:error.logChannelType"));
+			}
 			await upsertConfig(guild.id, { logChannelId: channel.id });
 			return ok(interaction, "logging:channel.set", { channel: `<#${channel.id}>` });
 		}
@@ -177,6 +193,7 @@ const logging: BotModule = {
 		"status.title": "# 📋 Logging status",
 		"status.line": "**Channel:** {channel} • **Ignored channels:** {ignored}",
 		"status.unconfigured": "Logging has not been set up. Use `/logging channel` to start.",
+		"error.logChannelType": "Choose a text or announcement channel for server logs.",
 	},
 };
 

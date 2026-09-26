@@ -1,6 +1,7 @@
 import type { AntinukeConfig } from "@prisma/client";
 import {
 	type ChatInputCommandInteraction,
+	ChannelType,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
@@ -26,6 +27,10 @@ const MODULE_KEYS: AntinukeModule[] = [
 	"antiWebhook",
 	"antiGuildUpdate",
 ];
+
+function isLogChannelType(type: ChannelType): boolean {
+	return type === ChannelType.GuildText || type === ChannelType.GuildAnnouncement;
+}
 
 function buildData(): SlashCommandBuilder {
 	const cmd = new SlashCommandBuilder()
@@ -63,16 +68,25 @@ function buildData(): SlashCommandBuilder {
 				o.setName("enabled").setDescription("Turn anti-raid on or off").setRequired(true),
 			)
 			.addIntegerOption((o) =>
-				o.setName("threshold").setDescription("Joins to trigger (default 10)").setMinValue(3),
+				o
+					.setName("threshold")
+					.setDescription("Joins to trigger (default 10)")
+					.setMinValue(3)
+					.setMaxValue(100),
 			)
 			.addIntegerOption((o) =>
-				o.setName("window").setDescription("Within this many seconds (default 10)").setMinValue(3),
+				o
+					.setName("window")
+					.setDescription("Within this many seconds (default 10)")
+					.setMinValue(3)
+					.setMaxValue(300),
 			)
 			.addIntegerOption((o) =>
 				o
 					.setName("minutes")
 					.setDescription("Auto-lift after this many minutes (default 10)")
-					.setMinValue(1),
+					.setMinValue(1)
+					.setMaxValue(1440),
 			),
 	);
 	cmd.addSubcommand((s) =>
@@ -92,7 +106,11 @@ function buildData(): SlashCommandBuilder {
 			.setName("logchannel")
 			.setDescription("Set the antinuke log channel")
 			.addChannelOption((o) =>
-				o.setName("channel").setDescription("Log channel").setRequired(true),
+				o
+					.setName("channel")
+					.setDescription("Log channel")
+					.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+					.setRequired(true),
 			),
 	);
 	cmd.addSubcommand((s) =>
@@ -198,16 +216,21 @@ async function execute({
 	switch (sub) {
 		case "setup": {
 			const tenant = await getTenant(guild.id);
+			const existing = await getConfig(guild.id);
 			await upsertConfig(guild.id, {
 				enabled: true,
 				punishment: "strip",
+				notifyOwner: true,
 				antiBan: true,
 				antiKick: true,
 				antiBotAdd: true,
 				antiChannel: true,
 				antiRole: true,
 				antiWebhook: true,
-				...(tenant.logChannelId ? { logChannelId: tenant.logChannelId } : {}),
+				antiGuildUpdate: true,
+				...(!existing?.logChannelId && tenant.logChannelId
+					? { logChannelId: tenant.logChannelId }
+					: {}),
 			});
 			await setFeatures(guild.id, { security: true });
 			const checklist = MODULE_KEYS.map((k) => `✅ ${k}`).join("\n");
@@ -262,6 +285,9 @@ async function execute({
 		}
 		case "logchannel": {
 			const channel = interaction.options.getChannel("channel", true);
+			if (!isLogChannelType(channel.type)) {
+				return void reply.error(interaction, t("security:error.logChannelType"));
+			}
 			await upsertConfig(guild.id, { logChannelId: channel.id });
 			return ok(interaction, "security:logchannel.set", { channel: `<#${channel.id}>` });
 		}
@@ -289,6 +315,11 @@ async function execute({
 					notify: cfg.notifyOwner ? "on" : "off",
 					whitelist: cfg.whitelist.length,
 					owners: cfg.extraOwners.length,
+					raid: cfg.antiRaid ? "on" : "off",
+					threshold: cfg.raidThreshold,
+					window: cfg.raidWindowSec,
+					minutes: cfg.raidLockMinutes,
+					lockdown: isLocked(guild.id) ? "active" : "inactive",
 				}),
 				modules,
 			];
@@ -325,6 +356,7 @@ const security: BotModule = {
 		"panic.already": "The server is already in lockdown.",
 		"panic.notLocked": "The server is not in lockdown.",
 		"logchannel.set": "📋 Antinuke log channel set to {channel}.",
+		"error.logChannelType": "Choose a text or announcement channel for antinuke logs.",
 		"notify.on": "🔔 Owner DM alerts **enabled**.",
 		"notify.off": "🔕 Owner DM alerts **disabled**.",
 		"module.set": "⚙️ Module **{name}** turned **{state}**.",
@@ -334,7 +366,7 @@ const security: BotModule = {
 		"extraowner.remove": "➖ Removed **{user}** from extra owners.",
 		"status.title": "# 🛡️ Antinuke status",
 		"status.line":
-			"**Enabled:** {enabled} • **Punishment:** {punishment}\n**Log:** {log} • **Owner DMs:** {notify}\n**Whitelisted:** {whitelist} • **Extra owners:** {owners}",
+			"**Enabled:** {enabled} • **Punishment:** {punishment}\n**Log:** {log} • **Owner DMs:** {notify}\n**Whitelisted:** {whitelist} • **Extra owners:** {owners}\n**Anti-raid:** {raid} • **Threshold:** {threshold} joins/{window}s • **Auto-lift:** {minutes}m\n**Lockdown:** {lockdown}",
 		"status.unconfigured": "Antinuke has not been set up. Use `/security enable` to start.",
 	},
 };

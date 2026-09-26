@@ -16,6 +16,7 @@ import { Accent, container, text } from "@/utils/components.ts";
 const log = getLogger("security:raid");
 const LOCK_LEVEL = GuildVerificationLevel.VeryHigh;
 const RAID_SETTING = "securityRaidLock";
+const PANIC_SETTING = "securityPanic";
 
 const joinWindows = new Map<string, number[]>(); // guildId -> recent join timestamps
 const locked = new Map<string, GuildVerificationLevel>(); // guildId -> level to restore on lift
@@ -26,9 +27,14 @@ export interface PersistedRaidLock {
 	unlockAt: number;
 }
 
+function settingsRecord(settings: unknown): Record<string, unknown> {
+	return settings && typeof settings === "object" && !Array.isArray(settings)
+		? (settings as Record<string, unknown>)
+		: {};
+}
+
 function parsePersistedRaidLock(settings: unknown): PersistedRaidLock | null {
-	if (!settings || typeof settings !== "object" || Array.isArray(settings)) return null;
-	const value = (settings as Record<string, unknown>)[RAID_SETTING];
+	const value = settingsRecord(settings)[RAID_SETTING];
 	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 	const record = value as Record<string, unknown>;
 	if (
@@ -45,6 +51,12 @@ function parsePersistedRaidLock(settings: unknown): PersistedRaidLock | null {
 	};
 }
 
+function hasPersistedPanic(settings: unknown): boolean {
+	const value = settingsRecord(settings)[PANIC_SETTING];
+	if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+	return (value as Record<string, unknown>).active === true;
+}
+
 export async function getPersistedRaidLock(guildId: string): Promise<PersistedRaidLock | null> {
 	const tenant = await getTenant(guildId);
 	return parsePersistedRaidLock(tenant.settings);
@@ -56,10 +68,7 @@ async function persistRaidLock(
 	unlockAt: number,
 ): Promise<void> {
 	const tenant = await getTenant(guildId);
-	const settings =
-		tenant.settings && typeof tenant.settings === "object" && !Array.isArray(tenant.settings)
-			? (tenant.settings as Record<string, unknown>)
-			: {};
+	const settings = settingsRecord(tenant.settings);
 	await updateTenant(guildId, {
 		settings: {
 			...settings,
@@ -70,10 +79,7 @@ async function persistRaidLock(
 
 export async function clearPersistedRaidLock(guildId: string): Promise<void> {
 	const tenant = await getTenant(guildId);
-	const settings =
-		tenant.settings && typeof tenant.settings === "object" && !Array.isArray(tenant.settings)
-			? { ...(tenant.settings as Record<string, unknown>) }
-			: {};
+	const settings = { ...settingsRecord(tenant.settings) };
 	if (!(RAID_SETTING in settings)) return;
 	delete settings[RAID_SETTING];
 	await updateTenant(guildId, { settings });
@@ -127,7 +133,10 @@ export async function triggerLockdown(
 	lockMinutes = config.raidLockMinutes,
 ): Promise<boolean> {
 	if (locked.has(guild.id)) return false;
-	if (lockMinutes > 0 && (await getPersistedRaidLock(guild.id))) return false;
+	if (lockMinutes > 0) {
+		const tenant = await getTenant(guild.id);
+		if (parsePersistedRaidLock(tenant.settings) || hasPersistedPanic(tenant.settings)) return false;
+	}
 
 	const restoreLevel = guild.verificationLevel;
 	const unlockAt = Date.now() + Math.max(0, lockMinutes) * 60_000;
@@ -159,7 +168,7 @@ export async function triggerLockdown(
 					type: "raid_unlock",
 					runAt: new Date(unlockAt),
 					guildId: guild.id,
-					payload: { guildId: guild.id, restoreLevel },
+					payload: { guildId: guild.id, restoreLevel, unlockAt },
 				},
 				client,
 			);
@@ -198,16 +207,27 @@ export async function liftLockdown(
 	}
 }
 
-/** Scheduler handler: auto-lift a raid lockdown (payload carries guildId + restoreLevel). */
+/** Scheduler handler: auto-lift a raid lockdown (payload carries its generation metadata). */
 export async function raidUnlockTask(payload: unknown, client: Client): Promise<void> {
-	const data = (payload ?? {}) as { guildId?: string; restoreLevel?: number };
+	const data = (payload ?? {}) as {
+		guildId?: string;
+		restoreLevel?: number;
+		unlockAt?: number;
+	};
 	if (!data.guildId) return;
 	const guild = client.guilds.cache.get(data.guildId);
 	if (!guild) {
 		locked.delete(data.guildId);
 		return;
 	}
+
 	const persisted = await getPersistedRaidLock(data.guildId).catch(() => null);
+	// New-generation tasks carry unlockAt. If state was manually cleared, or a
+	// newer lockdown replaced it, this task is stale and must not touch the guild.
+	if (data.unlockAt !== undefined) {
+		if (!persisted || persisted.unlockAt !== data.unlockAt) return;
+	}
+
 	const restoreLevel = (
 		data.restoreLevel ??
 		persisted?.restoreLevel ??

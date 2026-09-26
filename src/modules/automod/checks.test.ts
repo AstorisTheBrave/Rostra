@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hasDisallowedLink, hasHateSpeech, hasInvite, isCapsAbuse } from "./checks.ts";
+import {
+	hasDisallowedLink,
+	hasHateSpeech,
+	hasInvite,
+	isCapsAbuse,
+	normalizeAllowedDomain,
+} from "./checks.ts";
 
 test("hasHateSpeech catches slurs through spacing, leet, and homoglyph bypasses", () => {
 	assert.equal(hasHateSpeech("you are a r3t4rd"), true);
@@ -21,6 +27,34 @@ test("hasDisallowedLink respects the allow-list", () => {
 	assert.equal(hasDisallowedLink("see https://cdn.youtube.com/v", ["youtube.com"]), false);
 	assert.equal(hasDisallowedLink("see https://evil.com", ["youtube.com"]), true);
 	assert.equal(hasDisallowedLink("no links", ["youtube.com"]), false);
+});
+
+test("hasDisallowedLink normalizes ports and keeps suffix matching boundary-safe", () => {
+	assert.equal(hasDisallowedLink("see https://youtube.com:443/watch?v=1", ["youtube.com"]), false);
+	assert.equal(hasDisallowedLink("see https://cdn.youtube.com:8443/video", ["youtube.com"]), false);
+	assert.equal(hasDisallowedLink("see https://youtube.com.evil.test/video", ["youtube.com"]), true);
+	assert.equal(
+		hasDisallowedLink("https://youtube.com/ok and https://evil.test/nope", ["youtube.com"]),
+		true,
+	);
+});
+
+test("allowed domains reject embedded credentials, paths, wildcard, and malformed ports", () => {
+	assert.equal(normalizeAllowedDomain(" HTTPS://YouTube.com:443/ "), "youtube.com");
+	assert.equal(normalizeAllowedDomain("cdn.youtube.com:8443"), "cdn.youtube.com");
+	for (const input of [
+		"youtube.com/path",
+		"user@evil.test",
+		"*.youtube.com",
+		"youtube.com:bad",
+		"youtube..com",
+		"ftp://youtube.com",
+	]) {
+		assert.equal(normalizeAllowedDomain(input), null, input);
+	}
+	assert.equal(hasDisallowedLink("https://youtube.com:bad/path", ["youtube.com"]), true);
+	assert.equal(hasDisallowedLink("https://youtube.com.evil.test", ["youtube.com"]), true);
+	assert.equal(hasDisallowedLink("https://cdn.youtube.com:8443/video", ["youtube.com:443"]), false);
 });
 
 test("isCapsAbuse flags shouting but ignores short text", () => {

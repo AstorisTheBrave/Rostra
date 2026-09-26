@@ -6,6 +6,11 @@ status: stable
 
 ## what this is
 
+### 2026-09 integration audit
+
+`/logging setup` and `/logging channel` fetch the destination channel and check both View Channel and
+Send Messages for the bot before persisting it. Existing event toggles and dispatch remain as configured.
+
 Audit logging: posts a tidy record to a chosen channel whenever something notable happens - a message is
 deleted/edited/bulk-deleted, a member joins/leaves/is banned, a role/channel is created or deleted, a
 member's nickname changes, or someone moves between voice channels. Staff pick the channel, which event

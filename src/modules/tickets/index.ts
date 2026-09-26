@@ -2,6 +2,7 @@ import type { TicketConfig } from "@prisma/client";
 import {
 	AttachmentBuilder,
 	ButtonStyle,
+	ChannelType,
 	type ChatInputCommandInteraction,
 	type GuildMember,
 	MessageFlags,
@@ -43,6 +44,7 @@ import {
 	transferTicket,
 	upsertConfig,
 	watchTicket,
+	withTicketLock,
 } from "./service.ts";
 
 const TICKET_ARCHIVE_DELETE = "ticket_archive_delete";
@@ -71,11 +73,12 @@ function controlRow() {
 	);
 }
 
-function buildData(): SlashCommandBuilder {
-	const cmd = new SlashCommandBuilder()
-		.setName("ticket")
-		.setDescription("Support ticket system")
-		.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
+function isSendableGuildText(type: ChannelType): boolean {
+	return type === ChannelType.GuildText || type === ChannelType.GuildAnnouncement;
+}
+
+export function buildData(): SlashCommandBuilder {
+	const cmd = new SlashCommandBuilder().setName("ticket").setDescription("Support ticket system");
 
 	cmd.addSubcommand((s) => s.setName("enable").setDescription("Enable tickets"));
 	cmd.addSubcommand((s) => s.setName("disable").setDescription("Disable tickets"));
@@ -87,13 +90,25 @@ function buildData(): SlashCommandBuilder {
 		s
 			.setName("category")
 			.setDescription("Category new tickets are created under")
-			.addChannelOption((o) => o.setName("category").setDescription("Category").setRequired(true)),
+			.addChannelOption((o) =>
+				o
+					.setName("category")
+					.setDescription("Category")
+					.addChannelTypes(ChannelType.GuildCategory)
+					.setRequired(true),
+			),
 	);
 	cmd.addSubcommand((s) =>
 		s
 			.setName("logchannel")
 			.setDescription("Where closed-ticket logs go")
-			.addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true)),
+			.addChannelOption((o) =>
+				o
+					.setName("channel")
+					.setDescription("Channel")
+					.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+					.setRequired(true),
+			),
 	);
 	cmd.addSubcommand((s) =>
 		s
@@ -254,9 +269,21 @@ async function execute({
 	const member = interaction.member as GuildMember | null;
 	const group = interaction.options.getSubcommandGroup(false);
 	const sub = interaction.options.getSubcommand();
+	const canManageGuild =
+		interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ?? false;
+	const adminOnly =
+		group === "supportrole" ||
+		(group === "queue" && sub !== "list") ||
+		["enable", "disable", "panel", "category", "logchannel"].includes(sub);
+	if (adminOnly && !canManageGuild) {
+		return void reply.error(interaction, t("common:error.missingPermissions"));
+	}
 
 	if (group === "supportrole") {
 		const role = interaction.options.getRole("role", true);
+		if (sub === "add" && (role.id === guild.roles.everyone.id || role.managed)) {
+			return void reply.error(interaction, t("tickets:error.unsafeSupportRole"));
+		}
 		const cfg = await ensureConfig(guild.id);
 		const next =
 			sub === "add"
@@ -284,6 +311,10 @@ async function execute({
 			.slice(0, 20);
 		if (!key) return void reply.error(interaction, t("tickets:queue.badKey"));
 		if (sub === "add") {
+			const exists = cats.some((c) => c.key === key);
+			if (!exists && cats.length >= 5) {
+				return void reply.error(interaction, t("tickets:queue.limit"));
+			}
 			const label = interaction.options.getString("label", true);
 			const next: CategorySpec[] = [
 				...cats.filter((c) => c.key !== key),
@@ -293,7 +324,7 @@ async function execute({
 					emoji: interaction.options.getString("emoji") ?? "🎫",
 					slaMinutes: interaction.options.getInteger("sla") ?? 60,
 				},
-			].slice(0, 5);
+			];
 			await setGuildCategories(guild.id, next);
 			return ok(interaction, "tickets:queue.added", { key, label });
 		}
@@ -328,18 +359,38 @@ async function execute({
 			return ok(interaction, "tickets:disabled");
 		case "category": {
 			const category = interaction.options.getChannel("category", true);
-			await upsertConfig(guild.id, { categoryId: category.id });
-			return ok(interaction, "tickets:category.set", { name: category.name ?? "category" });
+			const parent = await guild.channels.fetch(category.id).catch(() => null);
+			if (parent?.type !== ChannelType.GuildCategory) {
+				return void reply.error(interaction, t("tickets:error.categoryOnly"));
+			}
+			await upsertConfig(guild.id, { categoryId: parent.id });
+			return ok(interaction, "tickets:category.set", { name: parent.name });
 		}
 		case "logchannel": {
 			const channel = interaction.options.getChannel("channel", true);
-			await upsertConfig(guild.id, { logChannelId: channel.id });
-			return ok(interaction, "tickets:logchannel.set", { channel: `<#${channel.id}>` });
+			const target = await guild.channels.fetch(channel.id).catch(() => null);
+			if (!target || !isSendableGuildText(target.type)) {
+				return void reply.error(interaction, t("tickets:error.logChannelType"));
+			}
+			const me = guild.members.me ?? (await guild.members.fetchMe());
+			if (
+				!target
+					.permissionsFor(me)
+					?.has([
+						PermissionFlagsBits.ViewChannel,
+						PermissionFlagsBits.SendMessages,
+						PermissionFlagsBits.AttachFiles,
+					])
+			) {
+				return void reply.error(interaction, t("tickets:error.logPermissions"));
+			}
+			await upsertConfig(guild.id, { logChannelId: target.id });
+			return ok(interaction, "tickets:logchannel.set", { channel: `<#${target.id}>` });
 		}
 		case "panel": {
 			const cfg = await ensureConfig(guild.id);
 			const channel = interaction.channel;
-			if (!channel?.isTextBased() || channel.isDMBased()) {
+			if (!channel || !isSendableGuildText(channel.type) || !("send" in channel)) {
 				return void reply.error(interaction, t("tickets:error.badChannel"));
 			}
 			await channel.send({
@@ -504,10 +555,13 @@ async function execute({
 		}
 		case "add": {
 			const channel = interaction.channel as TextChannel | null;
-			const user = interaction.options.getUser("user", true);
-			if (!channel || !("permissionOverwrites" in channel)) {
-				return void reply.error(interaction, t("tickets:error.notTicket"));
+			const cfg = await ensureConfig(guild.id);
+			if (!channel || !member || !isSupport(member, cfg)) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
 			}
+			const ticket = await getTicket(channel.id);
+			if (!ticket?.open) return void reply.error(interaction, t("tickets:error.notTicket"));
+			const user = interaction.options.getUser("user", true);
 			await channel.permissionOverwrites.edit(user.id, {
 				ViewChannel: true,
 				SendMessages: true,
@@ -517,15 +571,23 @@ async function execute({
 		}
 		case "close": {
 			const channel = interaction.channel as TextChannel | null;
-			if (!channel || !("name" in channel)) {
+			if (!channel || !member) {
 				return void reply.error(interaction, t("tickets:error.notTicket"));
 			}
-			await closeAndArchive(
+			const cfg = await ensureConfig(guild.id);
+			const ticket = await getTicket(channel.id);
+			if (!ticket) return void reply.error(interaction, t("tickets:error.notTicket"));
+			if (!ticket.open) return void reply.error(interaction, t("tickets:error.alreadyClosed"));
+			const allowed = isSupport(member, cfg) || ticket.userId === interaction.user.id;
+			if (!allowed) return void reply.error(interaction, t("common:error.missingPermissions"));
+			const closed = await closeAndArchive(
 				channel,
-				interaction.user.tag,
+				interaction.user.id,
 				interaction.options.getString("reason") ?? undefined,
 			);
-			return void reply.success(interaction, t("tickets:closing"), true);
+			return closed
+				? void reply.success(interaction, t("tickets:closing"), true)
+				: void reply.error(interaction, t("tickets:error.alreadyClosed"));
 		}
 		case "status": {
 			const cfg = await getConfig(guild.id);
@@ -550,15 +612,33 @@ async function closeAndArchive(
 	channel: TextChannel,
 	closedBy: string,
 	reason?: string,
-): Promise<void> {
-	const info = await closeTicket(channel, closedBy, reason);
-	if (!info) {
-		setTimeout(() => void channel.delete().catch(() => {}), 5000);
-		return;
-	}
+): Promise<boolean> {
+	return withTicketLock(channel.id, () => closeAndArchiveUnlocked(channel, closedBy, reason));
+}
+
+async function closeAndArchiveUnlocked(
+	channel: TextChannel,
+	closedBy: string,
+	reason?: string,
+): Promise<boolean> {
+	// Persist the cleanup task before closing. A failed scheduler write must not
+	// leave a closed ticket without a durable seven-day cleanup path.
+	const closedAt = new Date();
+	await schedule(
+		{
+			type: TICKET_ARCHIVE_DELETE,
+			runAt: new Date(closedAt.getTime() + REOPEN_WINDOW_MS),
+			guildId: channel.guild.id,
+			payload: { channelId: channel.id, closedAt: closedAt.getTime() },
+		},
+		channel.client,
+	);
+	const info = await closeTicket(channel, closedBy, reason, closedAt);
+	if (!info) return false;
+	const closedByMention = `<@${closedBy}>`;
 	await notifyWatchers(
 		channel,
-		`🔒 Ticket #${info.number} in ${channel.guild.name} was closed by ${closedBy}.`,
+		`🔒 Ticket #${info.number} in ${channel.guild.name} was closed by ${closedByMention}.`,
 	);
 	const config = await getConfig(channel.guild.id);
 
@@ -567,7 +647,7 @@ async function closeAndArchive(
 		const logChannel = await channel.guild.channels.fetch(config.logChannelId).catch(() => null);
 		if (logChannel?.isTextBased()) {
 			const summary = [
-				`**Ticket #${info.number}** • opener <@${info.userId}> • closed by ${closedBy}`,
+				`**Ticket #${info.number}** • opener <@${info.userId}> • closed by ${closedByMention}`,
 				`**Category:** ${info.category} • **Duration:** ${info.durationMins}m • **First response:** ${info.firstResponseMins ?? "-"}m • **Messages:** ${info.messageCount}`,
 				...(reason ? [`**Reason:** ${reason}`] : []),
 			].join("\n");
@@ -606,15 +686,7 @@ async function closeAndArchive(
 	await channel
 		.setName(`${channel.name.replace(/-(?:l|h|u)$/, "")}-closed`.slice(0, 95))
 		.catch(() => {});
-	await schedule(
-		{
-			type: TICKET_ARCHIVE_DELETE,
-			runAt: new Date(Date.now() + REOPEN_WINDOW_MS),
-			guildId: channel.guild.id,
-			payload: { channelId: channel.id },
-		},
-		channel.client,
-	).catch(() => {});
+	return true;
 }
 
 const ticketComponents: ComponentHandler = {
@@ -673,14 +745,16 @@ const ticketComponents: ComponentHandler = {
 		}
 
 		if (action === "close") {
-			const isOwner = await import("@/services/database.ts").then(({ getPrisma }) =>
-				getPrisma().ticket.findUnique({ where: { channelId: channel.id } }),
-			);
+			const ticket = await getTicket(channel.id);
+			if (!ticket) return void reply.error(interaction, t("tickets:error.notTicket"));
+			if (!ticket.open) return void reply.error(interaction, t("tickets:error.alreadyClosed"));
 			const allowed =
-				(member && isSupport(member, config)) || isOwner?.userId === interaction.user.id;
+				(member && isSupport(member, config)) || ticket.userId === interaction.user.id;
 			if (!allowed) return void reply.error(interaction, t("common:error.missingPermissions"));
-			await reply.success(interaction, t("tickets:closing"), true);
-			await closeAndArchive(channel, interaction.user.tag);
+			const closed = await closeAndArchive(channel, interaction.user.id);
+			return closed
+				? void reply.success(interaction, t("tickets:closing"), true)
+				: void reply.error(interaction, t("tickets:error.alreadyClosed"));
 		}
 	},
 };
@@ -715,6 +789,7 @@ const tickets: BotModule = {
 		"queue.removed": "➖ Queue `{key}` removed.",
 		"queue.notFound": "No queue with key `{key}`.",
 		"queue.badKey": "Queue key must contain letters or numbers.",
+		"queue.limit": "A ticket panel supports at most 5 queues. Remove one before adding another.",
 		"info.title": "# 🎫 Ticket #{number}",
 		reopened: "♻️ Ticket reopened: {channel}",
 		"reopen.notFound":
@@ -736,9 +811,18 @@ const tickets: BotModule = {
 		"status.unconfigured": "Tickets are not set up. Use `/ticket enable` and `/ticket panel`.",
 		"error.disabled": "The ticket system is disabled here.",
 		"error.alreadyOpen": "You already have an open ticket.",
+		"error.alreadyClosed": "This ticket is already closed.",
 		"error.createFailed": "Couldn't create the ticket channel - check my permissions.",
+		"error.categoryUnavailable":
+			"The configured ticket category is missing or invalid. Set it again with `/ticket category`.",
+		"error.logPermissions":
+			"I need View Channel, Send Messages, and Attach Files in the ticket log channel.",
 		"error.notTicket": "This isn't a ticket channel.",
-		"error.badChannel": "Use this in a text channel.",
+		"error.badChannel": "Use this in a text or announcement channel.",
+		"error.categoryOnly": "Please select a Discord category, not a text, voice, or forum channel.",
+		"error.logChannelType": "Choose a text or announcement channel for ticket logs.",
+		"error.unsafeSupportRole":
+			"@everyone and managed integration roles cannot be ticket support roles.",
 	},
 };
 

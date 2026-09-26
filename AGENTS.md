@@ -66,6 +66,11 @@ let CI pass. See `CONTRIBUTING.md`.
 - `withSafeAck` - already wired into the pipeline/router; handlers needn't manage the 3s deadline
 - customId convention for components: `module:action:arg` (the module's `ComponentHandler` routes it)
 
+Durable scheduler tasks that modify Discord state need a persisted generation marker and a retry path.
+In particular, raid unlock tasks compare `unlockAt` with tenant state, verification kicks compare the
+join timestamp and config, and ticket archive cleanup compares the current close timestamp. Persist
+critical cleanup tasks before applying the corresponding Discord or database transition.
+
 ## Module shape
 
 ```ts

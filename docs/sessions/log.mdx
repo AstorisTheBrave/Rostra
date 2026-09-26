@@ -11,6 +11,33 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-09-26 (PR #1 to #7 integration candidate)
+
+Merged the seven hardening PR branches into `integration/rostra-hardening-release` without changing main.
+Reviewed module registration, scheduler recovery, tenant settings, tickets, security, verification, AutoMod,
+moderation cases, and logging destinations. Fixed ticket staff identifiers, claim and close races, stale
+archive cleanup, reopen deadline, first-response SLA precision and sweep pagination, Discord role validation,
+stale verification tasks, lockdown generation and recovery, webhook attribution, and domain normalization.
+Added regression tests for permission checks, close serialization, SLA boundaries, stale unlock and kick
+generations, archive windows, and domain allowlisting. See the final integration audit report for gate
+results and release procedure. No production deployment or merge to main was performed.
+
+### 2026-09-26 (fix: ticket category and log channel setup)
+
+**changed**: Limited `/ticket category` to Discord category channels and `/ticket logchannel` to sendable
+channels in the registered command schema. Both handlers verify the type and guild before saving; the log
+channel also verifies bot permissions to view, send, and attach transcripts. Ticket creation checks a saved
+category ID before consuming a ticket number, so older invalid or deleted categories produce a clear
+reconfiguration error. The pending ticket patch also grants support roles operational command access while
+gating configuration by server-manager permission, checks ticket access for add/close, rejects unsafe support
+roles, and reports the five-queue limit. Added a command schema regression test.
+
+**follow-up**: Closing now updates only an open ticket and returns an already-closed error on repeated slash
+or button actions. Missing ticket records no longer schedule channel deletion, preserving the reopen window.
+
+**files touched**: `src/modules/tickets/{index,index.test,service}.ts`, `docs/modules/tickets.mdx`,
+`docs/sessions/log.mdx`.
+
 ### 2026-06-09 (deps: merge Dependabot PRs + patch undici)
 
 **changed**: Merged 3 green Dependabot PRs (checkout v7; bullmq 5.79.1 / lavalink-client 2.10.3 /

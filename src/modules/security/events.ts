@@ -3,21 +3,22 @@ import { defineEvent } from "@/client/defineEvent.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { resolveAuditExecutor } from "./audit.ts";
-import { isLocked, recordJoin, triggerLockdown } from "./raid.ts";
+import { getPersistedRaidLock, isLocked, recordJoin, triggerLockdown } from "./raid.ts";
 import { type AntinukeModule, getConfig, punish } from "./service.ts";
 
 /** Shared guard: if the module is enabled, attribute the action and punish the executor. */
 async function handleViolation(
 	guild: Guild,
 	module: AntinukeModule,
-	auditType: AuditLogEvent,
+	auditType: AuditLogEvent | readonly AuditLogEvent[],
 	targetId: string | null,
 	reason: string,
+	channelId?: string,
 ): Promise<void> {
 	if (await isFeatureBlocked(guild.id, "security")) return;
 	const config = await getConfig(guild.id);
 	if (!config?.enabled || !config[module]) return;
-	const executorId = await resolveAuditExecutor(guild, auditType, targetId);
+	const executorId = await resolveAuditExecutor(guild, auditType, targetId, 8000, channelId);
 	if (!executorId) return;
 	await punish(guild, config, executorId, reason);
 }
@@ -101,7 +102,8 @@ export const securityEvents: RegisteredEvent[] = [
 		execute: async (client, member) => {
 			if (await isFeatureBlocked(member.guild.id, "security")) return;
 			const config = await getConfig(member.guild.id);
-			if (!config?.antiRaid || isLocked(member.guild.id)) return;
+			if (!config?.enabled || !config.antiRaid || isLocked(member.guild.id)) return;
+			if (await getPersistedRaidLock(member.guild.id)) return;
 			if (!recordJoin(member.guild.id, config.raidThreshold, config.raidWindowSec)) return;
 			await triggerLockdown(
 				member.guild,
@@ -116,9 +118,10 @@ export const securityEvents: RegisteredEvent[] = [
 			handleViolation(
 				channel.guild,
 				"antiWebhook",
-				AuditLogEvent.WebhookCreate,
+				[AuditLogEvent.WebhookCreate, AuditLogEvent.WebhookUpdate, AuditLogEvent.WebhookDelete],
 				null,
 				"Unauthorized webhook change",
+				channel.id,
 			),
 	}),
 	defineEvent("guildUpdate", {

@@ -6,9 +6,21 @@ status: stable
 
 ## what this is
 
+### 2026-09 integration audit
+
+`/ticket` remains visible to support roles; configuration subcommands require Manage Server at runtime.
+Close stores the caller's Discord user ID in `closedBy` for staff statistics and formats mentions only in
+messages. Claims use a conditional database update; close, reopen, and archive cleanup serialize per channel.
+Archive tasks carry the exact close timestamp, so a task from an earlier close cannot delete a reopened
+and reclosed channel. The cleanup task is persisted before the close transition. A ticket can reopen only
+before its current close is seven days old. First response means the first human support response, recorded
+with the Discord message timestamp; the SLA sweep compares exact elapsed time and marks a breach once.
+
+Historical `closedBy` username/tag values cannot be mapped reliably to Discord IDs without separate records;
+the leaderboard excludes them and self-closed tickets. Investigate historical records before any backfill.
+
 A support ticket system: members click a button to open a private channel only they and support staff can
-see; staff can claim it and close it (which logs a summary and deletes the channel). This is the first
-module that uses interactive **buttons**.
+see; staff can claim or close it. Closing logs a summary and archives the channel for a 7-day reopen window.
 
 ## technical map
 
@@ -17,8 +29,10 @@ module that uses interactive **buttons**.
 - channel creation + persistence: `src/modules/tickets/service.ts`
 - models: `prisma/schema.prisma` → `TicketConfig`, `Ticket`, `GuildTicketCounter`
 
-**command** - `/ticket` (Manage Server): `enable`, `disable`, `status`, `panel`, `category`,
-`logchannel`, `close`, `claim`, `add <user>`, group `supportrole add|remove`.
+**command** - `/ticket`: server managers configure it with `enable`, `disable`, `panel`, `category`,
+`logchannel`, `queue add|remove`, and `supportrole add|remove`. Support roles can run operational commands
+such as `claim`, `priority`, `transfer`, `add`, `close`, `reopen`, `dashboard`, and `staffstats`. Members may
+close their own ticket. `status` and `queue list` expose settings without granting configuration access.
 
 **buttons (ComponentHandler `prefix: "ticket"`)** - customIds `ticket:open`, `ticket:claim`,
 `ticket:close`. The interaction router splits the customId and dispatches the segment after the prefix as
@@ -31,11 +45,22 @@ module that uses interactive **buttons**.
 
 ## gotchas
 
+- `/ticket category` accepts only a server category; `/ticket logchannel` accepts text or announcement
+  channels. The handlers also reject mismatched types before saving. The log channel requires the bot's
+  View Channel, Send Messages, and Attach Files permissions. Run `npm run deploy:commands` (or restart the
+  bot for automatic command sync) before expecting Discord's picker to show the new channel filters.
+- Previously saved category IDs can point to text or deleted channels. Ticket creation checks the stored
+  parent and asks staff to run `/ticket category` again instead of attempting creation with a bad parent.
+- The top-level slash command is visible to members so configured support roles can use it. Check admin
+  permission in the handler for every configuration action; validate support or ticket ownership before
+  operations that modify a ticket. Reject `@everyone` and managed roles as support roles, and reject a sixth
+  queue instead of silently dropping it.
 - This module is the reference for **component interactions**: export `components: ComponentHandler[]`,
   build buttons with `customId` `prefix:action`, and the router handles dispatch.
 - One open ticket per user per guild is enforced (`Ticket` query before create).
 - Ticket channels get explicit permission overwrites: deny `@everyone`, allow opener + support roles +
   the bot. The bot needs Manage Channels.
-- Close logs to the configured channel then deletes the channel after a 5s delay. No HTML transcript yet
-  (future enhancement; `discord-html-transcripts` was used by the legacy bots).
+- Close logs a summary and text transcript to the configured channel, then archives the ticket for 7 days.
+- Closing is conditional on an open ticket. A second close leaves the archived channel and its reopen window
+  alone, and a missing ticket record never triggers channel deletion.
 - Requires `prisma migrate` for `TicketConfig`, `Ticket`, `GuildTicketCounter`.

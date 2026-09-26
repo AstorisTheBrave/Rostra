@@ -17,6 +17,7 @@ import { registerTaskHandler } from "@/services/scheduler.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { formatDuration, MAX_TIMEOUT_MS, parseDuration } from "./duration.ts";
+import { publishModerationCase } from "./logging.ts";
 import {
 	addNote,
 	applyTempBan,
@@ -229,6 +230,15 @@ async function ok(
 	messageKey: string,
 	vars: Record<string, string | number>,
 ): Promise<void> {
+	const caseNumber = vars.case;
+	if (
+		interaction.guild &&
+		messageKey.startsWith("moderation:success.") &&
+		typeof caseNumber === "number" &&
+		caseNumber > 0
+	) {
+		await publishModerationCase(interaction.guild, caseNumber);
+	}
 	await reply.components(interaction, [container(Accent.success, [text(t(messageKey, vars))])]);
 }
 
@@ -341,7 +351,10 @@ async function execute({
 			if (!target) return void reply.error(interaction, t("moderation:error.userNotInServer"));
 			const res = await removeTimeout({ target, moderator, reason });
 			if (!res.ok) return void reply.error(interaction, t(res.messageKey, res.vars));
-			return ok(interaction, "moderation:success.untimeout", { user: target.user.tag });
+			return ok(interaction, "moderation:success.untimeout", {
+				user: target.user.tag,
+				case: res.caseNumber ?? 0,
+			});
 		}
 		case "warn": {
 			if (!hasPerm(interaction, PermissionFlagsBits.ModerateMembers))
@@ -570,7 +583,7 @@ const moderation: BotModule = {
 		"success.unban": "♻️ Unbanned `{user}` • Case #{case}",
 		"success.kick": "👢 Kicked **{user}** • Case #{case}",
 		"success.timeout": "⏳ Timed out **{user}** for `{duration}` • Case #{case}",
-		"success.untimeout": "✅ Removed timeout from **{user}**",
+		"success.untimeout": "✅ Removed timeout from **{user}** • Case #{case}",
 		"success.warn": "⚠️ Warned **{user}** • Case #{case}",
 		"success.note": "📝 Note added for **{user}** • Case #{case}",
 		"success.tempban": "🔨 Temp-banned **{user}** for `{duration}` • Case #{case}",

@@ -6,6 +6,12 @@ status: stable
 
 ## what this is
 
+### 2026-09 integration audit
+
+Allowed domains are canonical hostnames. Input with credentials, paths, wildcard labels, malformed ports,
+or unsupported schemes is rejected. Matching accepts the exact hostname or a dot-bounded subdomain;
+malformed HTTP(S) URL-like strings are blocked when AntiLink is on. An empty allow list blocks HTTP(S).
+
 Auto-moderation: automatically deletes (and optionally times out for) messages that break the rules -
 server invites, disallowed links, spam, mass mentions, profanity, or excessive CAPS - without a human
 moderator having to watch chat. Server staff configure which filters are on and how strict they are, plus

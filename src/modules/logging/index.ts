@@ -1,5 +1,6 @@
 import type { LoggingConfig } from "@prisma/client";
 import {
+	ChannelType,
 	type ChatInputCommandInteraction,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
@@ -26,6 +27,27 @@ const EVENTS: { name: string; value: LogEvent }[] = [
 	{ name: "Nickname changes", value: "nicknameChanges" },
 ];
 
+function isLogChannelType(type: ChannelType): boolean {
+	return type === ChannelType.GuildText || type === ChannelType.GuildAnnouncement;
+}
+
+async function validLogChannel(
+	guild: NonNullable<ChatInputCommandInteraction["guild"]>,
+	id: string,
+) {
+	const channel = await guild.channels.fetch(id).catch(() => null);
+	if (!channel || !isLogChannelType(channel.type)) return null;
+	const me = guild.members.me ?? (await guild.members.fetchMe().catch(() => null));
+	if (
+		!me ||
+		!channel
+			.permissionsFor(me)
+			?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])
+	)
+		return null;
+	return channel;
+}
+
 function buildData(): SlashCommandBuilder {
 	const cmd = new SlashCommandBuilder()
 		.setName("logging")
@@ -37,7 +59,11 @@ function buildData(): SlashCommandBuilder {
 			.setName("channel")
 			.setDescription("Set the log channel")
 			.addChannelOption((o) =>
-				o.setName("channel").setDescription("Log channel").setRequired(true),
+				o
+					.setName("channel")
+					.setDescription("Log channel")
+					.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+					.setRequired(true),
 			),
 	);
 	cmd.addSubcommand((s) =>
@@ -124,12 +150,20 @@ async function execute({
 		case "setup": {
 			const tenant = await getTenant(guild.id);
 			const channelId = tenant.logChannelId ?? interaction.channelId;
+			const channel = await validLogChannel(guild, channelId);
+			if (!channel) {
+				return void reply.error(interaction, t("logging:error.logChannelType"));
+			}
 			await upsertConfig(guild.id, { logChannelId: channelId });
 			await setFeatures(guild.id, { logging: true });
 			return ok(interaction, "logging:setup.done", { channel: `<#${channelId}>` });
 		}
 		case "channel": {
-			const channel = interaction.options.getChannel("channel", true);
+			const selected = interaction.options.getChannel("channel", true);
+			const channel = await validLogChannel(guild, selected.id);
+			if (!channel) {
+				return void reply.error(interaction, t("logging:error.logChannelType"));
+			}
 			await upsertConfig(guild.id, { logChannelId: channel.id });
 			return ok(interaction, "logging:channel.set", { channel: `<#${channel.id}>` });
 		}
@@ -177,6 +211,7 @@ const logging: BotModule = {
 		"status.title": "# 📋 Logging status",
 		"status.line": "**Channel:** {channel} • **Ignored channels:** {ignored}",
 		"status.unconfigured": "Logging has not been set up. Use `/logging channel` to start.",
+		"error.logChannelType": "Choose a text or announcement channel for server logs.",
 	},
 };
 

@@ -72,11 +72,14 @@ function controlRow() {
 	);
 }
 
+function isSendableGuildText(type: ChannelType): boolean {
+	return type === ChannelType.GuildText || type === ChannelType.GuildAnnouncement;
+}
+
 function buildData(): SlashCommandBuilder {
 	const cmd = new SlashCommandBuilder()
 		.setName("ticket")
-		.setDescription("Support ticket system")
-		.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
+		.setDescription("Support ticket system");
 
 	cmd.addSubcommand((s) => s.setName("enable").setDescription("Enable tickets"));
 	cmd.addSubcommand((s) => s.setName("disable").setDescription("Disable tickets"));
@@ -100,7 +103,13 @@ function buildData(): SlashCommandBuilder {
 		s
 			.setName("logchannel")
 			.setDescription("Where closed-ticket logs go")
-			.addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true)),
+			.addChannelOption((o) =>
+				o
+					.setName("channel")
+					.setDescription("Channel")
+					.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+					.setRequired(true),
+			),
 	);
 	cmd.addSubcommand((s) =>
 		s
@@ -261,9 +270,20 @@ async function execute({
 	const member = interaction.member as GuildMember | null;
 	const group = interaction.options.getSubcommandGroup(false);
 	const sub = interaction.options.getSubcommand();
+	const canManageGuild = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ?? false;
+	const adminOnly =
+		group === "supportrole" ||
+		(group === "queue" && sub !== "list") ||
+		["enable", "disable", "panel", "category", "logchannel"].includes(sub);
+	if (adminOnly && !canManageGuild) {
+		return void reply.error(interaction, t("common:error.missingPermissions"));
+	}
 
 	if (group === "supportrole") {
 		const role = interaction.options.getRole("role", true);
+		if (sub === "add" && (role.id === guild.roles.everyone.id || role.managed)) {
+			return void reply.error(interaction, t("tickets:error.unsafeSupportRole"));
+		}
 		const cfg = await ensureConfig(guild.id);
 		const next =
 			sub === "add"
@@ -291,6 +311,10 @@ async function execute({
 			.slice(0, 20);
 		if (!key) return void reply.error(interaction, t("tickets:queue.badKey"));
 		if (sub === "add") {
+			const exists = cats.some((c) => c.key === key);
+			if (!exists && cats.length >= 5) {
+				return void reply.error(interaction, t("tickets:queue.limit"));
+			}
 			const label = interaction.options.getString("label", true);
 			const next: CategorySpec[] = [
 				...cats.filter((c) => c.key !== key),
@@ -300,7 +324,7 @@ async function execute({
 					emoji: interaction.options.getString("emoji") ?? "🎫",
 					slaMinutes: interaction.options.getInteger("sla") ?? 60,
 				},
-			].slice(0, 5);
+			];
 			await setGuildCategories(guild.id, next);
 			return ok(interaction, "tickets:queue.added", { key, label });
 		}
@@ -343,13 +367,16 @@ async function execute({
 		}
 		case "logchannel": {
 			const channel = interaction.options.getChannel("channel", true);
+			if (!isSendableGuildText(channel.type)) {
+				return void reply.error(interaction, t("tickets:error.logChannelType"));
+			}
 			await upsertConfig(guild.id, { logChannelId: channel.id });
 			return ok(interaction, "tickets:logchannel.set", { channel: `<#${channel.id}>` });
 		}
 		case "panel": {
 			const cfg = await ensureConfig(guild.id);
 			const channel = interaction.channel;
-			if (!channel?.isTextBased() || channel.isDMBased()) {
+			if (!channel || !isSendableGuildText(channel.type) || !("send" in channel)) {
 				return void reply.error(interaction, t("tickets:error.badChannel"));
 			}
 			await channel.send({
@@ -514,10 +541,13 @@ async function execute({
 		}
 		case "add": {
 			const channel = interaction.channel as TextChannel | null;
-			const user = interaction.options.getUser("user", true);
-			if (!channel || !("permissionOverwrites" in channel)) {
-				return void reply.error(interaction, t("tickets:error.notTicket"));
+			const cfg = await ensureConfig(guild.id);
+			if (!channel || !member || !isSupport(member, cfg)) {
+				return void reply.error(interaction, t("common:error.missingPermissions"));
 			}
+			const ticket = await getTicket(channel.id);
+			if (!ticket) return void reply.error(interaction, t("tickets:error.notTicket"));
+			const user = interaction.options.getUser("user", true);
 			await channel.permissionOverwrites.edit(user.id, {
 				ViewChannel: true,
 				SendMessages: true,
@@ -527,9 +557,14 @@ async function execute({
 		}
 		case "close": {
 			const channel = interaction.channel as TextChannel | null;
-			if (!channel || !("name" in channel)) {
+			if (!channel || !member) {
 				return void reply.error(interaction, t("tickets:error.notTicket"));
 			}
+			const cfg = await ensureConfig(guild.id);
+			const ticket = await getTicket(channel.id);
+			if (!ticket) return void reply.error(interaction, t("tickets:error.notTicket"));
+			const allowed = isSupport(member, cfg) || ticket.userId === interaction.user.id;
+			if (!allowed) return void reply.error(interaction, t("common:error.missingPermissions"));
 			await closeAndArchive(
 				channel,
 				interaction.user.tag,
@@ -725,6 +760,7 @@ const tickets: BotModule = {
 		"queue.removed": "➖ Queue `{key}` removed.",
 		"queue.notFound": "No queue with key `{key}`.",
 		"queue.badKey": "Queue key must contain letters or numbers.",
+		"queue.limit": "A ticket panel supports at most 5 queues. Remove one before adding another.",
 		"info.title": "# 🎫 Ticket #{number}",
 		reopened: "♻️ Ticket reopened: {channel}",
 		"reopen.notFound":
@@ -748,8 +784,10 @@ const tickets: BotModule = {
 		"error.alreadyOpen": "You already have an open ticket.",
 		"error.createFailed": "Couldn't create the ticket channel - check my permissions.",
 		"error.notTicket": "This isn't a ticket channel.",
-		"error.badChannel": "Use this in a text channel.",
+		"error.badChannel": "Use this in a text or announcement channel.",
 		"error.categoryOnly": "Please select a Discord category, not a text, voice, or forum channel.",
+		"error.logChannelType": "Choose a text or announcement channel for ticket logs.",
+		"error.unsafeSupportRole": "@everyone and managed integration roles cannot be ticket support roles.",
 	},
 };
 

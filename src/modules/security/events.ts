@@ -10,7 +10,7 @@ import { type AntinukeModule, getConfig, punish } from "./service.ts";
 async function handleViolation(
 	guild: Guild,
 	module: AntinukeModule,
-	auditType: AuditLogEvent,
+	auditType: AuditLogEvent | readonly AuditLogEvent[],
 	targetId: string | null,
 	reason: string,
 ): Promise<void> {
@@ -117,7 +117,11 @@ export const securityEvents: RegisteredEvent[] = [
 			handleViolation(
 				channel.guild,
 				"antiWebhook",
-				AuditLogEvent.WebhookCreate,
+				[
+					AuditLogEvent.WebhookCreate,
+					AuditLogEvent.WebhookUpdate,
+					AuditLogEvent.WebhookDelete,
+				],
 				null,
 				"Unauthorized webhook change",
 			),

@@ -2,13 +2,14 @@ import type { AntinukeConfig } from "@prisma/client";
 import {
 	type ChatInputCommandInteraction,
 	ChannelType,
+	GuildVerificationLevel,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { t } from "@/i18n/index.ts";
 import { registerTaskHandler } from "@/services/scheduler.ts";
-import { getTenant, setFeatures } from "@/services/tenant.ts";
+import { getTenant, setFeatures, updateTenant } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { securityEvents } from "./events.ts";
@@ -27,6 +28,46 @@ const MODULE_KEYS: AntinukeModule[] = [
 	"antiWebhook",
 	"antiGuildUpdate",
 ];
+
+const PANIC_SETTING = "securityPanic";
+interface PersistedPanic {
+	active: true;
+	restoreLevel: number;
+}
+
+function readPanicSetting(settings: unknown): PersistedPanic | null {
+	if (!settings || typeof settings !== "object" || Array.isArray(settings)) return null;
+	const value = (settings as Record<string, unknown>)[PANIC_SETTING];
+	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+	const record = value as Record<string, unknown>;
+	if (record.active !== true || typeof record.restoreLevel !== "number") return null;
+	return { active: true, restoreLevel: record.restoreLevel };
+}
+
+async function persistPanicState(guildId: string, restoreLevel: GuildVerificationLevel): Promise<void> {
+	const tenant = await getTenant(guildId);
+	const settings =
+		tenant.settings && typeof tenant.settings === "object" && !Array.isArray(tenant.settings)
+			? (tenant.settings as Record<string, unknown>)
+			: {};
+	await updateTenant(guildId, {
+		settings: {
+			...settings,
+			[PANIC_SETTING]: { active: true, restoreLevel },
+		},
+	});
+}
+
+async function clearPanicState(guildId: string): Promise<void> {
+	const tenant = await getTenant(guildId);
+	const settings =
+		tenant.settings && typeof tenant.settings === "object" && !Array.isArray(tenant.settings)
+			? { ...(tenant.settings as Record<string, unknown>) }
+			: {};
+	if (!(PANIC_SETTING in settings)) return;
+	delete settings[PANIC_SETTING];
+	await updateTenant(guildId, { settings });
+}
 
 function isLogChannelType(type: ChannelType): boolean {
 	return type === ChannelType.GuildText || type === ChannelType.GuildAnnouncement;
@@ -274,13 +315,28 @@ async function execute({
 		case "panic": {
 			const state = interaction.options.getString("state", true);
 			const cfg = await ensureConfig(guild.id);
+			const tenant = await getTenant(guild.id);
+			const persisted = readPanicSetting(tenant.settings);
 			if (state === "on") {
-				if (isLocked(guild.id)) return ok(interaction, "security:panic.already");
-				await triggerLockdown(guild, cfg, client, "Manual panic lockdown by an admin.", 0);
+				if (isLocked(guild.id) || persisted) return ok(interaction, "security:panic.already");
+				await persistPanicState(guild.id, guild.verificationLevel);
+				const triggered = await triggerLockdown(
+					guild,
+					cfg,
+					client,
+					"Manual panic lockdown by an admin.",
+					0,
+				);
+				if (!triggered) {
+					await clearPanicState(guild.id);
+					return ok(interaction, "security:panic.already");
+				}
 				return ok(interaction, "security:panic.on");
 			}
-			if (!isLocked(guild.id)) return ok(interaction, "security:panic.notLocked");
-			await liftLockdown(guild);
+			if (!isLocked(guild.id) && !persisted) return ok(interaction, "security:panic.notLocked");
+			const fallbackLevel = persisted?.restoreLevel as GuildVerificationLevel | undefined;
+			await liftLockdown(guild, fallbackLevel);
+			await clearPanicState(guild.id);
 			return ok(interaction, "security:panic.off");
 		}
 		case "logchannel": {
@@ -305,6 +361,8 @@ async function execute({
 		case "status": {
 			const cfg = await getConfig(guild.id);
 			if (!cfg) return ok(interaction, "security:status.unconfigured");
+			const tenant = await getTenant(guild.id);
+			const persisted = readPanicSetting(tenant.settings);
 			const modules = MODULE_KEYS.map((k) => `${cfg[k] ? "✅" : "❌"} ${k}`).join("\n");
 			const lines = [
 				t("security:status.title"),
@@ -319,7 +377,7 @@ async function execute({
 					threshold: cfg.raidThreshold,
 					window: cfg.raidWindowSec,
 					minutes: cfg.raidLockMinutes,
-					lockdown: isLocked(guild.id) ? "active" : "inactive",
+					lockdown: isLocked(guild.id) || persisted ? "active" : "inactive",
 				}),
 				modules,
 			];

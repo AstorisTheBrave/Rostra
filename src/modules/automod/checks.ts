@@ -1,5 +1,5 @@
 const INVITE_RE = /(?:discord\.gg|discord(?:app)?\.com\/invite|discord\.me)\/\S+/i;
-const URL_RE = /https?:\/\/([^\s/]+)/gi;
+const URL_RE = /https?:\/\/[^\s<>"']+/gi;
 
 // Homoglyph folding for bypass-resistant matching: characters NFKD cannot resolve
 // to ASCII (Cyrillic/Greek look-alikes, currency symbols used as letters).
@@ -73,12 +73,27 @@ export function hasInvite(content: string): boolean {
 	return INVITE_RE.test(content);
 }
 
+function urlHosts(content: string): string[] {
+	const hosts: string[] = [];
+	for (const match of content.matchAll(URL_RE)) {
+		const raw = match[0];
+		if (!raw) continue;
+		try {
+			const hostname = new URL(raw).hostname.toLowerCase().replace(/\.$/, "");
+			if (hostname) hosts.push(hostname);
+		} catch {
+			// Ignore malformed URL-like text. Other automod rules can still catch it.
+		}
+	}
+	return hosts;
+}
+
 /** True if the content contains a URL whose host isn't in the allow-list. */
 export function hasDisallowedLink(content: string, allowed: string[]): boolean {
-	const hosts = [...content.matchAll(URL_RE)].map((m) => (m[1] ?? "").toLowerCase());
+	const hosts = urlHosts(content);
 	if (hosts.length === 0) return false;
 	if (allowed.length === 0) return true;
-	const allowList = allowed.map((a) => a.toLowerCase());
+	const allowList = allowed.map((a) => a.toLowerCase().replace(/\.$/, ""));
 	return hosts.some((host) => !allowList.some((a) => host === a || host.endsWith(`.${a}`)));
 }
 

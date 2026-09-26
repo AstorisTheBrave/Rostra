@@ -23,6 +23,16 @@ test("hasDisallowedLink respects the allow-list", () => {
 	assert.equal(hasDisallowedLink("no links", ["youtube.com"]), false);
 });
 
+test("hasDisallowedLink normalizes ports and keeps suffix matching boundary-safe", () => {
+	assert.equal(hasDisallowedLink("see https://youtube.com:443/watch?v=1", ["youtube.com"]), false);
+	assert.equal(hasDisallowedLink("see https://cdn.youtube.com:8443/video", ["youtube.com"]), false);
+	assert.equal(hasDisallowedLink("see https://youtube.com.evil.test/video", ["youtube.com"]), true);
+	assert.equal(
+		hasDisallowedLink("https://youtube.com/ok and https://evil.test/nope", ["youtube.com"]),
+		true,
+	);
+});
+
 test("isCapsAbuse flags shouting but ignores short text", () => {
 	assert.equal(isCapsAbuse("STOP SHOUTING RIGHT NOW", 70, 10), true);
 	assert.equal(isCapsAbuse("hello everyone how are you", 70, 10), false);

@@ -15,6 +15,7 @@ Archive tasks carry the exact close timestamp, so a task from an earlier close c
 and reclosed channel. The cleanup task is persisted before the close transition. A ticket can reopen only
 before its current close is seven days old. First response means the first human support response, recorded
 with the Discord message timestamp; the SLA sweep compares exact elapsed time and marks a breach once.
+The regression suite runs concurrent sweep batches against a conditional mark to verify one alert.
 
 Historical `closedBy` username/tag values cannot be mapped reliably to Discord IDs without separate records;
 the leaderboard excludes them and self-closed tickets. Investigate historical records before any backfill.

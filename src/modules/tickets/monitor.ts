@@ -26,6 +26,31 @@ export function isFirstResponseBreached(
 	return (firstResponseAt?.getTime() ?? now) - createdAt.getTime() > slaMinutes * 60_000;
 }
 
+export interface TicketSlaSnapshot {
+	channelId: string;
+	guildId: string;
+	number: number;
+	createdAt: Date;
+	firstResponseAt: Date | null;
+	slaMinutes: number;
+}
+
+/** Process one page; only the winner of the conditional database update sends an alert. */
+export async function processTicketSlaBatch(
+	tickets: TicketSlaSnapshot[],
+	now: number,
+	mark: (ticket: TicketSlaSnapshot) => Promise<boolean>,
+	alert: (ticket: TicketSlaSnapshot, responseMins: number) => Promise<void>,
+): Promise<void> {
+	for (const ticket of tickets) {
+		if (!isFirstResponseBreached(ticket.createdAt, ticket.firstResponseAt, ticket.slaMinutes, now))
+			continue;
+		if (!(await mark(ticket))) continue;
+		const responseAt = ticket.firstResponseAt?.getTime() ?? now;
+		await alert(ticket, Math.floor((responseAt - ticket.createdAt.getTime()) / 60_000));
+	}
+}
+
 /** Flag first-response SLA breaches on open tickets and alert the guild log once. */
 export async function sweepTicketSla(): Promise<void> {
 	const prisma = getPrisma();
@@ -43,42 +68,36 @@ export async function sweepTicketSla(): Promise<void> {
 				return [];
 			});
 		if (open.length === 0) break;
-		for (const ticket of open) {
-			// SLA is specifically time-to-first-response. Once a response exists, compare
-			// that timestamp with the ticket's opening time; otherwise compare "now".
-			// This prevents long-running but promptly answered tickets from being marked
-			// as breached simply because they remain open beyond the SLA window.
-			const responseAt = ticket.firstResponseAt?.getTime() ?? now;
-			const responseMins = Math.floor((responseAt - ticket.createdAt.getTime()) / 60_000);
-			if (
-				!isFirstResponseBreached(ticket.createdAt, ticket.firstResponseAt, ticket.slaMinutes, now)
-			)
-				continue;
+		await processTicketSlaBatch(
+			open,
+			now,
+			async (ticket) => {
+				const updated = await prisma.ticket
+					.updateMany({
+						where: { channelId: ticket.channelId, open: true, slaBreached: false },
+						data: { slaBreached: true },
+					})
+					.catch((err) => {
+						log.error({ err, channelId: ticket.channelId }, "failed to flag ticket sla breach");
+						return { count: 0 };
+					});
+				return updated.count === 1;
+			},
+			async (ticket, responseMins) => {
+				const cfg = await prisma.ticketConfig
+					.findUnique({ where: { guildId: ticket.guildId } })
+					.catch(() => null);
+				if (!cfg?.logChannelId) return;
 
-			const updated = await prisma.ticket
-				.updateMany({
-					where: { channelId: ticket.channelId, open: true, slaBreached: false },
-					data: { slaBreached: true },
-				})
-				.catch((err) => {
-					log.error({ err, channelId: ticket.channelId }, "failed to flag ticket sla breach");
-					return { count: 0 };
-				});
-			if (updated.count !== 1) continue;
-
-			const cfg = await prisma.ticketConfig
-				.findUnique({ where: { guildId: ticket.guildId } })
-				.catch(() => null);
-			if (!cfg?.logChannelId) continue;
-
-			const detail = ticket.firstResponseAt
-				? `first response took ${responseMins}m`
-				: `has waited ${responseMins}m for a first response`;
-			const content = `⏰ **SLA breach** - ticket #${ticket.number} (<#${ticket.channelId}>) ${detail}, past its ${ticket.slaMinutes}m first-response SLA.`;
-			await getRest()
-				.post(Routes.channelMessages(cfg.logChannelId), { body: { content } })
-				.catch((err) => log.error({ err, guild: ticket.guildId }, "sla alert post failed"));
-		}
+				const detail = ticket.firstResponseAt
+					? `first response took ${responseMins}m`
+					: `has waited ${responseMins}m for a first response`;
+				const content = `⏰ **SLA breach** - ticket #${ticket.number} (<#${ticket.channelId}>) ${detail}, past its ${ticket.slaMinutes}m first-response SLA.`;
+				await getRest()
+					.post(Routes.channelMessages(cfg.logChannelId), { body: { content } })
+					.catch((err) => log.error({ err, guild: ticket.guildId }, "sla alert post failed"));
+			},
+		);
 		if (open.length < 500) break;
 		cursor = open[open.length - 1]?.channelId;
 	}

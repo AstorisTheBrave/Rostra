@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import type { TicketConfig } from "@prisma/client";
 import { type GuildMember, PermissionFlagsBits } from "discord.js";
-import { isFirstResponseBreached } from "./monitor.ts";
+import { isFirstResponseBreached, processTicketSlaBatch } from "./monitor.ts";
 import { REOPEN_WINDOW_MS } from "./queue.ts";
 import { canDeleteArchivedTicket, isSupport, withTicketLock } from "./service.ts";
 
@@ -30,6 +30,45 @@ test("first response SLA respects exact deadline and remains stable after days o
 	assert.equal(isFirstResponseBreached(opened, new Date(due - 1), 60, due + 3 * 86_400_000), false);
 	assert.equal(isFirstResponseBreached(opened, new Date(due + 1), 60, due + 1), true);
 	assert.equal(isFirstResponseBreached(opened, new Date(due + 59_999), 60, due + 60_000), true);
+});
+
+test("concurrent SLA sweeps alert once and skip promptly answered long-running tickets", async () => {
+	const now = Date.parse("2026-09-02T00:00:00Z");
+	const opened = new Date(now - 2 * 86_400_000);
+	const waiting = {
+		channelId: "waiting",
+		guildId: "guild",
+		number: 1,
+		createdAt: opened,
+		firstResponseAt: null,
+		slaMinutes: 60,
+	};
+	const answered = {
+		...waiting,
+		channelId: "answered",
+		firstResponseAt: new Date(opened.getTime() + 59 * 60_000),
+	};
+	const late = {
+		...waiting,
+		channelId: "late",
+		firstResponseAt: new Date(opened.getTime() + 60 * 60_000 + 1),
+	};
+	const flagged = new Set<string>();
+	const alerts: string[] = [];
+	const mark = async (ticket: { channelId: string }) => {
+		if (flagged.has(ticket.channelId)) return false;
+		flagged.add(ticket.channelId);
+		return true;
+	};
+	const alert = async (ticket: { channelId: string }) => {
+		alerts.push(ticket.channelId);
+	};
+	await Promise.all(
+		Array.from({ length: 3 }, () =>
+			processTicketSlaBatch([waiting, answered, late], now, mark, alert),
+		),
+	);
+	assert.deepEqual(alerts.sort(), ["late", "waiting"]);
 });
 
 test("archive deletion honors each close generation and the seven-day reopen window", () => {

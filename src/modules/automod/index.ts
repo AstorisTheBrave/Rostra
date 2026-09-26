@@ -1,6 +1,7 @@
 import type { AutomodConfig } from "@prisma/client";
 import {
 	type ChatInputCommandInteraction,
+	ChannelType,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
@@ -54,7 +55,24 @@ const MODULE_CHOICES: { name: string; value: string; field: ModuleField }[] = [
 	{ name: "Anti-mass-mention", value: "massmention", field: "antiMassMention" },
 	{ name: "Anti-profanity", value: "profanity", field: "antiProfanity" },
 	{ name: "Anti-caps", value: "caps", field: "antiCaps" },
+	{ name: "Anti-hate", value: "hate", field: "antiHate" },
 ];
+
+function normalizeDomain(input: string): string | null {
+	const raw = input.trim().toLowerCase();
+	if (!raw) return null;
+	try {
+		const url = new URL(raw.includes("://") ? raw : `https://${raw}`);
+		if (!url.hostname) return null;
+		return url.hostname.replace(/\.$/, "");
+	} catch {
+		return null;
+	}
+}
+
+function isLogChannelType(type: ChannelType): boolean {
+	return type === ChannelType.GuildText || type === ChannelType.GuildAnnouncement;
+}
 
 function buildData(): SlashCommandBuilder {
 	const cmd = new SlashCommandBuilder()
@@ -71,7 +89,7 @@ function buildData(): SlashCommandBuilder {
 	cmd.addSubcommand((s) =>
 		s
 			.setName("action")
-			.setDescription("What to do on a violation")
+			.setDescription("Set the fixed action used when escalation is disabled")
 			.addStringOption((o) =>
 				o
 					.setName("type")
@@ -82,6 +100,14 @@ function buildData(): SlashCommandBuilder {
 						{ name: "Delete + warn", value: "warn" },
 						{ name: "Delete + timeout", value: "timeout" },
 					),
+			),
+	);
+	cmd.addSubcommand((s) =>
+		s
+			.setName("escalation")
+			.setDescription("Toggle severity-based warn, timeout, kick, and ban escalation")
+			.addBooleanOption((o) =>
+				o.setName("enabled").setDescription("On or off").setRequired(true),
 			),
 	);
 	cmd.addSubcommand((s) =>
@@ -109,6 +135,13 @@ function buildData(): SlashCommandBuilder {
 					.setMaxValue(20),
 			)
 			.addIntegerOption((o) =>
+				o
+					.setName("spam_window")
+					.setDescription("Spam window in seconds")
+					.setMinValue(1)
+					.setMaxValue(60),
+			)
+			.addIntegerOption((o) =>
 				o.setName("mention_limit").setDescription("Max mentions").setMinValue(2).setMaxValue(20),
 			)
 			.addIntegerOption((o) =>
@@ -117,7 +150,7 @@ function buildData(): SlashCommandBuilder {
 			.addIntegerOption((o) =>
 				o
 					.setName("timeout_minutes")
-					.setDescription("Timeout length")
+					.setDescription("Fixed-action timeout length")
 					.setMinValue(1)
 					.setMaxValue(1440),
 			),
@@ -127,8 +160,37 @@ function buildData(): SlashCommandBuilder {
 			.setName("logchannel")
 			.setDescription("Set the automod log channel")
 			.addChannelOption((o) =>
-				o.setName("channel").setDescription("Log channel").setRequired(true),
+				o
+					.setName("channel")
+					.setDescription("Log channel")
+					.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+					.setRequired(true),
 			),
+	);
+	cmd.addSubcommandGroup((g) =>
+		g
+			.setName("link")
+			.setDescription("Manage anti-link allowed domains")
+			.addSubcommand((s) =>
+				s
+					.setName("allow")
+					.setDescription("Allow a domain and its subdomains")
+					.addStringOption((o) =>
+						o
+							.setName("domain")
+							.setDescription("Domain or URL, e.g. youtube.com")
+							.setRequired(true),
+					),
+			)
+			.addSubcommand((s) =>
+				s
+					.setName("remove")
+					.setDescription("Remove a domain from the allow-list")
+					.addStringOption((o) =>
+						o.setName("domain").setDescription("Domain or URL").setRequired(true),
+					),
+			)
+			.addSubcommand((s) => s.setName("list").setDescription("List allowed domains")),
 	);
 	cmd.addSubcommandGroup((g) =>
 		g
@@ -251,6 +313,28 @@ async function execute({
 	const group = interaction.options.getSubcommandGroup(false);
 	const sub = interaction.options.getSubcommand();
 
+	if (group === "link") {
+		const cfg = await ensureConfig(guild.id);
+		if (sub === "list") {
+			const body = cfg.allowedLinks.length
+				? cfg.allowedLinks.map((domain) => `• \`${domain}\``).join("\n")
+				: t("automod:link.empty");
+			return void reply.components(interaction, [
+				container(Accent.info, [text(t("automod:link.title")), text(body)]),
+			]);
+		}
+		const domain = normalizeDomain(interaction.options.getString("domain", true));
+		if (!domain) return void reply.error(interaction, t("automod:link.invalid"));
+		const next =
+			sub === "allow"
+				? uniq([...cfg.allowedLinks, domain]).slice(0, 100)
+				: cfg.allowedLinks.filter((value) => value !== domain);
+		await upsertConfig(guild.id, { allowedLinks: next });
+		return ok(interaction, sub === "allow" ? "automod:link.allowed" : "automod:link.removed", {
+			domain,
+		});
+	}
+
 	if (group === "exempt") {
 		const cfg = await ensureConfig(guild.id);
 		if (sub === "addrole" || sub === "removerole") {
@@ -302,7 +386,6 @@ async function execute({
 				? ok(interaction, rule.enabled ? "automod:rule.on" : "automod:rule.off", { name })
 				: void reply.error(interaction, t("automod:rule.notFound"));
 		}
-		// list
 		const rules = await getRules(guild.id);
 		if (rules.length === 0) return ok(interaction, "automod:rule.empty");
 		const lines = rules.map(
@@ -326,9 +409,12 @@ async function execute({
 	switch (sub) {
 		case "setup": {
 			const tenant = await getTenant(guild.id);
+			const existing = await getConfig(guild.id);
 			await upsertConfig(guild.id, {
 				...RECOMMENDED,
-				...(tenant.logChannelId ? { logChannelId: tenant.logChannelId } : {}),
+				...(!existing?.logChannelId && tenant.logChannelId
+					? { logChannelId: tenant.logChannelId }
+					: {}),
 			});
 			await setFeatures(guild.id, { automod: true });
 			return ok(interaction, "automod:setup.done");
@@ -344,6 +430,11 @@ async function execute({
 			await upsertConfig(guild.id, { action: type });
 			return ok(interaction, "automod:action.set", { type });
 		}
+		case "escalation": {
+			const enabled = interaction.options.getBoolean("enabled", true);
+			await upsertConfig(guild.id, { escalate: enabled });
+			return ok(interaction, enabled ? "automod:escalation.on" : "automod:escalation.off");
+		}
 		case "module": {
 			const value = interaction.options.getString("name", true);
 			const enabled = interaction.options.getBoolean("enabled", true);
@@ -358,10 +449,12 @@ async function execute({
 		case "limits": {
 			const data: Partial<AutomodConfig> = {};
 			const spam = interaction.options.getInteger("spam_count");
+			const spamWindow = interaction.options.getInteger("spam_window");
 			const mention = interaction.options.getInteger("mention_limit");
 			const caps = interaction.options.getInteger("caps_percent");
 			const timeout = interaction.options.getInteger("timeout_minutes");
 			if (spam !== null) data.spamCount = spam;
+			if (spamWindow !== null) data.spamWindowMs = spamWindow * 1000;
 			if (mention !== null) data.mentionLimit = mention;
 			if (caps !== null) data.capsPercent = caps;
 			if (timeout !== null) data.timeoutMs = timeout * 60_000;
@@ -370,6 +463,9 @@ async function execute({
 		}
 		case "logchannel": {
 			const channel = interaction.options.getChannel("channel", true);
+			if (!isLogChannelType(channel.type)) {
+				return void reply.error(interaction, t("automod:error.logChannelType"));
+			}
 			await upsertConfig(guild.id, { logChannelId: channel.id });
 			return ok(interaction, "automod:logchannel.set", { channel: `<#${channel.id}>` });
 		}
@@ -379,15 +475,20 @@ async function execute({
 			const filters = MODULE_CHOICES.map((c) => `${cfg[c.field] ? "✅" : "❌"} ${c.name}`).join(
 				"\n",
 			);
+			const mode = cfg.escalate ? "severity escalation" : `fixed (${cfg.action})`;
 			const lines = [
 				t("automod:status.title"),
 				t("automod:status.line", {
 					enabled: cfg.enabled ? "on" : "off",
-					action: cfg.action,
+					mode,
 					log: cfg.logChannelId ? `<#${cfg.logChannelId}>` : "none",
 					spam: cfg.spamCount,
+					window: Math.round(cfg.spamWindowMs / 1000),
 					mentions: cfg.mentionLimit,
 					caps: cfg.capsPercent,
+					links: cfg.allowedLinks.length,
+					roles: cfg.exemptRoles.length,
+					channels: cfg.exemptChannels.length,
 				}),
 				filters,
 			];
@@ -439,10 +540,19 @@ const automod: BotModule = {
 			"🤖 Auto-mod is on with the recommended filters (invite, link, spam, mass-mention, profanity).",
 		enabled: "🧹 Automod **enabled**.",
 		disabled: "🧹 Automod **disabled**.",
-		"action.set": "⚙️ Automod action set to **{type}**.",
+		"action.set":
+			"⚙️ Fixed automod action set to **{type}**. It is used only when escalation is disabled.",
+		"escalation.on": "📈 Severity-based automod escalation **enabled**.",
+		"escalation.off": "📉 Severity-based automod escalation **disabled**; fixed action mode is active.",
 		"module.set": "⚙️ Filter **{name}** turned **{state}**.",
 		"limits.set": "⚙️ Thresholds updated.",
 		"logchannel.set": "📋 Automod log channel set to {channel}.",
+		"error.logChannelType": "Choose a text or announcement channel for automod logs.",
+		"link.title": "# 🔗 Allowed link domains",
+		"link.empty": "No domains are allowed. With Anti-link enabled, all HTTP(S) links are blocked.",
+		"link.allowed": "✅ Allowed **{domain}** and its subdomains.",
+		"link.removed": "➖ Removed **{domain}** from the allow-list.",
+		"link.invalid": "Enter a valid domain or URL, for example `youtube.com`.",
 		"exempt.addrole": "✅ Role **{name}** is now exempt.",
 		"exempt.removerole": "➖ Role **{name}** is no longer exempt.",
 		"exempt.addchannel": "✅ Channel {name} is now exempt.",
@@ -462,7 +572,7 @@ const automod: BotModule = {
 		"rule.err.badPattern": "That regex did not compile. Check the syntax.",
 		"status.title": "# 🧹 Automod status",
 		"status.line":
-			"**Enabled:** {enabled} • **Action:** {action} • **Log:** {log}\n**Spam:** {spam}/window • **Mentions:** {mentions} • **Caps:** {caps}%",
+			"**Enabled:** {enabled} • **Mode:** {mode} • **Log:** {log}\n**Spam:** {spam}/{window}s • **Mentions:** {mentions} • **Caps:** {caps}%\n**Allowed domains:** {links} • **Exempt roles:** {roles} • **Exempt channels:** {channels}",
 		"status.unconfigured": "Automod has not been set up. Use `/automod enable` to start.",
 	},
 };

@@ -13,7 +13,14 @@ import { getTenant, setFeatures, updateTenant } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { securityEvents } from "./events.ts";
-import { isLocked, liftLockdown, raidUnlockTask, triggerLockdown } from "./raid.ts";
+import {
+	clearPersistedRaidLock,
+	getPersistedRaidLock,
+	isLocked,
+	liftLockdown,
+	raidUnlockTask,
+	triggerLockdown,
+} from "./raid.ts";
 import { type AntinukeModule, getConfig, upsertConfig } from "./service.ts";
 
 // Register the durable auto-lift handler at module load (before boot recovery).
@@ -316,9 +323,12 @@ async function execute({
 			const state = interaction.options.getString("state", true);
 			const cfg = await ensureConfig(guild.id);
 			const tenant = await getTenant(guild.id);
-			const persisted = readPanicSetting(tenant.settings);
+			const persistedPanic = readPanicSetting(tenant.settings);
+			const persistedRaid = await getPersistedRaidLock(guild.id);
 			if (state === "on") {
-				if (isLocked(guild.id) || persisted) return ok(interaction, "security:panic.already");
+				if (isLocked(guild.id) || persistedPanic || persistedRaid) {
+					return ok(interaction, "security:panic.already");
+				}
 				await persistPanicState(guild.id, guild.verificationLevel);
 				const triggered = await triggerLockdown(
 					guild,
@@ -333,10 +343,18 @@ async function execute({
 				}
 				return ok(interaction, "security:panic.on");
 			}
-			if (!isLocked(guild.id) && !persisted) return ok(interaction, "security:panic.notLocked");
-			const fallbackLevel = persisted?.restoreLevel as GuildVerificationLevel | undefined;
-			await liftLockdown(guild, fallbackLevel);
-			await clearPanicState(guild.id);
+			if (!isLocked(guild.id) && !persistedPanic && !persistedRaid) {
+				return ok(interaction, "security:panic.notLocked");
+			}
+			const fallbackLevel = (
+				persistedPanic?.restoreLevel ?? persistedRaid?.restoreLevel
+			) as GuildVerificationLevel | undefined;
+			const lifted = await liftLockdown(guild, fallbackLevel);
+			if (!lifted) return void reply.error(interaction, t("security:panic.liftFailed"));
+			await Promise.all([
+				clearPanicState(guild.id),
+				clearPersistedRaidLock(guild.id),
+			]);
 			return ok(interaction, "security:panic.off");
 		}
 		case "logchannel": {
@@ -362,7 +380,8 @@ async function execute({
 			const cfg = await getConfig(guild.id);
 			if (!cfg) return ok(interaction, "security:status.unconfigured");
 			const tenant = await getTenant(guild.id);
-			const persisted = readPanicSetting(tenant.settings);
+			const persistedPanic = readPanicSetting(tenant.settings);
+			const persistedRaid = await getPersistedRaidLock(guild.id);
 			const modules = MODULE_KEYS.map((k) => `${cfg[k] ? "✅" : "❌"} ${k}`).join("\n");
 			const lines = [
 				t("security:status.title"),
@@ -377,7 +396,8 @@ async function execute({
 					threshold: cfg.raidThreshold,
 					window: cfg.raidWindowSec,
 					minutes: cfg.raidLockMinutes,
-					lockdown: isLocked(guild.id) || persisted ? "active" : "inactive",
+					lockdown:
+						isLocked(guild.id) || persistedPanic || persistedRaid ? "active" : "inactive",
 				}),
 				modules,
 			];
@@ -413,6 +433,7 @@ const security: BotModule = {
 		"panic.off": "🔓 Lockdown lifted. Verification restored.",
 		"panic.already": "The server is already in lockdown.",
 		"panic.notLocked": "The server is not in lockdown.",
+		"panic.liftFailed": "I couldn't restore the server verification level. Check my permissions, then try again.",
 		"logchannel.set": "📋 Antinuke log channel set to {channel}.",
 		"error.logChannelType": "Choose a text or announcement channel for antinuke logs.",
 		"notify.on": "🔔 Owner DM alerts **enabled**.",

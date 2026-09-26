@@ -185,6 +185,21 @@ export async function createTicket(
 	});
 	if (existing) return { ok: false, messageKey: "tickets:error.alreadyOpen" };
 
+	// Older configurations may contain a text channel ID (the command used to
+	// accept every channel type), or a category that has since been deleted.
+	if (config.categoryId) {
+		const parent = await guild.channels.fetch(config.categoryId).catch((err: unknown) => {
+			log.warn(
+				{ err, guild: guild.id, categoryId: config.categoryId },
+				"ticket category lookup failed",
+			);
+			return null;
+		});
+		if (!parent || parent.type !== ChannelType.GuildCategory) {
+			return { ok: false, messageKey: "tickets:error.categoryUnavailable" };
+		}
+	}
+
 	const spec = resolveCategory(parseCategories(config.categories), categoryKey);
 	const number = await nextNumber(guild.id);
 	const me = guild.members.me;

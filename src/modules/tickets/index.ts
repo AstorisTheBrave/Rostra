@@ -2,8 +2,8 @@ import type { TicketConfig } from "@prisma/client";
 import {
 	AttachmentBuilder,
 	ButtonStyle,
-	type ChatInputCommandInteraction,
 	ChannelType,
+	type ChatInputCommandInteraction,
 	type GuildMember,
 	MessageFlags,
 	PermissionFlagsBits,
@@ -76,10 +76,8 @@ function isSendableGuildText(type: ChannelType): boolean {
 	return type === ChannelType.GuildText || type === ChannelType.GuildAnnouncement;
 }
 
-function buildData(): SlashCommandBuilder {
-	const cmd = new SlashCommandBuilder()
-		.setName("ticket")
-		.setDescription("Support ticket system");
+export function buildData(): SlashCommandBuilder {
+	const cmd = new SlashCommandBuilder().setName("ticket").setDescription("Support ticket system");
 
 	cmd.addSubcommand((s) => s.setName("enable").setDescription("Enable tickets"));
 	cmd.addSubcommand((s) => s.setName("disable").setDescription("Disable tickets"));
@@ -270,7 +268,8 @@ async function execute({
 	const member = interaction.member as GuildMember | null;
 	const group = interaction.options.getSubcommandGroup(false);
 	const sub = interaction.options.getSubcommand();
-	const canManageGuild = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ?? false;
+	const canManageGuild =
+		interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ?? false;
 	const adminOnly =
 		group === "supportrole" ||
 		(group === "queue" && sub !== "list") ||
@@ -359,19 +358,33 @@ async function execute({
 			return ok(interaction, "tickets:disabled");
 		case "category": {
 			const category = interaction.options.getChannel("category", true);
-			if (category.type !== ChannelType.GuildCategory) {
+			const parent = await guild.channels.fetch(category.id).catch(() => null);
+			if (parent?.type !== ChannelType.GuildCategory) {
 				return void reply.error(interaction, t("tickets:error.categoryOnly"));
 			}
-			await upsertConfig(guild.id, { categoryId: category.id });
-			return ok(interaction, "tickets:category.set", { name: category.name ?? "category" });
+			await upsertConfig(guild.id, { categoryId: parent.id });
+			return ok(interaction, "tickets:category.set", { name: parent.name });
 		}
 		case "logchannel": {
 			const channel = interaction.options.getChannel("channel", true);
-			if (!isSendableGuildText(channel.type)) {
+			const target = await guild.channels.fetch(channel.id).catch(() => null);
+			if (!target || !isSendableGuildText(target.type)) {
 				return void reply.error(interaction, t("tickets:error.logChannelType"));
 			}
-			await upsertConfig(guild.id, { logChannelId: channel.id });
-			return ok(interaction, "tickets:logchannel.set", { channel: `<#${channel.id}>` });
+			const me = guild.members.me ?? (await guild.members.fetchMe());
+			if (
+				!target
+					.permissionsFor(me)
+					?.has([
+						PermissionFlagsBits.ViewChannel,
+						PermissionFlagsBits.SendMessages,
+						PermissionFlagsBits.AttachFiles,
+					])
+			) {
+				return void reply.error(interaction, t("tickets:error.logPermissions"));
+			}
+			await upsertConfig(guild.id, { logChannelId: target.id });
+			return ok(interaction, "tickets:logchannel.set", { channel: `<#${target.id}>` });
 		}
 		case "panel": {
 			const cfg = await ensureConfig(guild.id);
@@ -783,11 +796,16 @@ const tickets: BotModule = {
 		"error.disabled": "The ticket system is disabled here.",
 		"error.alreadyOpen": "You already have an open ticket.",
 		"error.createFailed": "Couldn't create the ticket channel - check my permissions.",
+		"error.categoryUnavailable":
+			"The configured ticket category is missing or invalid. Set it again with `/ticket category`.",
+		"error.logPermissions":
+			"I need View Channel, Send Messages, and Attach Files in the ticket log channel.",
 		"error.notTicket": "This isn't a ticket channel.",
 		"error.badChannel": "Use this in a text or announcement channel.",
 		"error.categoryOnly": "Please select a Discord category, not a text, voice, or forum channel.",
 		"error.logChannelType": "Choose a text or announcement channel for ticket logs.",
-		"error.unsafeSupportRole": "@everyone and managed integration roles cannot be ticket support roles.",
+		"error.unsafeSupportRole":
+			"@everyone and managed integration roles cannot be ticket support roles.",
 	},
 };
 

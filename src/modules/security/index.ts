@@ -1,5 +1,6 @@
 import type { AntinukeConfig } from "@prisma/client";
 import {
+	ChannelType,
 	type ChatInputCommandInteraction,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
@@ -11,7 +12,13 @@ import { getTenant, setFeatures } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { Accent, container, reply, text } from "@/utils/components.ts";
 import { securityEvents } from "./events.ts";
-import { isLocked, liftLockdown, raidUnlockTask, triggerLockdown } from "./raid.ts";
+import {
+	getPersistedRaidLock,
+	isLocked,
+	manualPanic,
+	raidUnlockTask,
+	releaseLockdown,
+} from "./raid.ts";
 import { type AntinukeModule, getConfig, upsertConfig } from "./service.ts";
 
 // Register the durable auto-lift handler at module load (before boot recovery).
@@ -26,6 +33,25 @@ const MODULE_KEYS: AntinukeModule[] = [
 	"antiWebhook",
 	"antiGuildUpdate",
 ];
+
+const PANIC_SETTING = "securityPanic";
+interface PersistedPanic {
+	active: true;
+	restoreLevel: number;
+}
+
+function readPanicSetting(settings: unknown): PersistedPanic | null {
+	if (!settings || typeof settings !== "object" || Array.isArray(settings)) return null;
+	const value = (settings as Record<string, unknown>)[PANIC_SETTING];
+	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+	const record = value as Record<string, unknown>;
+	if (record.active !== true || typeof record.restoreLevel !== "number") return null;
+	return { active: true, restoreLevel: record.restoreLevel };
+}
+
+function isLogChannelType(type: ChannelType): boolean {
+	return type === ChannelType.GuildText || type === ChannelType.GuildAnnouncement;
+}
 
 function buildData(): SlashCommandBuilder {
 	const cmd = new SlashCommandBuilder()
@@ -63,16 +89,25 @@ function buildData(): SlashCommandBuilder {
 				o.setName("enabled").setDescription("Turn anti-raid on or off").setRequired(true),
 			)
 			.addIntegerOption((o) =>
-				o.setName("threshold").setDescription("Joins to trigger (default 10)").setMinValue(3),
+				o
+					.setName("threshold")
+					.setDescription("Joins to trigger (default 10)")
+					.setMinValue(3)
+					.setMaxValue(100),
 			)
 			.addIntegerOption((o) =>
-				o.setName("window").setDescription("Within this many seconds (default 10)").setMinValue(3),
+				o
+					.setName("window")
+					.setDescription("Within this many seconds (default 10)")
+					.setMinValue(3)
+					.setMaxValue(300),
 			)
 			.addIntegerOption((o) =>
 				o
 					.setName("minutes")
 					.setDescription("Auto-lift after this many minutes (default 10)")
-					.setMinValue(1),
+					.setMinValue(1)
+					.setMaxValue(1440),
 			),
 	);
 	cmd.addSubcommand((s) =>
@@ -92,7 +127,11 @@ function buildData(): SlashCommandBuilder {
 			.setName("logchannel")
 			.setDescription("Set the antinuke log channel")
 			.addChannelOption((o) =>
-				o.setName("channel").setDescription("Log channel").setRequired(true),
+				o
+					.setName("channel")
+					.setDescription("Log channel")
+					.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+					.setRequired(true),
 			),
 	);
 	cmd.addSubcommand((s) =>
@@ -198,16 +237,21 @@ async function execute({
 	switch (sub) {
 		case "setup": {
 			const tenant = await getTenant(guild.id);
+			const existing = await getConfig(guild.id);
 			await upsertConfig(guild.id, {
 				enabled: true,
 				punishment: "strip",
+				notifyOwner: true,
 				antiBan: true,
 				antiKick: true,
 				antiBotAdd: true,
 				antiChannel: true,
 				antiRole: true,
 				antiWebhook: true,
-				...(tenant.logChannelId ? { logChannelId: tenant.logChannelId } : {}),
+				antiGuildUpdate: true,
+				...(!existing?.logChannelId && tenant.logChannelId
+					? { logChannelId: tenant.logChannelId }
+					: {}),
 			});
 			await setFeatures(guild.id, { security: true });
 			const checklist = MODULE_KEYS.map((k) => `✅ ${k}`).join("\n");
@@ -251,17 +295,35 @@ async function execute({
 		case "panic": {
 			const state = interaction.options.getString("state", true);
 			const cfg = await ensureConfig(guild.id);
+			const tenant = await getTenant(guild.id);
+			const persistedPanic = readPanicSetting(tenant.settings);
+			const persistedRaid = await getPersistedRaidLock(guild.id);
 			if (state === "on") {
-				if (isLocked(guild.id)) return ok(interaction, "security:panic.already");
-				await triggerLockdown(guild, cfg, client, "Manual panic lockdown by an admin.", 0);
+				if (isLocked(guild.id) || persistedPanic || persistedRaid) {
+					return ok(interaction, "security:panic.already");
+				}
+				const triggered = await manualPanic(guild, cfg, client);
+				if (!triggered) {
+					const current = await getTenant(guild.id);
+					if (readPanicSetting(current.settings)) {
+						return void reply.error(interaction, t("security:panic.raiseFailed"));
+					}
+					return ok(interaction, "security:panic.already");
+				}
 				return ok(interaction, "security:panic.on");
 			}
-			if (!isLocked(guild.id)) return ok(interaction, "security:panic.notLocked");
-			await liftLockdown(guild);
+			if (!isLocked(guild.id) && !persistedPanic && !persistedRaid) {
+				return ok(interaction, "security:panic.notLocked");
+			}
+			const lifted = await releaseLockdown(guild);
+			if (!lifted) return void reply.error(interaction, t("security:panic.liftFailed"));
 			return ok(interaction, "security:panic.off");
 		}
 		case "logchannel": {
 			const channel = interaction.options.getChannel("channel", true);
+			if (!isLogChannelType(channel.type)) {
+				return void reply.error(interaction, t("security:error.logChannelType"));
+			}
 			await upsertConfig(guild.id, { logChannelId: channel.id });
 			return ok(interaction, "security:logchannel.set", { channel: `<#${channel.id}>` });
 		}
@@ -279,6 +341,9 @@ async function execute({
 		case "status": {
 			const cfg = await getConfig(guild.id);
 			if (!cfg) return ok(interaction, "security:status.unconfigured");
+			const tenant = await getTenant(guild.id);
+			const persistedPanic = readPanicSetting(tenant.settings);
+			const persistedRaid = await getPersistedRaidLock(guild.id);
 			const modules = MODULE_KEYS.map((k) => `${cfg[k] ? "✅" : "❌"} ${k}`).join("\n");
 			const lines = [
 				t("security:status.title"),
@@ -289,6 +354,11 @@ async function execute({
 					notify: cfg.notifyOwner ? "on" : "off",
 					whitelist: cfg.whitelist.length,
 					owners: cfg.extraOwners.length,
+					raid: cfg.antiRaid ? "on" : "off",
+					threshold: cfg.raidThreshold,
+					window: cfg.raidWindowSec,
+					minutes: cfg.raidLockMinutes,
+					lockdown: isLocked(guild.id) || persistedPanic || persistedRaid ? "active" : "inactive",
 				}),
 				modules,
 			];
@@ -324,7 +394,12 @@ const security: BotModule = {
 		"panic.off": "🔓 Lockdown lifted. Verification restored.",
 		"panic.already": "The server is already in lockdown.",
 		"panic.notLocked": "The server is not in lockdown.",
+		"panic.liftFailed":
+			"I couldn't restore the server verification level. Check my permissions, then try again.",
+		"panic.raiseFailed":
+			"Discord did not confirm the lockdown. Check the server verification level; use `/security panic state:off` to restore the saved level.",
 		"logchannel.set": "📋 Antinuke log channel set to {channel}.",
+		"error.logChannelType": "Choose a text or announcement channel for antinuke logs.",
 		"notify.on": "🔔 Owner DM alerts **enabled**.",
 		"notify.off": "🔕 Owner DM alerts **disabled**.",
 		"module.set": "⚙️ Module **{name}** turned **{state}**.",
@@ -334,7 +409,7 @@ const security: BotModule = {
 		"extraowner.remove": "➖ Removed **{user}** from extra owners.",
 		"status.title": "# 🛡️ Antinuke status",
 		"status.line":
-			"**Enabled:** {enabled} • **Punishment:** {punishment}\n**Log:** {log} • **Owner DMs:** {notify}\n**Whitelisted:** {whitelist} • **Extra owners:** {owners}",
+			"**Enabled:** {enabled} • **Punishment:** {punishment}\n**Log:** {log} • **Owner DMs:** {notify}\n**Whitelisted:** {whitelist} • **Extra owners:** {owners}\n**Anti-raid:** {raid} • **Threshold:** {threshold} joins/{window}s • **Auto-lift:** {minutes}m\n**Lockdown:** {lockdown}",
 		"status.unconfigured": "Antinuke has not been set up. Use `/security enable` to start.",
 	},
 };

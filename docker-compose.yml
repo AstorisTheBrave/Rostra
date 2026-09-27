@@ -5,6 +5,7 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://rostra:rostra@pgbouncer:6432/rostra?connection_limit=5&pool_timeout=15
+      DIRECT_URL: postgresql://rostra:rostra@postgres:5432/rostra
       REDIS_URL: redis://redis:6379
     depends_on:
       - pgbouncer

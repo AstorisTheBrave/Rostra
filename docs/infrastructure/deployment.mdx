@@ -1,41 +1,57 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-09-27
 owner: AstorisTheBrave
-status: in-flux
+status: stable
 ---
 
 ## what this is
 
-How to run, test, and (later) deploy Rostra. The deploy/Docker pieces land with the runtime plan; the
-dev/test commands work today.
+The current Node 22, Prisma 7, and Docker deployment path. For release-candidate QA,
+follow [staging validation](./staging-validation.mdx) before approving a production rollout.
 
-## technical map
+## local validation
 
-**install**
-- `npm install`
-- `npm run prisma:generate` - generate the Prisma client (after any schema change)
+Use Node 22 and the committed lockfile. Prisma generation needs a syntactically valid
+`DATABASE_URL`, but does not connect to the database. The existing unit suite runs with
+test-only Discord placeholders and an unreachable PostgreSQL URL.
 
-**develop**
-- `npm run dev` - runs `src/cluster.ts` via tsx watch (exists after runtime plan)
-- `npm run typecheck` - `tsc --noEmit`
-- `npm run lint` / `npm run lint:fix` - Biome
-- `npm run test` - pure tests; `npm run test:env` - all tests with `.env` loaded
+```bash
+npm ci
+npm run prisma:generate
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
 
-**build & run (after runtime plan)**
-- `npm run build` - tsup bundles `src/cluster.ts` + `src/bot.ts` to `dist/`
-- `npm run start` - `node dist/cluster.js`
-- `npm run deploy:commands` - register slash commands with Discord
+The build script runs Prisma generation and `tsc --noEmit`. At runtime, `tsx` runs
+`src/cluster.ts`; this repository does not produce a `dist/` JavaScript bundle.
 
-**database**
-- `npm run prisma:migrate` - create/apply migrations (dev)
-- Production: Postgres + pgBouncer (transaction mode) recommended at scale
+## container startup
 
-**planned ops (runtime plan)**
-- `Dockerfile` (multi-stage, node:20-alpine), `docker-compose.yml` (bot, postgres, pgbouncer, redis,
-  optional lavalink), graceful shutdown on SIGTERM/SIGINT, Fastify `/health` for orchestration probes.
+`Dockerfile` uses Node 22 Alpine. `docker-entrypoint.sh` runs `prisma migrate deploy`
+against `DIRECT_URL` when set, falling back to `DATABASE_URL`. It exits after failed
+migration retries and starts the bot only after migrations succeed. Docker Compose
+provides PostgreSQL, transaction-pooled pgBouncer, and Redis. The sample Compose
+credentials are for local development only.
 
-## gotchas
+The manager synchronizes global Discord commands when the stored command hash changes
+before spawning shards. `npm run deploy:commands` forces a global command update and
+requires the same isolated application credentials and database as the target environment.
+`DEV_GUILD_ID` does not limit the global `/ticket`, `/security`, or `/automod` commands
+to one guild. For staging, invite a separate bot application only to the staging guild.
 
-- tsup/esbuild needs explicit handling for the `@/*` path alias and `.ts` import extensions - wire this
-  when adding the build entry points, or the bundle will fail to resolve imports.
-- Commands register globally (one REST push); `/owner` registers to `DEV_GUILD_ID` only.
+`/health` reports the web server status. Check `/health/shards` and bot logs as well
+to verify gateway shards started; the basic endpoint alone does not prove the bot is ready.
+
+## connection configuration
+
+- `DATABASE_URL` is the runtime PostgreSQL connection. Use an isolated database.
+- `DIRECT_URL` is the optional direct PostgreSQL connection for Prisma CLI migrations.
+  Set it when `DATABASE_URL` uses transaction pooling. Never point either at production
+  during staging validation.
+- `REDIS_URL` is optional for a single staging instance, but should use a dedicated
+  Redis database or instance when testing the deployment topology that uses Redis.
+- `DISCORD_TOKEN` and `DISCORD_CLIENT_ID` must refer to the same separate staging bot.
+
+Store credentials in the environment manager, not in this repository or in chat.

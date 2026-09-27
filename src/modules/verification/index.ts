@@ -100,7 +100,14 @@ async function execute({
 
 	switch (sub) {
 		case "setup": {
-			const role = interaction.options.getRole("role", true);
+			const selected = interaction.options.getRole("role", true);
+			const role = await guild.roles.fetch(selected.id).catch(() => null);
+			if (!role || role.id === guild.roles.everyone.id || role.managed) {
+				return void reply.error(interaction, t("verification:unsafeRole"));
+			}
+			if (!role.editable) {
+				return void reply.error(interaction, t("verification:roleHierarchy"));
+			}
 			await upsertConfig(guild.id, { roleId: role.id, enabled: true });
 			return void reply.success(
 				interaction,
@@ -244,6 +251,10 @@ const verification: BotModule = {
 			"🔓 Verification on. Members who verify get {role}. Post the panel with `/verification panel`.",
 		disabled: "🔒 Verification turned off.",
 		notConfigured: "Set a role first with `/verification setup`.",
+		unsafeRole:
+			"Choose a normal server role. `@everyone` and managed integration roles cannot be used for verification.",
+		roleHierarchy:
+			"I can't manage that role. Move my bot role above it and make sure I have Manage Roles, then try again.",
 		off: "Verification is not available right now.",
 		already: "✅ You're already verified.",
 		welcome: "🎉 You're verified - welcome in!",

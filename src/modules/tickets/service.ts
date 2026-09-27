@@ -16,6 +16,7 @@ import {
 	escalatePriority,
 	PRIORITY_SUFFIX,
 	parseCategories,
+	REOPEN_WINDOW_MS,
 	resolveCategory,
 	type TicketPriority,
 	ticketChannelName,
@@ -71,6 +72,23 @@ export async function setGuildCategories(guildId: string, cats: CategorySpec[]):
 // non-ticket after one lookup so normal channels are queried at most once.
 const ticketChannels = new Set<string>();
 const notTicketChannels = new Set<string>();
+const operations = new Map<string, Promise<void>>();
+
+export async function withTicketLock<T>(channelId: string, action: () => Promise<T>): Promise<T> {
+	const prior = operations.get(channelId) ?? Promise.resolve();
+	let release = () => {};
+	const next = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	operations.set(channelId, next);
+	await prior;
+	try {
+		return await action();
+	} finally {
+		release();
+		if (operations.get(channelId) === next) operations.delete(channelId);
+	}
+}
 
 export function markTicketChannel(channelId: string): void {
 	ticketChannels.add(channelId);
@@ -92,6 +110,9 @@ export async function recordTicketMessage(input: {
 	authorId: string;
 	authorTag: string;
 	content: string;
+	member?: GuildMember | null;
+	resolveMember?: () => Promise<GuildMember | null>;
+	createdAt?: Date;
 }): Promise<void> {
 	if (notTicketChannels.has(input.channelId)) return;
 	const prisma = getPrisma();
@@ -104,6 +125,7 @@ export async function recordTicketMessage(input: {
 		return;
 	}
 	ticketChannels.add(input.channelId);
+	const messageAt = input.createdAt ?? new Date();
 	await prisma.ticketMessage
 		.create({
 			data: {
@@ -112,19 +134,37 @@ export async function recordTicketMessage(input: {
 				authorId: input.authorId,
 				authorTag: input.authorTag,
 				content: input.content.slice(0, 1900),
+				createdAt: messageAt,
 			},
 		})
 		.catch(() => {});
-	const firstResponse = ticket.userId !== input.authorId && !ticket.firstResponseAt;
+	let firstResponse = false;
+	if (
+		ticket.userId !== input.authorId &&
+		(!ticket.firstResponseAt || ticket.firstResponseAt > messageAt)
+	) {
+		const config = await getConfig(input.guildId);
+		const member = input.member ?? (await input.resolveMember?.());
+		firstResponse = !!config && !!member && isSupport(member, config);
+	}
 	await prisma.ticket
-		.update({
-			where: { channelId: input.channelId },
-			data: {
-				lastActivityAt: new Date(),
-				...(firstResponse ? { firstResponseAt: new Date() } : {}),
-			},
+		.updateMany({
+			where: { channelId: input.channelId, open: true },
+			data: { lastActivityAt: messageAt },
 		})
 		.catch(() => {});
+	if (firstResponse) {
+		await prisma.ticket
+			.updateMany({
+				where: {
+					channelId: input.channelId,
+					open: true,
+					OR: [{ firstResponseAt: null }, { firstResponseAt: { gt: messageAt } }],
+				},
+				data: { firstResponseAt: messageAt },
+			})
+			.catch(() => {});
+	}
 }
 
 /** Build a plain-text transcript of a ticket from its captured messages. */
@@ -185,6 +225,21 @@ export async function createTicket(
 	});
 	if (existing) return { ok: false, messageKey: "tickets:error.alreadyOpen" };
 
+	// Older configurations may contain a text channel ID (the command used to
+	// accept every channel type), or a category that has since been deleted.
+	if (config.categoryId) {
+		const parent = await guild.channels.fetch(config.categoryId).catch((err: unknown) => {
+			log.warn(
+				{ err, guild: guild.id, categoryId: config.categoryId },
+				"ticket category lookup failed",
+			);
+			return null;
+		});
+		if (!parent || parent.type !== ChannelType.GuildCategory) {
+			return { ok: false, messageKey: "tickets:error.categoryUnavailable" };
+		}
+	}
+
 	const spec = resolveCategory(parseCategories(config.categories), categoryKey);
 	const number = await nextNumber(guild.id);
 	const me = guild.members.me;
@@ -203,14 +258,16 @@ export async function createTicket(
 						PermissionFlagsBits.ReadMessageHistory,
 					],
 				},
-				...config.supportRoleIds.map((roleId) => ({
-					id: roleId,
-					allow: [
-						PermissionFlagsBits.ViewChannel,
-						PermissionFlagsBits.SendMessages,
-						PermissionFlagsBits.ReadMessageHistory,
-					],
-				})),
+				...config.supportRoleIds
+					.filter((roleId) => guild.roles.cache.has(roleId))
+					.map((roleId) => ({
+						id: roleId,
+						allow: [
+							PermissionFlagsBits.ViewChannel,
+							PermissionFlagsBits.SendMessages,
+							PermissionFlagsBits.ReadMessageHistory,
+						],
+					})),
 				...(me
 					? [
 							{
@@ -244,13 +301,11 @@ export async function createTicket(
 }
 
 export async function claimTicket(channelId: string, moderatorId: string): Promise<boolean> {
-	const ticket = await getPrisma().ticket.findUnique({ where: { channelId } });
-	if (!ticket?.open) return false;
-	await getPrisma().ticket.update({
-		where: { channelId },
+	const claimed = await getPrisma().ticket.updateMany({
+		where: { channelId, open: true, claimedBy: null },
 		data: { claimedBy: moderatorId, status: "CLAIMED" },
 	});
-	return true;
+	return claimed.count === 1;
 }
 
 /** Replace any trailing priority suffix on a channel name with the new one. */
@@ -296,7 +351,7 @@ export async function getStaffStats(
 	const prisma = getPrisma();
 	const [claimed, closed, openAssigned] = await Promise.all([
 		prisma.ticket.count({ where: { guildId, claimedBy: userId } }),
-		prisma.ticket.count({ where: { guildId, closedBy: userId } }),
+		prisma.ticket.count({ where: { guildId, closedBy: userId, userId: { not: userId } } }),
 		prisma.ticket.count({ where: { guildId, claimedBy: userId, open: true } }),
 	]);
 	return { claimed, closed, openAssigned };
@@ -307,16 +362,21 @@ export async function getStaffLeaderboard(
 	guildId: string,
 	limit = 10,
 ): Promise<{ id: string; closed: number }[]> {
-	const grouped = await getPrisma()
+	const closed = await getPrisma()
 		.ticket.groupBy({
-			by: ["closedBy"],
+			by: ["closedBy", "userId"],
 			where: { guildId, closedBy: { not: null } },
 			_count: { _all: true },
 		})
 		.catch(() => []);
-	return grouped
-		.map((g) => ({ id: g.closedBy ?? "", closed: g._count._all }))
-		.filter((r) => r.id)
+	const counts = new Map<string, number>();
+	for (const ticket of closed) {
+		const id = ticket.closedBy;
+		if (!id || !/^\d{17,20}$/.test(id) || id === ticket.userId) continue;
+		counts.set(id, (counts.get(id) ?? 0) + ticket._count._all);
+	}
+	return [...counts.entries()]
+		.map(([id, count]) => ({ id, closed: count }))
 		.sort((a, b) => b.closed - a.closed)
 		.slice(0, limit);
 }
@@ -372,15 +432,38 @@ export async function getDashboard(guildId: string): Promise<Dashboard> {
 
 /** Scheduler handler: delete an archived ticket channel once its reopen window expires - unless it was reopened. */
 export async function archiveDeleteTask(payload: unknown, client: Client): Promise<void> {
-	const { channelId } = (payload ?? {}) as { channelId?: string };
+	const { channelId, closedAt } = (payload ?? {}) as { channelId?: string; closedAt?: number };
 	if (!channelId) return;
-	const ticket = await getPrisma()
-		.ticket.findUnique({ where: { channelId } })
-		.catch(() => null);
-	if (!ticket || ticket.open) return; // reopened or already gone
-	const guild = client.guilds.cache.get(ticket.guildId);
-	const channel = guild?.channels.cache.get(channelId);
-	if (channel) await channel.delete("Ticket reopen window expired").catch(() => {});
+	await withTicketLock(channelId, async () => {
+		const ticket = await getPrisma()
+			.ticket.findUnique({ where: { channelId } })
+			.catch(() => null);
+		if (!canDeleteArchivedTicket(ticket, closedAt)) return;
+		const guild = client.guilds.cache.get(ticket.guildId);
+		if (!guild) throw new Error(`Guild ${ticket.guildId} unavailable for archive delete`);
+		const channel = await guild.channels.fetch(channelId).catch((err: unknown) => {
+			if ((err as { code?: number }).code === 10003) return null; // already deleted
+			throw err; // transient Discord failure: scheduler retries cleanup
+		});
+		if (channel)
+			await channel.delete("Ticket reopen window expired").catch((err: unknown) => {
+				if ((err as { code?: number }).code !== 10003) throw err;
+			});
+	});
+}
+
+export function canDeleteArchivedTicket(
+	ticket: { open: boolean; closedAt: Date | null } | null,
+	closedAt?: number,
+	now = Date.now(),
+): ticket is { open: false; closedAt: Date } {
+	return (
+		!!ticket &&
+		!ticket.open &&
+		!!ticket.closedAt &&
+		(closedAt === undefined || ticket.closedAt.getTime() === closedAt) &&
+		ticket.closedAt.getTime() + REOPEN_WINDOW_MS <= now
+	);
 }
 
 /** Reopen a closed-but-not-yet-deleted ticket: unlock the opener, restore the name, mark open. */
@@ -389,26 +472,50 @@ export async function reopenTicket(guild: Guild, number: number): Promise<string
 	const ticket = await prisma.ticket
 		.findUnique({ where: { guildId_number: { guildId: guild.id, number } } })
 		.catch(() => null);
-	if (!ticket || ticket.open) return null;
-	const channel = guild.channels.cache.get(ticket.channelId);
-	if (!channel || !("permissionOverwrites" in channel) || !("setName" in channel)) return null;
-	await channel.permissionOverwrites
-		.edit(ticket.userId, { SendMessages: true, ViewChannel: true })
-		.catch(() => {});
-	await channel.setName(channel.name.replace(/-closed$/, "")).catch(() => {});
-	await prisma.ticket.update({
-		where: { channelId: ticket.channelId },
-		data: {
-			open: true,
-			status: "OPEN",
-			closedAt: null,
-			closedBy: null,
-			closeReason: null,
-			slaBreached: false,
-		},
+	if (!ticket) return null;
+	return withTicketLock(ticket.channelId, async () => {
+		const current = await prisma.ticket.findUnique({ where: { channelId: ticket.channelId } });
+		if (
+			!current ||
+			current.open ||
+			!current.closedAt ||
+			current.closedAt.getTime() + REOPEN_WINDOW_MS <= Date.now()
+		)
+			return null;
+		const channel = await guild.channels.fetch(current.channelId).catch(() => null);
+		if (!channel || !("permissionOverwrites" in channel) || !("setName" in channel)) return null;
+		await channel.permissionOverwrites.edit(current.userId, {
+			SendMessages: true,
+			ViewChannel: true,
+		});
+		const reopened = await prisma.ticket
+			.updateMany({
+				where: { channelId: current.channelId, open: false, closedAt: current.closedAt },
+				data: {
+					open: true,
+					status: "OPEN",
+					closedAt: null,
+					closedBy: null,
+					closeReason: null,
+					slaBreached: false,
+				},
+			})
+			.catch(async (err: unknown) => {
+				await channel.permissionOverwrites
+					.edit(current.userId, { SendMessages: false })
+					.catch(() => {});
+				throw err;
+			});
+		if (reopened.count !== 1) {
+			await channel.permissionOverwrites
+				.edit(current.userId, { SendMessages: false })
+				.catch(() => {});
+			return null;
+		}
+		await channel.setName(channel.name.replace(/-closed$/, "")).catch(() => {});
+		markTicketChannel(current.channelId);
+		return current.channelId;
 	});
-	markTicketChannel(ticket.channelId);
-	return ticket.channelId;
 }
 
 /** Add or remove the caller as a watcher on an open ticket. Returns the new count, or null. */
@@ -472,6 +579,7 @@ export async function transferTicket(
 }
 
 export interface CloseInfo {
+	closedAt: Date;
 	number: number;
 	userId: string;
 	category: string;
@@ -486,11 +594,12 @@ export async function closeTicket(
 	channel: TextChannel,
 	closedBy: string,
 	reason?: string,
+	closedAt = new Date(),
 ): Promise<CloseInfo | null> {
 	const prisma = getPrisma();
 	const ticket = await prisma.ticket.findUnique({ where: { channelId: channel.id } });
-	if (!ticket) return null;
-	const now = new Date();
+	if (!ticket?.open) return null;
+	const now = closedAt;
 	const durationMins = Math.floor((now.getTime() - ticket.createdAt.getTime()) / 60_000);
 	const firstResponseMins = ticket.firstResponseAt
 		? Math.floor((ticket.firstResponseAt.getTime() - ticket.createdAt.getTime()) / 60_000)
@@ -499,8 +608,8 @@ export async function closeTicket(
 		.count({ where: { channelId: channel.id } })
 		.catch(() => 0);
 	const transcript = await buildTranscript(channel.id, ticket, now);
-	await prisma.ticket.update({
-		where: { channelId: channel.id },
+	const closed = await prisma.ticket.updateMany({
+		where: { channelId: channel.id, open: true },
 		data: {
 			open: false,
 			status: "CLOSED",
@@ -510,8 +619,10 @@ export async function closeTicket(
 			summary: `Closed by ${closedBy} after ${durationMins}m, ${messageCount} messages`,
 		},
 	});
+	if (closed.count === 0) return null;
 	unmarkTicketChannel(channel.id);
 	return {
+		closedAt: now,
 		number: ticket.number,
 		userId: ticket.userId,
 		category: ticket.category,

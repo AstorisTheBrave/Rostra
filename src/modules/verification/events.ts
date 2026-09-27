@@ -10,16 +10,59 @@ import { getConfig } from "./service.ts";
 
 export const VERIFY_KICK = "verify_kick";
 
+interface VerifyKickPayload {
+	guildId?: string;
+	userId?: string;
+	/** Join generation in epoch milliseconds; absent on legacy tasks. */
+	joinedAt?: number;
+	roleId?: string;
+	kickAfterMin?: number;
+}
+
+export function isCurrentVerifyKick(
+	payload: VerifyKickPayload,
+	memberJoinedAt: number | null,
+	configuredRoleId: string,
+	configuredKickAfterMin: number,
+	now = Date.now(),
+): boolean {
+	return (
+		payload.joinedAt !== undefined &&
+		payload.joinedAt === memberJoinedAt &&
+		payload.roleId === configuredRoleId &&
+		payload.kickAfterMin === configuredKickAfterMin &&
+		now >= payload.joinedAt + configuredKickAfterMin * 60_000
+	);
+}
+
 /** Scheduler handler: kick a member who never verified, unless they got the role in time. */
 export async function verifyKickTask(payload: unknown, client: Client): Promise<void> {
-	const { guildId, userId } = (payload ?? {}) as { guildId?: string; userId?: string };
+	const { guildId, userId, joinedAt, roleId, kickAfterMin } = (payload ?? {}) as VerifyKickPayload;
 	if (!guildId || !userId) return;
 	const guild = client.guilds.cache.get(guildId);
 	if (!guild) return;
 	const config = await getConfig(guildId);
-	if (!config?.enabled || !config.roleId || !config.kickAfterMin) return;
+	if (
+		!config?.enabled ||
+		!config.roleId ||
+		!config.kickAfterMin ||
+		(await isFeatureBlocked(guildId, "verification"))
+	)
+		return;
+	// Tasks without a join/config generation cannot safely act on a rejoined member.
 	const member = await guild.members.fetch(userId).catch(() => null);
-	if (!member?.kickable) return;
+	if (!member || member.id === guild.ownerId || !member.kickable) return;
+	// A user may leave and rejoin before an older durable task fires. New tasks carry
+	// the join timestamp so an old generation cannot kick the user's newer session early.
+	if (
+		!isCurrentVerifyKick(
+			{ joinedAt, roleId, kickAfterMin },
+			member.joinedTimestamp,
+			config.roleId,
+			config.kickAfterMin,
+		)
+	)
+		return;
 	if (member.roles.cache.has(config.roleId)) return; // verified in time
 	await member.kick("[Verification] did not verify in time").catch(() => {});
 }
@@ -66,14 +109,22 @@ export const verificationEvents: RegisteredEvent[] = [
 				}
 			}
 
-			// Auto-kick members who never verify within the window.
+			// Auto-kick members who never verify within the window. Include this exact
+			// join generation so an old task is harmless if the user leaves and rejoins.
 			if (config.enabled && config.roleId && config.kickAfterMin) {
+				const joinedAt = member.joinedTimestamp ?? Date.now();
 				await schedule(
 					{
 						type: VERIFY_KICK,
-						runAt: new Date(Date.now() + config.kickAfterMin * 60_000),
+						runAt: new Date(joinedAt + config.kickAfterMin * 60_000),
 						guildId: member.guild.id,
-						payload: { guildId: member.guild.id, userId: member.id },
+						payload: {
+							guildId: member.guild.id,
+							userId: member.id,
+							joinedAt,
+							roleId: config.roleId,
+							kickAfterMin: config.kickAfterMin,
+						},
 					},
 					client,
 				);

@@ -6,6 +6,13 @@ status: stable
 
 ## what this is
 
+### 2026-09 integration audit
+
+Setup fetches the role from the guild and verifies that it is not managed, `@everyone`, or above the bot.
+Auto-kick tasks carry the join timestamp, configured role, and kick window. At execution they recheck the
+current member, owner, verified role, feature flag, join generation, and deadline. Older tasks without a
+complete generation are skipped to avoid kicking a member who rejoined or whose configuration changed.
+
 A verification gate: post a panel with a Verify button, and members who click it get a "verified" role
 that unlocks the server. Adapted from YAGPDB's verification feature, button-based (no web captcha).
 Optionally adds a quick math captcha before granting and auto-kicks members who never verify.

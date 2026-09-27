@@ -12,6 +12,9 @@ export const ticketEvents: RegisteredEvent[] = [
 				authorId: message.author.id,
 				authorTag: message.author.tag,
 				content: message.content || "(no text)",
+				createdAt: message.createdAt,
+				member: message.member,
+				resolveMember: () => message.guild.members.fetch(message.author.id).catch(() => null),
 			}).catch(() => {});
 		},
 	}),

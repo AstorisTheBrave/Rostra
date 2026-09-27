@@ -6,6 +6,13 @@ status: stable
 
 ## what this is
 
+### 2026-09 integration audit
+
+Moderation cases use a transactional guild counter and store human moderator Discord user IDs; AutoMod uses
+the dedicated `AUTOMOD` actor marker. Case delivery to the moderation log remains best effort after the
+case is saved. The integration branch normalizes the logging module's formatting for the release lint gate.
+Untimeout now checks the moderator's and bot's role hierarchy before calling Discord, matching timeout.
+
 The moderation feature: server staff use `/mod` to ban, kick, time out, warn, and otherwise discipline
 members, and every action is recorded as a numbered "case" so a member's history can be looked up later.
 It's the first full feature module and the reference example for how modules are structured.

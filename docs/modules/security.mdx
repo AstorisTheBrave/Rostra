@@ -6,6 +6,15 @@ status: stable
 
 ## what this is
 
+### 2026-09 integration audit
+
+Manual panic and automatic raid lockdown serialize their transitions per guild. Restore metadata is durable
+before raising verification, and automatic lockdown persists its unlock task before calling Discord. Unlock
+tasks check the persisted generation, retry after a failed restore, and do not override a newer lockdown or a
+manual verification change. Panic off can restore the saved level after a restart or API failure. Legacy
+unlock tasks without a generation are ignored because they cannot identify the lockdown they belong to.
+Webhook audit attribution requires a matching channel as well as a recent audit entry.
+
 Antinuke: protects a server from a rogue admin or compromised account that tries to mass-delete channels,
 mass-ban members, add malicious bots, etc. When a destructive action happens, the bot figures out who
 did it (from Discord's audit log), checks whether they're trusted, and if not, punishes them instantly

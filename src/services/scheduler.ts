@@ -16,6 +16,9 @@ import { getLogger } from "@/services/logger.ts";
 const log = getLogger("scheduler");
 const MAX_TIMEOUT = 2_147_483_000;
 const timers = new Map<string, NodeJS.Timeout>();
+const running = new Set<string>();
+const RETRY_DELAY_MS = 60_000;
+const RETRYABLE_TASKS = new Set(["raid_unlock", "ticket_archive_delete"]);
 
 export type TaskHandler = (payload: unknown, client: Client) => Promise<void> | void;
 const handlers = new Map<string, TaskHandler>();
@@ -40,12 +43,21 @@ export function shouldArm(
 	return ownsGuild(task.guildId);
 }
 
+function dispatch(client: Client, task: ScheduledTask): void {
+	void fire(client, task.id).catch((err) => {
+		log.error({ err, type: task.type, id: task.id }, "scheduled task dispatch failed");
+		if (RETRYABLE_TASKS.has(task.type)) {
+			arm(client, { ...task, runAt: new Date(Date.now() + RETRY_DELAY_MS) });
+		}
+	});
+}
+
 function arm(client: Client, task: ScheduledTask): void {
 	const existing = timers.get(task.id);
 	if (existing) clearTimeout(existing);
 	const delay = task.runAt.getTime() - Date.now();
 	if (delay <= 0) {
-		void fire(client, task.id);
+		dispatch(client, task);
 		return;
 	}
 	const timer = setTimeout(() => {
@@ -53,28 +65,51 @@ function arm(client: Client, task: ScheduledTask): void {
 			.scheduledTask.findUnique({ where: { id: task.id } })
 			.then((fresh) => {
 				if (!fresh) return;
-				if (fresh.runAt.getTime() <= Date.now()) void fire(client, task.id);
+				if (fresh.runAt.getTime() <= Date.now()) dispatch(client, fresh);
 				else arm(client, fresh);
+			})
+			.catch((err) => {
+				log.error({ err, id: task.id }, "scheduled task lookup failed");
+				if (RETRYABLE_TASKS.has(task.type)) {
+					arm(client, { ...task, runAt: new Date(Date.now() + RETRY_DELAY_MS) });
+				}
 			});
 	}, clampDelay(delay));
 	timers.set(task.id, timer);
 }
 
 async function fire(client: Client, id: string): Promise<void> {
-	timers.delete(id);
-	const task = await getPrisma().scheduledTask.findUnique({ where: { id } });
-	if (!task) return;
-	const handler = handlers.get(task.type);
-	if (handler) {
-		try {
-			await handler(task.payload, client);
-		} catch (err) {
-			log.error({ err, type: task.type, id }, "scheduled task handler failed");
+	if (running.has(id)) return;
+	running.add(id);
+	try {
+		timers.delete(id);
+		const task = await getPrisma().scheduledTask.findUnique({ where: { id } });
+		if (!task) return;
+		const handler = handlers.get(task.type);
+		let failed = false;
+		if (handler) {
+			try {
+				await handler(task.payload, client);
+			} catch (err) {
+				log.error({ err, type: task.type, id }, "scheduled task handler failed");
+				failed = true;
+			}
+		} else {
+			log.warn({ type: task.type, id }, "no handler registered for scheduled task type");
 		}
-	} else {
-		log.warn({ type: task.type, id }, "no handler registered for scheduled task type");
+		if (failed && RETRYABLE_TASKS.has(task.type)) {
+			const next = new Date(Date.now() + RETRY_DELAY_MS);
+			const updated = await getPrisma().scheduledTask.updateMany({
+				where: { id, runAt: task.runAt },
+				data: { runAt: next },
+			});
+			if (updated.count === 1) arm(client, { ...task, runAt: next });
+			return;
+		}
+		await getPrisma().scheduledTask.deleteMany({ where: { id } });
+	} finally {
+		running.delete(id);
 	}
-	await getPrisma().scheduledTask.deleteMany({ where: { id } });
 }
 
 /** Create a durable task and arm it on this shard if it owns it. */

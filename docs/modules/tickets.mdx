@@ -62,6 +62,7 @@ close their own ticket. `status` and `queue list` expose settings without granti
 - Ticket channels get explicit permission overwrites: deny `@everyone`, allow opener + support roles +
   the bot. The bot needs Manage Channels.
 - Close logs a summary and text transcript to the configured channel, then archives the ticket for 7 days.
-- Closing is conditional on an open ticket. A second close leaves the archived channel and its reopen window
-  alone, and a missing ticket record never triggers channel deletion.
+- Closing is conditional on an open ticket. Under the channel lock, a second close does not schedule another
+  archive task; it leaves the archived channel and its reopen window alone. A missing ticket record never
+  triggers channel deletion.
 - Requires `prisma migrate` for `TicketConfig`, `Ticket`, `GuildTicketCounter`.

@@ -621,6 +621,10 @@ async function closeAndArchiveUnlocked(
 	closedBy: string,
 	reason?: string,
 ): Promise<boolean> {
+	// The caller holds the channel lock. A second close must not create a second
+	// archive task while the first close has already finished.
+	const current = await getTicket(channel.id);
+	if (!current?.open) return false;
 	// Persist the cleanup task before closing. A failed scheduler write must not
 	// leave a closed ticket without a durable seven-day cleanup path.
 	const closedAt = new Date();

@@ -66,6 +66,11 @@ let CI pass. See `CONTRIBUTING.md`.
 - `withSafeAck` - already wired into the pipeline/router; handlers needn't manage the 3s deadline
 - customId convention for components: `module:action:arg` (the module's `ComponentHandler` routes it)
 
+Prisma CLI tooling in `prisma.config.ts` may use `DIRECT_URL` for migrations when the runtime
+`DATABASE_URL` points to transaction pooling. `src/config.ts` remains the only runtime env loader.
+Docker startup must exit if migration retries are exhausted; running the bot against an unready
+database leaves scheduled tasks and command sync in an undefined state.
+
 Durable scheduler tasks that modify Discord state need a persisted generation marker and a retry path.
 In particular, raid unlock tasks compare `unlockAt` with tenant state, verification kicks compare the
 join timestamp and config, and ticket archive cleanup compares the current close timestamp. Persist

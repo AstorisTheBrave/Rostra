@@ -12,6 +12,9 @@ export default defineConfig({
 		path: "prisma/migrations",
 	},
 	datasource: {
-		url: env("DATABASE_URL"),
+		// The CLI runs migrations over a direct connection when the runtime uses a
+		// transaction pool. Prisma tooling loads .env here; the app still reads its
+		// runtime DATABASE_URL through src/config.ts.
+		url: process.env.DIRECT_URL || env("DATABASE_URL"),
 	},
 });

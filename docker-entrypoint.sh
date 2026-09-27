@@ -7,15 +7,22 @@ set -e
 
 echo "Rostra: applying database migrations..."
 i=1
+ready=0
 while [ "$i" -le 12 ]; do
 	if npx prisma migrate deploy; then
 		echo "Rostra: database is ready."
+		ready=1
 		break
 	fi
 	echo "Rostra: database not ready yet, retrying in 5s ($i/12)..."
 	i=$((i + 1))
 	sleep 5
 done
+
+if [ "$ready" -ne 1 ]; then
+	echo "Rostra: database migrations failed after 12 attempts; refusing to start the bot." >&2
+	exit 1
+fi
 
 echo "Rostra: starting the bot..."
 exec npm start

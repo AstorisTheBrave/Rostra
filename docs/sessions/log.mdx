@@ -11,6 +11,23 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-09-27 (PR #8 release candidate CI and staging preparation)
+
+Expanded CI to run on the integration branch and check the production build after install, Prisma generation,
+typecheck, lint, and all tests. Corrected the Docker entrypoint so exhausted database migration retries stop
+bot startup, with regression coverage for both migration outcomes. Prisma CLI now uses optional `DIRECT_URL`
+for migrations behind a pooled runtime URL; local Compose supplies a direct PostgreSQL connection.
+
+The ticket close channel lock now checks persisted open state before scheduling archive cleanup, preventing a
+second close from creating a redundant task. Updated deployment and environment documentation and added an
+isolated staging validation checklist. Live staging results and GitHub Actions outcomes must be recorded
+separately before approving release readiness.
+
+**files touched**: `.github/workflows/ci.yml`, `docker-entrypoint.sh`, `docker-compose.yml`,
+`prisma.config.ts`, `src/modules/tickets/index.ts`, `src/services/docker-entrypoint.test.ts`,
+`docs/infrastructure/{deployment,env,staging-validation}.mdx`, `docs/modules/tickets.mdx`, `AGENTS.md`,
+this log.
+
 ### 2026-09-26 (PR #1 to #7 integration candidate)
 
 Merged the seven hardening PR branches into `integration/rostra-hardening-release` without changing main.

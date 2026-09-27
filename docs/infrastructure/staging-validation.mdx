@@ -1,0 +1,134 @@
+---
+last-updated: 2026-09-27
+owner: AstorisTheBrave
+status: in-flux
+---
+
+## Release candidate PR #8 staging validation
+
+This is an operator checklist. Record actual results and timestamps separately. Nothing
+below is evidence of a completed staging test. Use the exact head SHA of
+`integration/rostra-hardening-release`; keep PR #8 unmerged until approval.
+
+### Isolated environment
+
+Create a dedicated Discord application and guild. Invite only the staging bot to that
+guild. Use separate PostgreSQL and Redis resources. Do not connect the production
+application, The Last Human Bot, or its database to these tests. Configure values
+directly in Dokploy or the staging host. Never paste tokens, connection strings, or
+passwords into an issue, PR, log attachment, or chat.
+
+| Variable | Requirement |
+| --- | --- |
+| `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | Dedicated staging application, matching token and ID |
+| `DATABASE_URL` | Dedicated staging PostgreSQL, never production |
+| `DIRECT_URL` | Direct connection to the same staging database when runtime URL is pooled |
+| `REDIS_URL` | Dedicated staging Redis for the production-like topology |
+| `OWNER_IDS` | Staging operator Discord user ID only, if owner commands are tested |
+| `DEV_GUILD_ID` | Staging guild ID when dev-only commands are tested |
+| `NODE_ENV`, `TOTAL_SHARDS`, `SHARDING_MODE` | `production`, `1`, `native` for a single staging bot |
+| `PORT`, `HOST` | Defaults `3000`, `0.0.0.0`; expose health endpoint privately |
+
+For the QA roles, use a normal member, two support staff accounts, a guild owner,
+and a test target for moderation. Grant the bot only the staging permissions needed
+for the tests: Manage Server, Manage Channels, Manage Roles, Kick Members, Moderate
+Members, View Audit Log, View Channel, Send Messages, Attach Files, and Read Message
+History. Place its role above the roles it assigns or removes. Enable Server Members
+and Message Content privileged intents for the staging application.
+
+### Deploy and command preflight
+
+1. Configure the staging deployment from the exact integration branch SHA and install
+   with `npm ci`. `docker-entrypoint.sh` applies migrations before starting the bot.
+   Verify a successful migration result in the staging logs. If migrations fail,
+   investigate the direct URL; the bot must not start.
+2. Check `/health/shards` and bot startup logs for the staging guild. Do not interpret
+   `/health` alone as evidence of a connected shard.
+3. With staging environment variables configured on the staging host, run
+   `npm run deploy:commands`. This forces registration of **global** commands on the
+   staging application. The bot also hash-syncs on boot. Do not run it with the
+   production application token or ID.
+4. In the staging guild, confirm `/ticket category` offers Category channels only,
+   `/ticket logchannel` offers text/announcement channels, `/automod` exposes new
+   controls, `/security status` shows anti-raid state, and `/verification setup`
+   rejects a managed role or a role above the bot.
+
+### Ticket and SLA
+
+| Test | Expected result |
+| --- | --- |
+| Panel, open, private permissions | Opener and support roles see channel; unrelated member cannot |
+| Claim by two staff near-simultaneously | Exactly one assignment succeeds and `claimedBy` is that user's ID |
+| Priority, escalate, transfer, add user, watch, tags | Authorized staff succeeds; unrelated member cannot operate |
+| Close twice near-simultaneously | One transition; one effective archive task; no duplicate close log |
+| Opener and unrelated member close attempts | Opener may close own ticket; unrelated member cannot |
+| Category deleted after configuration | Opening returns actionable error without consuming a number |
+| Transcript, log, reopen, reclose | Transcript delivered; reopened channel works until seven days; old cleanup cannot delete new closure |
+| Username change, staffstats and leaderboard | `claimedBy`/`closedBy` are IDs; statistics survive rename |
+| SLA before, exactly at, and after deadline | Only first valid staff response counts; exact boundary is on time |
+| Old open ticket answered quickly; repeated sweep | No breach for early response; one alert for a real breach |
+
+Exact millisecond boundaries are deterministic in automated regression tests; use
+a short SLA to exercise real alerts in staging and record response timestamps.
+Inspect only staging rows when confirming the task generation and identifiers:
+
+```sql
+SELECT "number", "claimedBy", "closedBy", "closedAt", "firstResponseAt", "slaBreached"
+FROM "Ticket" WHERE "guildId" = '<STAGING_GUILD_ID>' ORDER BY "number" DESC LIMIT 20;
+
+SELECT "type", "runAt", "payload" FROM "ScheduledTask"
+WHERE "guildId" = '<STAGING_GUILD_ID>' AND "type" IN ('ticket_archive_delete', 'raid_unlock', 'verify_kick')
+ORDER BY "runAt" DESC LIMIT 30;
+```
+
+### Security and verification
+
+Use only controlled test accounts in the staging guild; do not simulate a raid on
+production. Record verification level before each run.
+
+1. Panic on, repeat on, restart the bot, check `/security status`, panic off. The
+   level must return to its saved value. Repeat off, then simulate a missing bot
+   permission on staging if safe; restore permission and recover with panic off.
+2. Configure a low anti-raid threshold. Use controlled joins only, confirm the
+   `raid_unlock` task and persisted `securityRaidLock`, restart while locked, and
+   verify auto-unlock. Start lock A, manually unlock, start B, and let task A fire:
+   B must remain locked. Confirm panic off can recover if an API restore fails.
+3. Configure a safe, short verification window. Verify before deadline and confirm
+   no kick; let another test member remain unverified and confirm kick. The guild
+   owner must never be kicked. Test leave/rejoin before task A fires: task A must
+   not kick join B. Restart before task fire, verify the member, and confirm no kick.
+
+```sql
+SELECT "settings"->'securityRaidLock' AS raid_lock,
+       "settings"->'securityPanic' AS panic
+FROM "GuildTenant" WHERE "guildId" = '<STAGING_GUILD_ID>';
+```
+
+If the bot loses Manage Server while the guild is on Very High, restore the permission
+and retry panic off. The guild owner can change Discord verification level manually
+if the bot remains unavailable. Capture the incident before clearing staging state.
+
+### AutoMod, moderation, and logging
+
+- With AntiLink on, an empty allow list blocks HTTP(S). Allow `youtube.com` and
+  verify exact host, `www`/`cdn` subdomains, and a valid port; reject
+  `youtube.com.evil.com`, `evil-youtube.com`, and malformed URL-like content.
+  Test add/remove/list, anti-hate toggle using safe synthetic content, escalation
+  on/off, fixed action, and status matching the effective feature state.
+- On a staging test member, execute warn, timeout, untimeout, note, and a short
+  temporary role if safe. Verify case numbers, persisted moderator user IDs, and
+  one dedicated moderation log per successful action. Make the log destination
+  temporarily unavailable and confirm a completed moderation action remains.
+- Exercise message edit/delete, member join/leave, nickname changes, and a disposable
+  channel/role event. Confirm configured general audit logs arrive.
+
+Do not guess historical Discord IDs from username/tag values in old `closedBy` rows.
+Only new ticket closures are guaranteed to contribute correctly to staff statistics.
+
+### Exit gate
+
+Attach redacted evidence for every row above to the staging change record. PR #8
+remains draft if GitHub Actions is not green or the ticket, lockdown/restart, stale
+verification generation, or command registration checks are incomplete. After all
+critical checks pass, update the PR description and move it to Ready for Review.
+Merge to main and production deployment still require explicit maintainer approval.

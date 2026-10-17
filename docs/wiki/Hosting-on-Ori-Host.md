@@ -1,6 +1,6 @@
 # Hosting on Ori Host
 
-A complete, tested walkthrough for running Rostra on Ori Host, a cheap game style panel (Pterodactyl) with
+A walkthrough for running Rostra on Ori Host, a cheap game style panel (Pterodactyl) with
 plans from about 1 euro a month. It works well for a small bot, but it is fiddlier than the click and go
 hosts because the panel gives you only a Node.js container: no database, no Redis, and it does not build
 TypeScript for you. This page covers every step and every error people actually hit.
@@ -38,12 +38,23 @@ every failure below is that field being wrong.
 ## Step 1: create the server
 
 In Ori, click **Create Server** and choose a **Node.js** plan. Give it **at least 1 GB of RAM**, ideally 2 GB.
-The first install is memory hungry; too little RAM shows up as a `Killed` message during `npm install`.
+The first install is memory hungry; too little RAM shows up as a `Killed` message during dependency installation.
 
 ## Step 2: set the Docker image
 
-Open the server, go to the **Startup** tab. Set **Docker Image** to **Node.js 22** if it is offered. Node.js
-25 also works. Anything 20.12 or newer is fine.
+Choose a Node.js image satisfying `engines.node` in `package.json`, with Corepack 0.35.0 available.
+Before starting, confirm the panel's dependency installer runs these commands from the checkout:
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+```
+
+The installer must use the repository's pinned pnpm version, lockfile and workspace security overrides.
+If the egg's installer is locked to another package manager, ask the host to change it or use the
+[[Hosting on a VPS]] setup. Changing `MAIN_FILE` alone does not fix dependency installation.
+This pnpm install path has been checked locally; installation on Ori's current panel is unverified.
+See [CONTRIBUTING.md](https://github.com/AstorisTheBrave/Rostra/blob/main/CONTRIBUTING.md) for canonical setup.
 
 ## Step 3: fill the Startup tab fields
 
@@ -93,7 +104,7 @@ explained in [[Environment Variables]].
 Press **Start**. The first boot takes a few minutes. A healthy boot looks like this, in order:
 
 1. Git lines, ending in `Already up to date` or a pull summary.
-2. `npm install`, ending in `up to date` or `added N packages`.
+2. `pnpm install --frozen-lockfile`, completing successfully with the pinned package-manager version.
 3. **Prisma output**: lines like `Generated Prisma Client` and a migration summary. Seeing this is your proof
    that `panel-start.mjs` is running. If you do NOT see Prisma output, your MAIN_FILE is wrong (see below).
 4. Rostra's own logs: `shard spawned`, then `shard logged in`, then `all shards spawned`.
@@ -102,8 +113,9 @@ Once it is running, invite the bot and run `/setup wizard` in your server. See t
 
 ## Step 6: updating later
 
-With `AUTO_UPDATE=1`, just restart the server and it pulls the newest version, reinstalls, reapplies any new
-database tables, and starts. Nothing else to do.
+With `AUTO_UPDATE=1` and the installer configured as above, restarting pulls the newest version, installs
+from its frozen lockfile, reapplies any new database tables, and starts. Confirm the installer still uses
+the pinned pnpm version after changing the panel image or egg.
 
 ## Troubleshooting
 
@@ -116,10 +128,10 @@ Match the message you see to the fix.
 | `tsconfig.json needs import attribute of type json` | the panel is pointed at the wrong file | Same fix: MAIN_FILE is `panel-start.mjs` |
 | `MAIN_FILE is not set. Skipping execution.` | misleading. The egg prints this whenever the program exits non-zero, even when MAIN_FILE is set | Ignore this line. Read the real error above it |
 | `Skipping git operations, missing variables` | the clone fields are incomplete | Fill **Username** and **Access Token** in the Startup tab |
-| `Killed` during `npm install` | the plan ran out of memory | Use a plan with 1 GB of RAM or more |
+| `Killed` during dependency installation | the plan ran out of memory | Use a plan with 1 GB of RAM or more |
 | `Database setup failed. Check DATABASE_URL` | Postgres is unreachable | Check `DATABASE_URL` in `.env` is correct and the database is awake |
 | `P1002` or `advisory lock` timeout | a pooled `DATABASE_URL` cannot hold a migration lock | The launcher already disables that lock, so just restart on the latest version. If it persists, add a direct `DIRECT_URL` |
-| `npm warn allow-scripts` | the panel blocked install scripts | Harmless. `panel-start.mjs` prepares the database itself |
+| The installer uses a different package manager | it bypasses the frozen workspace install | Configure the installer from Step 2 before starting |
 
 If MAIN_FILE genuinely reads `panel-start.mjs`, you see Prisma output, and it still fails, paste the full log
 and a screenshot of the Startup tab so the exact panel state is visible.

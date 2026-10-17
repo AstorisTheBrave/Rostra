@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-10-17
 owner: AstorisTheBrave
 status: in-flux
 ---
@@ -12,22 +12,25 @@ dev/test commands work today.
 ## technical map
 
 **install**
-- `npm install`
-- `npm run prisma:generate` - generate the Prisma client (after any schema change)
+- Use a Node.js version matching `engines.node` in `package.json`, with Corepack 0.35.0.
+- `corepack enable`
+- `pnpm install --frozen-lockfile` - use the single reviewed lockfile and workspace security overrides
+- `pnpm prisma:generate` - generate the Prisma client (after any schema change)
+- Canonical setup: [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 **develop**
-- `npm run dev` - runs `src/cluster.ts` via tsx watch (exists after runtime plan)
-- `npm run typecheck` - `tsc --noEmit`
-- `npm run lint` / `npm run lint:fix` - Biome
-- `npm run test` - pure tests; `npm run test:env` - all tests with `.env` loaded
+- `pnpm dev` - runs `src/cluster.ts` via tsx watch
+- `pnpm typecheck` - generate the client, then `tsc --noEmit`
+- `pnpm lint` / `pnpm lint:fix` - Biome
+- `pnpm test` - tests using caller-supplied placeholders; `pnpm test:env` loads local `.env`
 
-**build & run (after runtime plan)**
-- `npm run build` - tsup bundles `src/cluster.ts` + `src/bot.ts` to `dist/`
-- `npm run start` - `node dist/cluster.js`
-- `npm run deploy:commands` - register slash commands with Discord
+**build & run**
+- `pnpm build` - generate the client and check TypeScript without emitting a bundle
+- `pnpm start` - run `src/cluster.ts` through tsx
+- `pnpm deploy:commands` - register slash commands with Discord
 
 **database**
-- `npm run prisma:migrate` - create/apply migrations (dev)
+- `pnpm prisma:migrate` - apply the existing migrations
 - Production: Postgres + pgBouncer (transaction mode) recommended at scale
 
 **planned ops (runtime plan)**

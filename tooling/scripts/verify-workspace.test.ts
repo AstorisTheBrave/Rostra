@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	copyFileSync,
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -9,6 +17,19 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const checker = join(root, "tooling/scripts/verify-workspace.mjs");
 const controls = ["package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml", "turbo.json"];
+
+test("active installation guides never bypass the frozen workspace lock with npm", () => {
+	const guides = ["README.md", "CONTRIBUTING.md"];
+	for (const directory of ["docs/wiki", "docs/infrastructure"]) {
+		for (const entry of readdirSync(join(root, directory), { withFileTypes: true })) {
+			if (entry.isFile() && /\.mdx?$/.test(entry.name)) guides.push(`${directory}/${entry.name}`);
+		}
+	}
+	const stale = guides.filter((path) =>
+		/\bnpm\s+(?:install|ci)\b/.test(readFileSync(join(root, path), "utf8")),
+	);
+	assert.deepEqual(stale, [], "Active install guides must use pnpm install --frozen-lockfile");
+});
 
 function check(directory: string) {
 	return spawnSync(process.execPath, [checker], { cwd: directory, encoding: "utf8" });

@@ -4,7 +4,7 @@ Thanks for wanting to help. This page is a quick map of the project for code con
 
 ## Tech stack
 
-Node.js 20+, TypeScript (strict, no `any`), discord.js v14, Prisma with PostgreSQL, Redis, Pino, Zod,
+Node.js matching `engines.node` in `package.json`, TypeScript (strict, no `any`), discord.js v14, Prisma with PostgreSQL, Redis, Pino, Zod,
 Fastify, and Biome for lint and format. ESM only.
 
 ## Project shape
@@ -29,21 +29,28 @@ Fastify, and Biome for lint and format. ESM only.
 ## Local development
 
 ```bash
-npm install
+corepack enable
+pnpm install --frozen-lockfile
 cp .env.example .env
-npx prisma migrate deploy
-npm run dev
+pnpm prisma:generate
+pnpm prisma:migrate
+pnpm dev
 ```
+
+Use Corepack 0.35.0 and the repository's pinned pnpm version. Keep the single frozen lockfile and
+workspace overrides. The root [CONTRIBUTING.md](https://github.com/AstorisTheBrave/Rostra/blob/main/CONTRIBUTING.md)
+is the canonical setup guide.
 
 Before opening a pull request:
 
 ```bash
-npm run typecheck
-npm run lint:fix
-npm run test:env
+pnpm check:boundaries
+pnpm typecheck
+pnpm lint
+pnpm test:env
 ```
 
-All three must pass. Add a `*.test.ts` next to any pure logic you write.
+All four must pass. Add a `*.test.ts` next to any pure logic you write.
 
 ## How to add a feature behind a flag
 

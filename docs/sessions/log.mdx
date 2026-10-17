@@ -11,6 +11,22 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-17 (Phase 00: complete active installation guidance migration)
+
+**changed**: Updated wiki getting-started/contributing, infrastructure deployment and Ori Host setup
+instructions to use Corepack and `pnpm install --frozen-lockfile`, preserving the reviewed lockfile and
+workspace security overrides. Linked canonical setup and made a configurable frozen pnpm installer an
+explicit panel-host prerequisite; current Ori panel installation remains unverified. Added a focused
+regression scanning active root, wiki and infrastructure guides for stale dependency installation
+commands. Historical changelog/session entries remain intact.
+
+**evidence**: The new regression failed on all four affected guides before edits; the complete workspace
+verifier tests then passed 7/7. Repository/workspace boundary checks, targeted Biome and diff checks pass.
+README's separate runtime-version wording remains deferred for final triage.
+
+**files touched**: `docs/wiki/{Getting-Started,Contributing,Hosting-on-Ori-Host}.md`,
+`docs/infrastructure/deployment.mdx`, `tooling/scripts/verify-workspace.test.ts` and this log.
+
 ### 2026-10-17 (Phase 00: workspace control plane)
 
 **changed**: Pinned stable pnpm 12.14.0 and Turbo 2.11.9, imported the existing npm dependency

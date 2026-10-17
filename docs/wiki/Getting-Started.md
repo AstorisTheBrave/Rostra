@@ -6,7 +6,7 @@ sets up the database for you.
 
 ## Requirements
 
-- Node.js 20 or newer
+- A Node.js version satisfying `engines.node` in `package.json`, with Corepack 0.35.0
 - PostgreSQL (required)
 - Redis (recommended; required for hybrid clustering and live reloads)
 - A Discord application with a bot token
@@ -16,12 +16,18 @@ sets up the database for you.
 ```bash
 git clone https://github.com/AstorisTheBrave/Rostra
 cd Rostra
-npm install
+corepack enable
+pnpm install --frozen-lockfile
 cp .env.example .env        # fill in DISCORD_TOKEN, DISCORD_CLIENT_ID, DATABASE_URL, REDIS_URL
-npx prisma migrate deploy   # set up the database
-npm run deploy:commands     # register slash commands with Discord
-npm run dev                 # start in watch mode
+pnpm prisma:generate        # generate the database client
+pnpm prisma:migrate         # set up the database
+pnpm deploy:commands        # register slash commands with Discord
+pnpm dev                    # start in watch mode
 ```
+
+The repository pins pnpm and maintains one lockfile. Keep `--frozen-lockfile` so installation uses
+the reviewed dependency versions and workspace security overrides. See
+[CONTRIBUTING.md](https://github.com/AstorisTheBrave/Rostra/blob/main/CONTRIBUTING.md) for canonical setup.
 
 ## Required intents
 

@@ -1,0 +1,19 @@
+# Exclude private/local inputs at every workspace depth, including env examples.
+**/archive
+**/Archive
+**/.superpowers
+**/.git
+**/.env*
+**/secrets
+**/*.pem
+**/*.key
+**/node_modules
+**/dist
+**/build
+**/coverage
+**/.cache
+**/.turbo
+**/tmp
+**/logs
+**/*.log
+**/*.tsbuildinfo

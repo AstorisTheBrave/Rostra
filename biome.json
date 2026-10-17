@@ -11,6 +11,22 @@
 		}
 	},
 	"files": {
-		"includes": ["**", "!**/dist", "!**/node_modules", "!**/Archive", "!**/prisma/migrations"]
+		"includes": [
+			"**",
+			"!**/dist",
+			"!**/build",
+			"!**/node_modules",
+			"!**/archive",
+			"!**/Archive",
+			"!**/.superpowers",
+			"!**/coverage",
+			"!**/secrets",
+			"!**/.env*",
+			"!**/*.pem",
+			"!**/*.key",
+			"!**/.cache",
+			"!**/.turbo",
+			"!**/prisma/migrations"
+		]
 	}
 }

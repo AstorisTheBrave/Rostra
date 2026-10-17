@@ -11,6 +11,20 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-17 (Phase 00: repository boundaries and revamp contract)
+
+**changed**: Added explicit lowercase archive and scratch exclusions to Git/Biome, a Docker input
+denylist, and an offline repository boundary checker with regression tests. Added the compatibility
+`npm run check:boundaries` command and production Phase 00 implementation plan. Replaced agent guidance
+with workspace ownership and tenant/security/recovery priorities; decision 011 binds automation naming,
+scoped Discord entrypoints, unchanged migrations, fake-token verification and optional app build gates.
+No runtime permissions or database history changed. Existing owner bypass remains a documented security
+debt for its owning slice.
+
+**files touched**: `.gitignore`, `.dockerignore`, `biome.json`, `package.json`, `AGENTS.md`,
+`tooling/scripts/check-repository-boundaries.*`, `docs/architecture/decisions/011-revamp-contract.mdx`,
+`docs/modules/services.mdx`, `docs/superpowers/plans/2026-10-17-phase-00-monorepo.md` and this log.
+
 ### 2026-06-09 (deps: merge Dependabot PRs + patch undici)
 
 **changed**: Merged 3 green Dependabot PRs (checkout v7; bullmq 5.79.1 / lavalink-client 2.10.3 /

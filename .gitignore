@@ -12,6 +12,9 @@ build/
 .env
 .env.*
 !.env.example
+secrets/
+*.pem
+*.key
 
 # Logs
 logs/
@@ -22,6 +25,7 @@ npm-debug.log*
 CLAUDE.md
 memory.md
 .claude/
+.superpowers/
 
 # Prisma local
 prisma/*.db
@@ -43,3 +47,4 @@ tmp/
 # Archived source bots (reference only, removed as ported)
 # (kept locally, not committed)
 Archive/
+archive/

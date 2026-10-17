@@ -1,0 +1,74 @@
+---
+last-updated: 2026-10-17
+owner: AstorisTheBrave
+status: accepted
+---
+
+# 011: Revamp repository and runtime contract
+
+## Context
+
+Rostra is moving its working Discord bot into a production monorepo. The move must preserve behavior,
+database history and rollback while introducing independently testable service boundaries. This
+decision supersedes older root-layout, slash-only and structure-first guidance where they conflict.
+It defines ownership before extraction; it does not claim that all target applications already exist.
+
+## Decision
+
+Use `apps/{gateway,api,web,workers,realtime,activity}` for runtime entrypoints, `modules/<name>` for
+isolated feature ownership, `packages/` for exported shared contracts, `integrations/` for external
+adapters, `games/` for game implementations, `infra/` for operations and `tooling/` for repository tools.
+The gateway owns acknowledgement, sharding and fanout. The API owns authenticated domain boundaries.
+The web uses the typed API for privileged actions, never browser-to-database access. Workers own
+durable and expensive work. Realtime owns authorized rooms; Activity has its own origin/auth boundary.
+
+Preserve strict ESM, localization, Components V2, shared Discord UI, stable dependencies, structured
+errors, documentation and conventional commits. Config and database construction each retain exactly
+one shared owner. Packages expose explicit public exports; modules never import each other's internals.
+The existing accessors and UI alias remain authoritative until their owning extraction is complete.
+
+Priority is correctness/tenant isolation, security/least privilege, recovery, measured performance,
+then clean structure/modular ownership and simple setup. A host operator or configured owner ID does
+not grant guild moderation or private member-data access. Guild actions require explicit authorization
+and tenant-scoped object lookup. Older owner-bypass behavior is a security debt to remove with negative
+tests in the owning security slice; this documentation change does not alter runtime permissions.
+
+The canonical module ID is `automation`. Automation Studio may label its web interface. Existing slash
+commands remain supported; context menus are allowed for specified workflows. There is no prefix
+engine. Command budgets are scoped by type and registration scope: 100 global chat-input commands
+and 100 per guild are separate budgets. Per-guild reconciliation is explicit; context menus and
+Activity entrypoints have their own platform budgets and authorization boundaries.
+
+Optional realtime and Activity applications must build and test in Phase 00. They need not run in
+the default profile. Scaffold tests do not establish working multiplayer or device compatibility.
+
+Move every existing Prisma migration with its directory and checksum unchanged. Do not regenerate
+history. A failed migration prevents startup. Prove rollback to the prior image with unchanged history
+before cutover. Migration tests use fake tokens and isolated adapters, never a real-token gateway boot
+or command publication. Preserve normalized command definitions and the complete module inventory.
+PostgreSQL records durable intent before at-least-once Redis delivery; consumers are idempotent and
+shutdown drains tracked work.
+
+## Repository boundaries
+
+The lowercase private `archive/` and `.superpowers/` scratch directory are excluded from Git, Biome,
+Docker, and every later workspace/build/test/scan/artifact input. Production code, tests, docs and
+plans remain in the normal tree. Never force-add the archive. Secrets, local env files, dependencies,
+build output and coverage are not source or image inputs; Docker also excludes `.git/` and all env
+examples. Git may retain sanitized `.env.example` templates.
+
+`npm run check:boundaries` is the compatibility entrypoint. It checks required Git/Biome/Docker
+exclusions, tracked or visible private paths and implementation-neutral repository source without
+network access. The workspace control-plane slice exposes it as `pnpm check:boundaries` and wires
+future tools to the same exclusions. Run the adjacent boundary tests explicitly until the workspace
+test graph includes tooling. Assistant implementation names stay private; public identity is Rostra.
+
+No ingress management API is implemented. Reverse proxies and tunnels are passive hosting choices.
+
+## Consequences
+
+Later slices have one ownership and security contract, with temporary compatibility imports only where
+needed for parity. Public documentation must distinguish target ownership from verified implementation.
+Each slice updates the session log and relevant module/architecture docs, and records tests, recovery
+evidence and unresolved limitations. Phase 00 passes only after all applications and cross-service
+checks have executable proof.

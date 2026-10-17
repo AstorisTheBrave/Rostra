@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
+import { reply } from "@rostra/discord-ui";
+import { withSafeAck } from "@rostra/discord-ui/safeAck";
+import { runWithLocale, t } from "@rostra/i18n";
+import { DEFAULT_LOCALE } from "@rostra/i18n/locales";
+import { getLogger } from "@rostra/logger";
 import type { ChatInputCommandInteraction } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { runWithLocale, t } from "@/i18n/index.ts";
-import { DEFAULT_LOCALE } from "@/i18n/locales.ts";
 import { resolveLocale } from "@/services/localization.ts";
-import { getLogger } from "@/services/logger.ts";
-import { reply } from "@/utils/components.ts";
-import { withSafeAck } from "@/utils/safeAck.ts";
 import { consume } from "./cooldown.ts";
 import { checkPermissions, permissionMessageKey } from "./permissions.ts";
 

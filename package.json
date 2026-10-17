@@ -16,13 +16,13 @@
 		"start:panel": "node panel-start.mjs",
 		"typecheck": "turbo run typecheck legacy:typecheck",
 		"legacy:typecheck": "tsc --noEmit",
-		"check:boundaries": "node tooling/scripts/check-repository-boundaries.mjs && node tooling/scripts/verify-workspace.mjs",
+		"check:boundaries": "node tooling/scripts/check-repository-boundaries.mjs && node tooling/scripts/verify-workspace.mjs && node tooling/scripts/check-package-boundaries.mjs",
 		"lint": "turbo run lint legacy:lint",
 		"legacy:lint": "biome check .",
 		"lint:fix": "biome check --write .",
-		"test": "turbo run test legacy:test",
+		"test": "turbo run test legacy:test --concurrency=1",
 		"legacy:test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\" \"tooling/**/*.test.ts\"",
-		"test:env": "node --import tsx --env-file=.env --test --test-concurrency=2 \"src/**/*.test.ts\" \"tooling/**/*.test.ts\"",
+		"test:env": "node --import tsx --env-file=.env --test --test-concurrency=2 \"src/**/*.test.ts\" \"packages/*/src/**/*.test.ts\" \"tooling/**/*.test.ts\"",
 		"test:integration": "turbo run test:integration",
 		"clean": "turbo run clean legacy:clean && node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.turbo', { recursive: true, force: true });\"",
 		"legacy:clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; for (const path of ['dist', 'build', 'coverage']) rmSync(path, { recursive: true, force: true });\"",
@@ -39,6 +39,13 @@
 		"i18n:draft": "node --import tsx --env-file-if-exists=.env src/scripts/i18n-draft.ts"
 	},
 	"dependencies": {
+		"@rostra/config": "workspace:*",
+		"@rostra/contracts": "workspace:*",
+		"@rostra/database": "workspace:*",
+		"@rostra/cache": "workspace:*",
+		"@rostra/logger": "workspace:*",
+		"@rostra/i18n": "workspace:*",
+		"@rostra/discord-ui": "workspace:*",
 		"@fastify/rate-limit": "^11.1.0",
 		"@keyv/redis": "^5.1.6",
 		"@napi-rs/canvas": "^1.0.2",
@@ -60,6 +67,7 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
+		"@rostra/testing": "workspace:*",
 		"@biomejs/biome": "^2.5.2",
 		"@resvg/resvg-js": "^2.6.2",
 		"@types/node": "^26.1.0",

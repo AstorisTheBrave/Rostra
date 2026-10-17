@@ -1,4 +1,6 @@
-import type { Prisma, TicketConfig } from "@prisma/client";
+import type { Prisma, TicketConfig } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 import {
 	ChannelType,
 	type Client,
@@ -8,8 +10,6 @@ import {
 	type TextChannel,
 	type User,
 } from "discord.js";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 import { isBotOwner } from "@/services/permissions.ts";
 import {
 	type CategorySpec,

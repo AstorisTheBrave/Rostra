@@ -1,4 +1,6 @@
-import type { Starboard, StarboardOverride } from "@prisma/client";
+import type { Starboard, StarboardOverride } from "@rostra/database";
+import { Accent, actionRow, container, gallery, linkButton, text } from "@rostra/discord-ui";
+import { getLogger } from "@rostra/logger";
 import {
 	type Message,
 	MessageFlags,
@@ -9,10 +11,8 @@ import {
 	type User,
 } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
-import { getLogger } from "@/services/logger.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
-import { Accent, actionRow, container, gallery, linkButton, text } from "@/ui";
 import {
 	type AccessLists,
 	type DisplayTier,

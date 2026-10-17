@@ -1,8 +1,8 @@
+import { cacheGet, cacheSet } from "@rostra/cache";
+import { config } from "@rostra/config";
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 import { Api } from "@top-gg/sdk";
-import { config } from "@/config.ts";
-import { cacheGet, cacheSet } from "@/services/cache.ts";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("topgg");
 

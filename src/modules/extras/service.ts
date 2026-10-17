@@ -1,4 +1,4 @@
-import { getPrisma } from "@/services/database.ts";
+import { getPrisma } from "@rostra/database";
 
 // ── AFK (in-memory authoritative, DB-backed for restart recovery) ────────────
 

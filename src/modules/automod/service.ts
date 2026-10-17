@@ -1,10 +1,10 @@
-import type { AutomodConfig, AutomodRule } from "@prisma/client";
+import type { AutomodConfig, AutomodRule } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { Accent, container, text } from "@rostra/discord-ui";
+import { getLogger } from "@rostra/logger";
 import { Filter } from "bad-words";
 import { type Message, MessageFlags } from "discord.js";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 import { type CaseType, recordCase } from "@/services/moderationCase.ts";
-import { Accent, container, text } from "@/utils/components.ts";
 import { hasDisallowedLink, hasHateSpeech, hasInvite, isCapsAbuse } from "./checks.ts";
 import {
 	type AutomodAction,

@@ -1,6 +1,6 @@
+import { config } from "@rostra/config";
 import type { Client } from "discord.js";
 import type { ClusterClient } from "discord-hybrid-sharding";
-import { config } from "@/config.ts";
 
 export interface Ipc {
 	readonly mode: "native" | "hybrid";

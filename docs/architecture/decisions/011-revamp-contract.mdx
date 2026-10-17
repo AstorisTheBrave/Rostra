@@ -99,6 +99,14 @@ No ingress management API is implemented. Reverse proxies and tunnels are passiv
 
 ## Consequences
 
+Task 3 extracted eight source-exporting shared packages and preserved all migration bytes under the
+database owner. Root migration configuration retains deployment semantics; generation resolves through
+the database package's existing Prisma CLI dependency. `pnpm check:boundaries` now also rejects private
+package imports, undeclared shared-package dependencies, manifest cycles and duplicate config/database
+authorities. Only gateway-specific types and runtime services keep root aliases. See the current
+architecture map for exact ownership and optional subpath exports. Earlier control-plane notes above
+describe the Task 2 baseline; they do not imply that shared runtime source still lives in `src/`.
+
 Later slices have one ownership and security contract, with temporary compatibility imports only where
 needed for parity. Public documentation must distinguish target ownership from verified implementation.
 Each slice updates the session log and relevant module/architecture docs, and records tests, recovery

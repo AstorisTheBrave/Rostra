@@ -1,5 +1,5 @@
-import type { Highlight } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
+import type { Highlight } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 /**
  * Highlights: DM a member when one of their subscribed words is said in the

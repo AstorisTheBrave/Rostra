@@ -1,11 +1,11 @@
+import { withSafeAck } from "@rostra/discord-ui/safeAck";
+import { runWithLocale } from "@rostra/i18n";
+import { DEFAULT_LOCALE } from "@rostra/i18n/locales";
+import { getLogger } from "@rostra/logger";
 import type { Interaction } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
-import { runWithLocale } from "@/i18n/index.ts";
-import { DEFAULT_LOCALE } from "@/i18n/locales.ts";
 import { runCommand } from "@/pipeline/runCommand.ts";
 import { resolveLocale } from "@/services/localization.ts";
-import { getLogger } from "@/services/logger.ts";
-import { withSafeAck } from "@/utils/safeAck.ts";
 
 const log = getLogger("router");
 

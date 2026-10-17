@@ -1,5 +1,5 @@
-import type { InventoryItem, ShopItem } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
+import type { InventoryItem, ShopItem } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 import { getAccount, updateBalance } from "./service.ts";
 
 // ── Shop catalog ─────────────────────────────────────────────────────────────

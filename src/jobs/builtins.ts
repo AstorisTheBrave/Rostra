@@ -1,9 +1,9 @@
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 import { pollAllFeeds } from "@/modules/feeds/service.ts";
 import { pollStatsChannels } from "@/modules/serverstats/service.ts";
 import { sweepTicketSla } from "@/modules/tickets/monitor.ts";
 import { registerCron } from "@/services/cron.ts";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("cron");
 const DAY = 86_400_000;

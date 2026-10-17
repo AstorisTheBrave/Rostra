@@ -1,5 +1,5 @@
+import { config } from "@rostra/config";
 import { type Logger, pino } from "pino";
-import { config } from "@/config.ts";
 
 const redactPaths = [
 	"token",

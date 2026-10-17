@@ -11,15 +11,15 @@ If you'd explain it to a new teammate on day one, it's here.
 
 ## technical map
 
-**hard invariants (also in `CLAUDE.md` as CIT invariants - checked on every change)**
+**hard invariants (also in `AGENTS.md` - checked on every change)**
 - **Undercover mode:** zero references to any AI provider or model name in code, comments, user strings,
   status, errors, package.json, README, docs, or commits. The assistant replies as "Rostra" only.
-- No `process.env` access outside `src/config.ts`.
-- No `new PrismaClient()` outside `src/services/database.ts`; use `getPrisma()`.
+- No `process.env` access outside `packages/config/src/index.ts`.
+- No `new PrismaClient()` outside `packages/database/src/index.ts`; use `getPrisma()`.
 - **Components V2 only** (`MessageFlags.IsComponentsV2`); never `EmbedBuilder`/legacy embeds.
-- **All UI comes from `@/ui`.** Never instantiate discord.js component builders (`ButtonBuilder`,
+- **All UI comes from `@rostra/discord-ui`.** Never instantiate discord.js component builders (`ButtonBuilder`,
   `ActionRowBuilder`, `ContainerBuilder`, `StringSelectMenuBuilder`, `ModalBuilder`, `TextInputBuilder`,
-  …) directly in a module. If `@/ui` lacks something, add it there (with a test) first, then use it. `@/ui`
+  …) directly in a module. If `@rostra/discord-ui` lacks something, add it there (with a test) first, then use it. `@rostra/discord-ui`
   is the single source of truth for the bot's visual language.
 - Slash-only commands; no message-prefix engine.
 - Each feature is a self-contained `src/modules/<name>/`; modules never import each other's internals -
@@ -33,9 +33,8 @@ If you'd explain it to a new teammate on day one, it's here.
   channel.
 
 **design priority (when trade-offs conflict)**
-1. structure (clear boundaries, single source of truth)
-2. modularity (isolated modules, shared building blocks)
-3. futureproofing (current stable tooling) - never at the expense of 1 or 2, never via unstable releases
+Follow decision 011: correctness and tenant isolation, security, recovery, measured performance,
+then structure and modular ownership, then simple setup and specialist feature depth.
 
 **naming**
 - Files: lowerCamelCase for modules/utils (`reactionRoleService.ts`); singletons named by accessor
@@ -45,7 +44,7 @@ If you'd explain it to a new teammate on day one, it's here.
 - Interaction customIds: `module:action:scope:arg`.
 
 **formatting & lint**
-- Biome, tabs, line width 100. Run `npm run lint:fix`. `noExplicitAny` and `useNodejsImportProtocol`
+- Biome, tabs, line width 100. Run `pnpm lint:fix`. `noExplicitAny` and `useNodejsImportProtocol`
   are errors. `noAssignInExpressions` is on - no `x ??= y` used as a value.
 
 **commits**
@@ -54,7 +53,7 @@ If you'd explain it to a new teammate on day one, it's here.
 **tests**
 - `*.test.ts` beside source, `node:test` + `node:assert/strict`, run with `tsx`.
 - Pure tests need no env; anything importing `config`/logger/db/cache needs `--env-file=.env`
-  (use `npm run test:env`).
+  (use `pnpm test:env`).
 
 ## gotchas
 

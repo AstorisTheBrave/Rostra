@@ -1,7 +1,7 @@
-import type { LevelConfig, LevelUser } from "@prisma/client";
-import { getRedis } from "@/services/cache.ts";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
+import { getRedis } from "@rostra/cache";
+import type { LevelConfig, LevelUser } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 
 const log = getLogger("leveling");
 

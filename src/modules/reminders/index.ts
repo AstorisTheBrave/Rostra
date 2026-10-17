@@ -1,3 +1,6 @@
+import { Accent, container, reply, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
+import { getLogger } from "@rostra/logger";
 import {
 	type ChatInputCommandInteraction,
 	type Client,
@@ -6,10 +9,7 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { defineEvent } from "@/client/defineEvent.ts";
-import { t } from "@/i18n/index.ts";
-import { getLogger } from "@/services/logger.ts";
 import type { BotModule, RegisteredEvent, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/ui";
 import {
 	cancelReminder,
 	createReminder,

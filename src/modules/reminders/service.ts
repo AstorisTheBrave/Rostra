@@ -1,5 +1,5 @@
-import type { Reminder } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
+import type { Reminder } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 const UNIT_MS: Record<string, number> = {
 	s: 1000,

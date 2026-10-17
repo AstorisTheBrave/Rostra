@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { getLogger } from "@/services/logger.ts";
+import { getLogger } from "@rostra/logger";
 import type { BotModule } from "@/types/module.ts";
 
 const log = getLogger("loader:modules");

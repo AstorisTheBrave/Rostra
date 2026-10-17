@@ -1,6 +1,6 @@
-import type { VerificationConfig } from "@prisma/client";
-import { cachedConfig, invalidateConfig } from "@/services/cache.ts";
-import { getPrisma } from "@/services/database.ts";
+import { cachedConfig, invalidateConfig } from "@rostra/cache";
+import type { VerificationConfig } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 const cfgKey = (guildId: string) => `verify:cfg:${guildId}`;
 

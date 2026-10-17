@@ -1,8 +1,8 @@
+import { Accent, container, text } from "@rostra/discord-ui";
+import { getLogger } from "@rostra/logger";
 import { MessageFlags } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
-import { getLogger } from "@/services/logger.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
-import { Accent, container, text } from "@/utils/components.ts";
 import { birthdaysOn, getConfig, msUntilNextRun } from "./service.ts";
 
 const log = getLogger("birthday");

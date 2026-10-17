@@ -1,4 +1,4 @@
-import type { EmojiName } from "@/ui";
+import type { EmojiName } from "@rostra/discord-ui";
 
 export interface HelpCategory {
 	id: string;

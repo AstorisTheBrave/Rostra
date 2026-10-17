@@ -1,4 +1,6 @@
-import type { TicketConfig } from "@prisma/client";
+import type { TicketConfig } from "@rostra/database";
+import { Accent, actionRow, button, container, reply, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
 import {
 	AttachmentBuilder,
 	ButtonStyle,
@@ -10,10 +12,8 @@ import {
 	type TextChannel,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
 import { registerTaskHandler, schedule } from "@/services/scheduler.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import { ticketEvents } from "./events.ts";
 import {
 	type CategorySpec,
@@ -673,7 +673,7 @@ const ticketComponents: ComponentHandler = {
 		}
 
 		if (action === "close") {
-			const isOwner = await import("@/services/database.ts").then(({ getPrisma }) =>
+			const isOwner = await import("@rostra/database").then(({ getPrisma }) =>
 				getPrisma().ticket.findUnique({ where: { channelId: channel.id } }),
 			);
 			const allowed =

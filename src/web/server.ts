@@ -1,7 +1,7 @@
 import rateLimit from "@fastify/rate-limit";
+import { config } from "@rostra/config";
+import { getLogger } from "@rostra/logger";
 import Fastify, { type FastifyInstance } from "fastify";
-import { config } from "@/config.ts";
-import { getLogger } from "@/services/logger.ts";
 import { recordVote, type VotePayload, verifyVoteAuth } from "@/services/topgg.ts";
 
 const log = getLogger("web");

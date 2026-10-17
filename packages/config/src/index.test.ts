@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 test("loadConfig parses required vars and applies defaults", async () => {
-	const { loadConfig } = await import("./config.ts");
+	const { loadConfig } = await import("@rostra/config");
 	const cfg = loadConfig({
 		DISCORD_TOKEN: "t",
 		DISCORD_CLIENT_ID: "123",
@@ -19,12 +19,12 @@ test("loadConfig parses required vars and applies defaults", async () => {
 });
 
 test("loadConfig throws aggregated error on missing required vars", async () => {
-	const { loadConfig } = await import("./config.ts");
+	const { loadConfig } = await import("@rostra/config");
 	assert.throws(() => loadConfig({}), /DISCORD_TOKEN/);
 });
 
 test("loadConfig parses LAVALINK_NODES json array", async () => {
-	const { loadConfig } = await import("./config.ts");
+	const { loadConfig } = await import("@rostra/config");
 	const cfg = loadConfig({
 		DISCORD_TOKEN: "t",
 		DISCORD_CLIENT_ID: "123",

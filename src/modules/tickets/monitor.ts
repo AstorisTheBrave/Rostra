@@ -1,7 +1,7 @@
+import { config } from "@rostra/config";
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 import { REST, Routes } from "discord.js";
-import { config } from "@/config.ts";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 
 // Manager-side ticket monitor. Runs in the cluster manager cron (no gateway client),
 // so it talks to Discord over REST like the feeds/serverstats pollers. It flags open

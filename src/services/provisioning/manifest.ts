@@ -1,4 +1,4 @@
-import { getPrisma } from "@/services/database.ts";
+import { getPrisma } from "@rostra/database";
 import { updateTenant } from "@/services/tenant.ts";
 
 // Declarative description of the channels and roles Rostra's systems need. The

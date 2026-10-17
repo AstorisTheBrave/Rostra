@@ -1,3 +1,5 @@
+import { Accent, container, gallery, reply, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
 import {
 	AttachmentBuilder,
 	type ChatInputCommandInteraction,
@@ -8,9 +10,7 @@ import {
 	SlashCommandBuilder,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, gallery, reply, text } from "@/ui";
 import { renderRankCard } from "./card.ts";
 import { levelingEvents } from "./events.ts";
 import {

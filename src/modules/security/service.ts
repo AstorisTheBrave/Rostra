@@ -1,8 +1,8 @@
-import type { AntinukeConfig } from "@prisma/client";
+import type { AntinukeConfig } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { Accent, container, text } from "@rostra/discord-ui";
+import { getLogger } from "@rostra/logger";
 import { type Guild, type GuildMember, MessageFlags, type User } from "discord.js";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
-import { Accent, container, text } from "@/utils/components.ts";
 
 const log = getLogger("security");
 

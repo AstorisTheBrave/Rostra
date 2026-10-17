@@ -1,10 +1,10 @@
+import { Accent, container, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
 import { type Client, type GuildMember, MessageFlags } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
-import { t } from "@/i18n/index.ts";
 import { schedule } from "@/services/scheduler.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
-import { Accent, container, text } from "@/ui";
 import { accountAgeDays, eligibleAt } from "./accountAge.ts";
 import { getConfig } from "./service.ts";
 

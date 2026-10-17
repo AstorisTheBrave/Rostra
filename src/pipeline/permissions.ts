@@ -1,5 +1,5 @@
+import { config } from "@rostra/config";
 import type { ChatInputCommandInteraction } from "discord.js";
-import { config } from "@/config.ts";
 import type { SlashCommand } from "@/types/module.ts";
 
 export type PermissionReason = "owner" | "guild" | "userPerms" | "botPerms";

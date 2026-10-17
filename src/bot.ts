@@ -1,12 +1,12 @@
+import { disconnectCache } from "@rostra/cache";
+import { closeBus } from "@rostra/cache/bus";
+import { config } from "@rostra/config";
+import { disconnectPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 import { BotClient } from "@/client/BotClient.ts";
-import { config } from "@/config.ts";
 import { disconnectJobs } from "@/jobs/queue.ts";
 import { installShutdownHandlers, registerShutdown } from "@/lifecycle/shutdown.ts";
-import { closeBus } from "@/services/bus.ts";
-import { disconnectCache } from "@/services/cache.ts";
-import { disconnectPrisma } from "@/services/database.ts";
 import { acquireIdentifySlot, releaseIdentifySlot } from "@/services/identify.ts";
-import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("bot");
 

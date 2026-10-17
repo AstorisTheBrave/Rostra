@@ -1,12 +1,12 @@
+import { reply } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
 import {
 	type ChatInputCommandInteraction,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 	type SlashCommandStringOption,
 } from "discord.js";
-import { t } from "@/i18n/index.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { reply } from "@/ui";
 import { applyRoleToAll, type MemberFilter, type RoleAction } from "./service.ts";
 
 const whoOption = (o: SlashCommandStringOption): SlashCommandStringOption =>

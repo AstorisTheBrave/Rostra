@@ -1,5 +1,5 @@
-import type { Poll } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
+import type { Poll } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 export interface PollResult {
 	question: string;

@@ -1,3 +1,4 @@
+import type { JobDefinition } from "@rostra/contracts";
 import type {
 	AutocompleteInteraction,
 	Awaitable,
@@ -50,12 +51,7 @@ export interface RegisteredEvent {
 	register(client: BotClient): void;
 }
 
-export interface JobDefinition {
-	name: string;
-	/** Optional cron expression for scheduled jobs. */
-	cron?: string;
-	handler(payload: unknown): Awaitable<void>;
-}
+export type { JobDefinition } from "@rostra/contracts";
 
 export interface BotModule {
 	name: string;

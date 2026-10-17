@@ -1,6 +1,6 @@
+import { getLogger } from "@rostra/logger";
 import type Redis from "ioredis";
-import { getRedis } from "@/services/cache.ts";
-import { getLogger } from "@/services/logger.ts";
+import { getRedis } from "./index.ts";
 
 /**
  * A tiny Redis pub/sub control bus for fleet-wide, zero-restart coordination.

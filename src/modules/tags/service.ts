@@ -1,5 +1,5 @@
-import type { Tag } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
+import type { Tag } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 export async function getTag(guildId: string, name: string): Promise<Tag | null> {
 	return getPrisma().tag.findUnique({

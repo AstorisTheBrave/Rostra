@@ -1,8 +1,8 @@
+import { Accent, container, gallery, text } from "@rostra/discord-ui";
 import { AttachmentBuilder, MessageFlags } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
-import { Accent, container, gallery, text } from "@/ui";
 import { renderWelcomeCard } from "./card.ts";
 import { formatMessage, getConfig, type MessageContext } from "./service.ts";
 

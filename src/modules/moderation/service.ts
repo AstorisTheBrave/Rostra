@@ -1,6 +1,6 @@
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 import type { Client, Guild, GuildMember, Role, User } from "discord.js";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 import { type CaseType, recordCase } from "@/services/moderationCase.ts";
 import { schedule } from "@/services/scheduler.ts";
 

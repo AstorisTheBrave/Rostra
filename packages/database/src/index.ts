@@ -1,7 +1,9 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
-import { config } from "@/config.ts";
-import { getLogger } from "@/services/logger.ts";
+import { config } from "@rostra/config";
+import { getLogger } from "@rostra/logger";
+
+export type * from "@prisma/client";
 
 const log = getLogger("database");
 let client: PrismaClient | undefined;

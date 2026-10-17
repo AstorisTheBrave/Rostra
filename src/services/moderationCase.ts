@@ -1,4 +1,4 @@
-import { getPrisma } from "@/services/database.ts";
+import { getPrisma } from "@rostra/database";
 
 /** The kinds of moderation case the bot records. */
 export type CaseType =

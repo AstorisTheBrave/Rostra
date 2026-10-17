@@ -1,8 +1,8 @@
+import { config } from "@rostra/config";
+import { Accent, container, text } from "@rostra/discord-ui";
+import { getLogger } from "@rostra/logger";
 import { type Client, MessageFlags } from "discord.js";
 import { LavalinkManager } from "lavalink-client";
-import { config } from "@/config.ts";
-import { getLogger } from "@/services/logger.ts";
-import { Accent, container, text } from "@/utils/components.ts";
 
 const log = getLogger("music");
 

@@ -1,8 +1,8 @@
+import { Accent, container, text } from "@rostra/discord-ui";
 import { MessageFlags } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
-import { Accent, container, text } from "@/utils/components.ts";
 import { addXp, getConfig, getRewards } from "./service.ts";
 
 const lastXp = new Map<string, number>();

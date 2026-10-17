@@ -1,0 +1,2 @@
+# Migration checksums must not change with checkout line-ending settings.
+packages/database/prisma/migrations/** -text

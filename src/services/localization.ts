@@ -1,8 +1,8 @@
-import type { Guild, UserPreference } from "@prisma/client";
-import { getTranslator, type Translator } from "@/i18n/index.ts";
-import { DEFAULT_LOCALE, normalizeLocale } from "@/i18n/locales.ts";
-import { cachedConfig, invalidateConfig } from "@/services/cache.ts";
-import { getPrisma } from "@/services/database.ts";
+import { cachedConfig, invalidateConfig } from "@rostra/cache";
+import type { Guild, UserPreference } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { getTranslator, type Translator } from "@rostra/i18n";
+import { DEFAULT_LOCALE, normalizeLocale } from "@rostra/i18n/locales";
 import { getTenant, updateTenant } from "@/services/tenant.ts";
 
 /**

@@ -1,11 +1,3 @@
-import { MessageFlags, SlashCommandBuilder } from "discord.js";
-import type { BotClient } from "@/client/BotClient.ts";
-import { defineEvent } from "@/client/defineEvent.ts";
-import { runWithLocale, t } from "@/i18n/index.ts";
-import { SUPPORTED_LOCALES } from "@/i18n/locales.ts";
-import { resolveLocale, setUserLocale } from "@/services/localization.ts";
-import { recoverScheduled } from "@/services/scheduler.ts";
-import type { BotModule, ComponentHandler, RegisteredEvent, SlashCommand } from "@/types/module.ts";
 import {
 	Accent,
 	container,
@@ -16,7 +8,15 @@ import {
 	reply,
 	stringSelect,
 	text,
-} from "@/ui";
+} from "@rostra/discord-ui";
+import { runWithLocale, t } from "@rostra/i18n";
+import { SUPPORTED_LOCALES } from "@rostra/i18n/locales";
+import { MessageFlags, SlashCommandBuilder } from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
+import { defineEvent } from "@/client/defineEvent.ts";
+import { resolveLocale, setUserLocale } from "@/services/localization.ts";
+import { recoverScheduled } from "@/services/scheduler.ts";
+import type { BotModule, ComponentHandler, RegisteredEvent, SlashCommand } from "@/types/module.ts";
 import { findCategory, HELP_CATEGORIES } from "./categories.ts";
 import {
 	type BotStats,

@@ -1,4 +1,4 @@
-import { getRedis } from "@/services/cache.ts";
+import { getRedis } from "@rostra/cache";
 
 const memory = new Map<string, number>();
 

@@ -1,5 +1,5 @@
-import { config } from "@/config.ts";
-import { getLogger } from "@/services/logger.ts";
+import { config } from "@rostra/config";
+import { getLogger } from "@rostra/logger";
 
 const log = getLogger("assistant");
 

@@ -29,7 +29,7 @@ test("gallery builds a media gallery from urls", async () => {
 
 test("container nests an action row inside the box", async () => {
 	const { container, Accent, text } = await import("./components.ts");
-	const { actionRow, button } = await import("../ui/interactive.ts");
+	const { actionRow, button } = await import("./interactive.ts");
 	const c = container(Accent.info, [text("hi"), actionRow(button({ id: "x", label: "X" }))]);
 	const json = c.toJSON();
 	// Component type 1 is an action row; it must appear among the container's children.

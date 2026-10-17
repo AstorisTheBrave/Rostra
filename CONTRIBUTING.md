@@ -43,26 +43,27 @@ Modules are auto-discovered at boot - drop a folder in and it loads. Use `src/mo
 `src/modules/moderation` / `src/modules/tickets` (richer) as references.
 
 Shared code (import these; don't reinvent them):
-- `getPrisma()` - database (`src/services/database.ts`)
-- `config` - validated env (`src/config.ts`)
-- `getCache()` / `getRedis()` - cache & leaderboards (`src/services/cache.ts`)
-- `getLogger(scope)` - logging (`src/services/logger.ts`)
-- `@/ui` - all UI building blocks (buttons, selects, modals, layout, patterns)
-- `t(key, vars)` - i18n (`src/i18n`)
+- `getPrisma()` - database (`packages/database/src/index.ts`)
+- `config` - validated env (`packages/config/src/index.ts`)
+- `getCache()` / `getRedis()` - cache & leaderboards (`packages/cache/src/index.ts`)
+- `getLogger(scope)` - logging (`packages/logger/src/index.ts`)
+- `@rostra/discord-ui` - all UI building blocks (buttons, selects, modals, layout, patterns)
+- `t(key, vars)` - i18n (`packages/i18n/src`)
 
 ## Non-negotiable conventions (the CI enforces these)
 
 1. **ESM + TypeScript strict.** No `require()`, no `any` (use `unknown` + narrow).
-2. **No raw env / DB.** Never read `process.env` outside `src/config.ts`; never `new PrismaClient()`
-   outside `src/services/database.ts`.
-3. **UI comes from `@/ui` only.** Never instantiate discord.js component builders (`ButtonBuilder`,
+2. **No raw env / DB.** Never read `process.env` outside `packages/config/src/index.ts`; never `new PrismaClient()`
+   outside `packages/database/src/index.ts`.
+3. **UI comes from `@rostra/discord-ui` only.** Never instantiate discord.js component builders (`ButtonBuilder`,
    `ActionRowBuilder`, `ContainerBuilder`, `StringSelectMenuBuilder`, `ModalBuilder`, `TextInputBuilder`)
-   in a module. If `@/ui` lacks something you need, **add it to `@/ui` (with a test) first**, then use it.
+   in a module. If `@rostra/discord-ui` lacks something you need, **add it to `@rostra/discord-ui` (with a test) first**, then use it.
 4. **Components V2 only** - never `EmbedBuilder` / legacy embeds.
 5. **Slash-only commands**, namespaced under a top-level command via subcommands/groups.
 6. **Every user-facing string** goes through the i18n `t()` helper.
-7. **Modules are isolated** - don't import another module's internals; only shared `services/`, `utils/`,
-   `ui/`, `types/`, `i18n/`.
+7. **Modules are isolated** - don't import another module's internals. Shared owners use explicit
+   `@rostra/*` public exports, never package-private paths. Remaining gateway services and types still
+   use the root alias until their Task 4 extraction.
 8. **Wrap I/O in try/catch** with structured Pino logs; handle missing permissions and API errors
    gracefully.
 
@@ -83,9 +84,9 @@ unstable release to chase one.
 
 ## Adding a feature module (checklist)
 
-1. Add any Prisma models to `prisma/schema.prisma`, then `pnpm prisma:generate`.
+1. Add any Prisma models to `packages/database/prisma/schema.prisma`, then `pnpm prisma:generate`.
 2. Create `src/modules/<name>/` with `service.ts` (logic, cached config) and `index.ts` (the `BotModule`).
-3. Build all UI via `@/ui`; route component clicks with the `module:action:arg` customId convention.
+3. Build all UI via `@rostra/discord-ui`; route component clicks with the `module:action:arg` customId convention.
 4. Add a unit test for the pure logic (`*.test.ts` beside the source).
 5. Run `typecheck` + `lint` + `test:env`; make sure the loader picks it up.
 6. Add a short `docs/modules/<name>.mdx` and a line to `docs/sessions/log.mdx`.
@@ -97,7 +98,7 @@ force-pushes/deletions are blocked. So:
 
 1. Branch off `main` (`git switch -c feat/my-thing`).
 2. Make your change with tests + docs, run the checks locally.
-3. Open a PR. CI (typecheck, lint, tests, and the embed/undercover/`@/ui` guards) must be green to merge.
+3. Open a PR. CI (typecheck, lint, tests, and the embed/undercover/`@rostra/discord-ui` guards) must be green to merge.
 
 For phase delivery, push the reviewed phase branch to GitHub as a rollback snapshot after its full
 verification gate passes. Verify that the local and remote commit hashes match and record both in the

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ReactionRolePanel } from "@prisma/client";
+import type { ReactionRolePanel } from "@rostra/database";
 import { parseRoles, reconcileRoles } from "./service.ts";
 
 function panel(roles: unknown): ReactionRolePanel {

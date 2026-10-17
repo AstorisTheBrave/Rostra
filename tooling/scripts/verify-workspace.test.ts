@@ -1,18 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import {
-	copyFileSync,
-	mkdirSync,
-	mkdtempSync,
-	readdirSync,
-	readFileSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { temporaryDirectory } from "@rostra/testing";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const checker = join(root, "tooling/scripts/verify-workspace.mjs");
@@ -36,8 +28,7 @@ function check(directory: string) {
 }
 
 function fixture(t: test.TestContext) {
-	const directory = mkdtempSync(join(tmpdir(), "rostra-workspace-"));
-	t.after(() => rmSync(directory, { recursive: true, force: true }));
+	const directory = temporaryDirectory(t);
 	for (const name of controls) copyFileSync(join(root, name), join(directory, name));
 	return directory;
 }
@@ -46,6 +37,17 @@ test("workspace control plane accepts all six roots, frozen lock and dependency-
 	const result = check(root);
 	assert.equal(result.status, 0, result.stderr);
 	assert.match(result.stdout, /Workspace control plane passed/);
+});
+
+test("source-package build overrides retain generation and dependency ordering", () => {
+	const { tasks } = JSON.parse(readFileSync(join(root, "turbo.json"), "utf8"));
+	for (const [name, task] of Object.entries(tasks)) {
+		if (!name.startsWith("@rostra/") || !name.endsWith("#build")) continue;
+		assert.ok(task && typeof task === "object" && "dependsOn" in task, name);
+		const dependencies = task.dependsOn;
+		assert.ok(Array.isArray(dependencies) && dependencies.includes("//#prisma:generate"), name);
+		assert.ok(dependencies.includes("^build"), name);
+	}
 });
 
 test("verifier rejects a missing workspace root or private input exclusion", (t) => {

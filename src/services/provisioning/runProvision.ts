@@ -1,5 +1,5 @@
+import { getLogger } from "@rostra/logger";
 import { ChannelType, type Guild, PermissionFlagsBits } from "discord.js";
-import { getLogger } from "@/services/logger.ts";
 import { getChannelMap, getTenant, setChannelMapEntries } from "@/services/tenant.ts";
 import { CHANNELS, type ChannelSpec, ROLES, type RoleSpec } from "./manifest.ts";
 

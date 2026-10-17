@@ -11,6 +11,34 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-17 (Phase 00: shared packages and preserved database history)
+
+**changed**: Extracted `@rostra/config`, `@rostra/contracts`, `@rostra/database`, `@rostra/cache`,
+`@rostra/logger`, `@rostra/i18n`, `@rostra/discord-ui` and `@rostra/testing`, each with explicit ESM
+exports, strict typechecking and tests. All moved runtime callers now use public package imports.
+Redis control pub/sub moved with cache; i18n live overlays consume that public subpath. Discord
+components and safe acknowledgement moved together. Gateway-specific module types and card rendering
+remain under `src/` for their owning slices; only `JobDefinition` keeps a temporary type re-export.
+
+Moved the schema and nine migration directories plus lock file to `packages/database/prisma/` with
+unchanged bytes. Added historical SHA-256 regressions and disabled migration checkout line-ending
+conversion. Root migration configuration preserves URL/dotenv behavior. The database package declares
+the existing Prisma CLI alongside its client dependency, which Prisma requires for workspace client
+resolution. Updated frozen-lockfile importers, Docker manifest/schema inputs, translation/emoji tooling
+paths, documentation and CI source guard coverage. Package boundaries reject private imports,
+undeclared shared dependencies, manifest cycles and duplicate config/database ownership. Root tests
+serialize workspace tasks to keep total test-file concurrency at two; source builds declare no outputs.
+
+**evidence**: Package/import, boundary and migration tests failed before extraction. Focused package
+tests passed, followed by credential-free client generation, package/root typechecks, root lint and
+the full root test suite (280 passing tests) with placeholder credentials. All 162 module TypeScript
+files are unchanged after normalizing imports; all eleven schema/history files match the pre-move Git
+bytes. An offline comparison against the baseline matched 47 command definitions, 42 modules and 48
+events, including component/job inventories, with zero network attempts and no gateway constructed.
+No Discord command publication, external service, container or deployment was run. Task 4 still owns
+the permanent registry regression harness; Task 7 owns migration startup/rollback service proof.
+This is a local Task 3 slice, not completed Phase 00 delivery.
+
 ### 2026-10-17 (Phase 00: complete active installation guidance migration)
 
 **changed**: Updated wiki getting-started/contributing, infrastructure deployment and Ori Host setup

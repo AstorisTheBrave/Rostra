@@ -1,6 +1,6 @@
 /**
  * Upload the generated PNGs in `assets/emojis/` as the bot's application emojis
- * and write their ids to `src/ui/emoji-ids.json` (consumed by `@/ui` `emoji()`).
+ * and write their ids to `packages/discord-ui/src/emoji-ids.json` (consumed by `emoji()`).
  * Idempotent: emojis that already exist by name are reused, not recreated.
  *
  * Run after `npm run emojis:generate`: `npm run emojis:upload` (needs a valid
@@ -9,13 +9,13 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { config } from "@/config.ts";
+import { config } from "@rostra/config";
 
 const API = "https://discord.com/api/v10";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
 const emojiDir = join(root, "assets", "emojis");
-const idsFile = join(root, "src", "ui", "emoji-ids.json");
+const idsFile = join(root, "packages", "discord-ui", "src", "emoji-ids.json");
 
 const appId = config.discord.clientId;
 const authHeaders = { Authorization: `Bot ${config.discord.token}` };
@@ -60,4 +60,4 @@ for (const file of readdirSync(emojiDir).filter((f) => f.endsWith(".png"))) {
 
 const sorted = Object.fromEntries(Object.entries(ids).sort(([a], [b]) => a.localeCompare(b)));
 writeFileSync(idsFile, `${JSON.stringify(sorted, null, 2)}\n`);
-console.log(`wrote ${Object.keys(sorted).length} ids to src/ui/emoji-ids.json`);
+console.log(`wrote ${Object.keys(sorted).length} ids to packages/discord-ui/src/emoji-ids.json`);

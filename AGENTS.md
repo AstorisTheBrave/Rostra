@@ -42,8 +42,11 @@ Within the structure priority, prefer one source of truth, isolated modules and 
 
 Shared authorities are `@rostra/config`, `@rostra/database`, `@rostra/cache`, `@rostra/logger`,
 `@rostra/i18n`, `@rostra/contracts`, `@rostra/module-sdk` and `@rostra/discord-ui`. Web clients/UI and
-auth/operations have separate packages. Until extraction, keep using the existing shared accessors and
-`@/ui`; do not introduce competing config, database, localization or UI authorities.
+auth/operations have separate packages. The shared owners now export source through explicit package
+maps. Use `@rostra/config`, `@rostra/database`, `@rostra/cache`, `@rostra/logger`, `@rostra/i18n` and
+`@rostra/discord-ui`; tests may use `@rostra/testing`. The root `@/` alias remains only for runtime code
+awaiting Task 4. Gateway-specific types stay in `src/types/module.ts`; `JobDefinition` is exported by
+`@rostra/contracts`. Never import another package's private files, including through relative paths.
 
 ## Hard invariants
 
@@ -123,7 +126,9 @@ lint, unit/integration tests, boundary checks and clean. Root `legacy:*` Turbo t
 the existing application; do not move runtime code until its extraction task. Client generation is
 uncached and runs before build/typecheck/test consumers without loading deployment credentials.
 `pnpm test` uses placeholder environment values supplied by CI or the caller; `pnpm test:env` loads
-the local environment. Both cap test-file concurrency at two. The integration task has no service
+the local environment. Both cap test-file concurrency at two; root tests serialize workspace tasks so
+the cap holds across packages too. Shared-package builds currently typecheck without emitting files.
+The integration task has no service
 tests until the owning slices add them. Keep local checks lightweight;
 use CI for service/browser/security/image matrices where practical. New logic needs a focused test.
 Moving code also needs public-export, unchanged migration and normalized command/module parity proof.

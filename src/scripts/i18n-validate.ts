@@ -1,9 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateTranslation } from "@rostra/i18n/validate";
+import { getLogger } from "@rostra/logger";
 import { loadModules } from "@/client/loaders/modules.ts";
-import { validateTranslation } from "@/i18n/validate.ts";
-import { getLogger } from "@/services/logger.ts";
 
 /**
  * CI quality gate for translations: every translated string must compile as ICU
@@ -13,7 +13,15 @@ import { getLogger } from "@/services/logger.ts";
  */
 
 const log = getLogger("i18n:validate");
-const localesDir = join(dirname(fileURLToPath(import.meta.url)), "..", "i18n", "locales");
+const localesDir = join(
+	dirname(fileURLToPath(import.meta.url)),
+	"..",
+	"..",
+	"packages",
+	"i18n",
+	"src",
+	"locales",
+);
 
 function readJson(path: string): Record<string, string> {
 	if (!existsSync(path)) return {};

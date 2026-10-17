@@ -1,6 +1,6 @@
-import type { WelcomeConfig } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
+import type { WelcomeConfig } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 
 const log = getLogger("welcome");
 

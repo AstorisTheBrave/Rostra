@@ -1,5 +1,5 @@
-import type { Suggestion, SuggestionConfig } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
+import type { Suggestion, SuggestionConfig } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 const configCache = new Map<string, SuggestionConfig | null>();
 

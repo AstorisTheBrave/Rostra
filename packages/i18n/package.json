@@ -1,0 +1,32 @@
+{
+	"name": "@rostra/i18n",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./bundled": "./src/bundled.ts",
+		"./commandLocalizations": "./src/commandLocalizations.ts",
+		"./live": "./src/live.ts",
+		"./locales": "./src/locales.ts",
+		"./validate": "./src/validate.ts"
+	},
+	"scripts": {
+		"build": "tsc --noEmit",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check src package.json tsconfig.json",
+		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\""
+	},
+	"dependencies": {
+		"@rostra/cache": "workspace:*",
+		"@rostra/database": "workspace:*",
+		"@rostra/logger": "workspace:*",
+		"discord.js": "^14.16.3",
+		"intl-messageformat": "^11.2.9"
+	},
+	"devDependencies": {
+		"@types/node": "^26.1.0",
+		"tsx": "^4.23.0",
+		"typescript": "^7.0.2"
+	}
+}

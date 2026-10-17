@@ -1,4 +1,4 @@
-import { getLogger } from "@/services/logger.ts";
+import { getLogger } from "@rostra/logger";
 
 /**
  * Centralized recurring-job registry. Jobs run in the manager process, so each

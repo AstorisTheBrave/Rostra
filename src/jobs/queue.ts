@@ -1,8 +1,8 @@
+import { config } from "@rostra/config";
+import type { JobDefinition } from "@rostra/contracts";
+import { getLogger } from "@rostra/logger";
 import type { ConnectionOptions, Queue } from "bullmq";
 import Redis from "ioredis";
-import { config } from "@/config.ts";
-import { getLogger } from "@/services/logger.ts";
-import type { JobDefinition } from "@/types/module.ts";
 
 const log = getLogger("jobs");
 

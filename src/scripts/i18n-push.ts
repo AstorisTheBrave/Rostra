@@ -1,13 +1,13 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { pushLocaleBundle } from "@/i18n/live.ts";
-import { disconnectCache } from "@/services/cache.ts";
-import { disconnectPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
+import { disconnectCache } from "@rostra/cache";
+import { disconnectPrisma } from "@rostra/database";
+import { pushLocaleBundle } from "@rostra/i18n/live";
+import { getLogger } from "@rostra/logger";
 
 /**
- * Promote the file translations under `src/i18n/locales/<code>/*.json` into the
+ * Promote the file translations under `packages/i18n/src/locales/<code>/*.json` into the
  * live `LocaleString` store and fan out a reload to every running shard. This is
  * how a new/updated language goes live with **no restart**: edit files, run
  * `npm run i18n:push`. The files remain the build-time baseline; the DB rows are
@@ -15,7 +15,15 @@ import { getLogger } from "@/services/logger.ts";
  */
 
 const log = getLogger("i18n:push");
-const localesDir = join(dirname(fileURLToPath(import.meta.url)), "..", "i18n", "locales");
+const localesDir = join(
+	dirname(fileURLToPath(import.meta.url)),
+	"..",
+	"..",
+	"packages",
+	"i18n",
+	"src",
+	"locales",
+);
 
 async function main(): Promise<void> {
 	let pushed = 0;

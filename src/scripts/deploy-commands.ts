@@ -1,5 +1,5 @@
+import { getLogger } from "@rostra/logger";
 import { syncCommands } from "@/services/commandSync.ts";
-import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("deploy");
 

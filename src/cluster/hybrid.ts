@@ -1,11 +1,11 @@
 import { fileURLToPath } from "node:url";
+import { config } from "@rostra/config";
+import { getLogger } from "@rostra/logger";
 import { ClusterManager } from "discord-hybrid-sharding";
-import { config } from "@/config.ts";
 import { registerBuiltinCron } from "@/jobs/builtins.ts";
 import { syncCommands } from "@/services/commandSync.ts";
 import { startCron } from "@/services/cron.ts";
 import { startWhenLeader } from "@/services/leader.ts";
-import { getLogger } from "@/services/logger.ts";
 import { startAutopost } from "@/web/autopost.ts";
 import { type ShardStat, startWebServer } from "@/web/server.ts";
 

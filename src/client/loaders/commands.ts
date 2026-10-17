@@ -1,9 +1,9 @@
+import { registerLocale } from "@rostra/i18n";
+import { registerBundledLocales } from "@rostra/i18n/bundled";
+import { applyCommandLocalizations } from "@rostra/i18n/commandLocalizations";
+import { getLogger } from "@rostra/logger";
 import type { RESTPostAPIApplicationCommandsJSONBody } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { registerBundledLocales } from "@/i18n/bundled.ts";
-import { applyCommandLocalizations } from "@/i18n/commandLocalizations.ts";
-import { registerLocale } from "@/i18n/index.ts";
-import { getLogger } from "@/services/logger.ts";
 import type { BotModule } from "@/types/module.ts";
 
 const log = getLogger("loader:commands");

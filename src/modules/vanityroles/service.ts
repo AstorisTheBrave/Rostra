@@ -1,6 +1,6 @@
-import type { VanityRoleConfig } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
+import type { VanityRoleConfig } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 
 const log = getLogger("vanityroles");
 

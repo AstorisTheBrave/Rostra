@@ -1,8 +1,8 @@
-import type { StatsChannel } from "@prisma/client";
+import { config } from "@rostra/config";
+import type { StatsChannel } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 import { REST, Routes } from "discord.js";
-import { config } from "@/config.ts";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("serverstats");
 

@@ -1,3 +1,5 @@
+import { Accent, container, reply, text } from "@rostra/discord-ui";
+import { getTranslator, t } from "@rostra/i18n";
 import {
 	type ChatInputCommandInteraction,
 	type GuildMember,
@@ -10,12 +12,10 @@ import {
 	type TextChannel,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { getTranslator, t } from "@/i18n/index.ts";
 import { isOptedOut, resolveLocale } from "@/services/localization.ts";
 import { isBotOwner } from "@/services/permissions.ts";
 import { registerTaskHandler } from "@/services/scheduler.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
 import { formatDuration, MAX_TIMEOUT_MS, parseDuration } from "./duration.ts";
 import {
 	addNote,

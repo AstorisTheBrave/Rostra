@@ -1,7 +1,7 @@
-import type { Prisma, ScheduledTask } from "@prisma/client";
+import type { Prisma, ScheduledTask } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 import type { Client } from "discord.js";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 
 /**
  * Durable, crash-safe scheduler. Future actions are rows in `ScheduledTask`, so

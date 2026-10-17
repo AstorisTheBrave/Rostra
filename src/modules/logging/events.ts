@@ -1,7 +1,7 @@
+import { Accent, container, text } from "@rostra/discord-ui";
 import { AuditLogEvent } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
-import { Accent, container, text } from "@/utils/components.ts";
 import { auditActor, isIgnored, sendLog, truncate } from "./service.ts";
 
 export const loggingEvents: RegisteredEvent[] = [

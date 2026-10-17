@@ -1,9 +1,9 @@
+import { config } from "@rostra/config";
+import { Accent, container, reply, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
 import { SlashCommandBuilder } from "discord.js";
-import { config } from "@/config.ts";
-import { t } from "@/i18n/index.ts";
 import { isFeatureLive, registerFeature } from "@/services/featureFlags.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
 import { ask } from "./service.ts";
 
 // On by default, but globally killable in seconds (e.g. if the upstream provider

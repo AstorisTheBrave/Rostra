@@ -4,8 +4,8 @@ import type {
 	Starboard,
 	StarboardEntry,
 	StarboardOverride,
-} from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
+} from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 export type BoardWithOverrides = Starboard & { overrides: StarboardOverride[] };
 

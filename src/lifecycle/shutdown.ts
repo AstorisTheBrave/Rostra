@@ -1,4 +1,4 @@
-import { getLogger } from "@/services/logger.ts";
+import { getLogger } from "@rostra/logger";
 
 const log = getLogger("shutdown");
 

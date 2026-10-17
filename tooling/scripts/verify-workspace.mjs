@@ -51,6 +51,11 @@ try {
 	}
 	assert.match(pkg.scripts["check:boundaries"], /verify-workspace\.mjs/);
 	assert.match(pkg.scripts["legacy:test"], /--test-concurrency=2/);
+	assert.match(
+		pkg.scripts.test,
+		/--concurrency=1/,
+		"Serialize test tasks to cap total active test files at two",
+	);
 	assert.match(pkg.scripts["legacy:test"], /tooling\/\*\*\/\*\.test\.ts/);
 	const { tasks } = JSON.parse(read("turbo.json"));
 	for (const name of ["build", "typecheck", "lint", "test", "test:integration", "clean"]) {

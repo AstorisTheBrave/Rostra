@@ -1,5 +1,5 @@
+import { getLogger } from "@rostra/logger";
 import type { Guild } from "discord.js";
-import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("bulkrole");
 

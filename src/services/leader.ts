@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { getRedis } from "@/services/cache.ts";
-import { getLogger } from "@/services/logger.ts";
+import { getRedis } from "@rostra/cache";
+import { getLogger } from "@rostra/logger";
 
 /**
  * Redis leader election so single-instance work (the manager-process crons:

@@ -1,5 +1,5 @@
-import type { Profile } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
+import type { Profile } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 export const MAX_BIO = 200;
 /** Default accent (Discord blurple) when a profile has none set. */

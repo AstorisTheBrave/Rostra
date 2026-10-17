@@ -1,8 +1,8 @@
-import type { AntinukeConfig } from "@prisma/client";
+import type { AntinukeConfig } from "@rostra/database";
+import { Accent, container, text } from "@rostra/discord-ui";
+import { getLogger } from "@rostra/logger";
 import { type Client, type Guild, GuildVerificationLevel, MessageFlags } from "discord.js";
-import { getLogger } from "@/services/logger.ts";
 import { schedule } from "@/services/scheduler.ts";
-import { Accent, container, text } from "@/utils/components.ts";
 
 /**
  * Anti-raid: detect join floods (N joins within M seconds) and put the server

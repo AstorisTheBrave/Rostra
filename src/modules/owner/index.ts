@@ -1,10 +1,10 @@
+import { config } from "@rostra/config";
+import { Accent, container, reply, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
 import { type ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { config } from "@/config.ts";
-import { t } from "@/i18n/index.ts";
 import { isDeclared, listFeatures, setFeatureLive } from "@/services/featureFlags.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/ui";
 
 function buildData(): SlashCommandBuilder {
 	const cmd = new SlashCommandBuilder()

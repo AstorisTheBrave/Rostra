@@ -1,12 +1,12 @@
+import { Accent, container, reply, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
 import {
 	type ChatInputCommandInteraction,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
 import { birthdayEvents } from "./events.ts";
 import {
 	getBirthday,

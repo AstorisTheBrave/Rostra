@@ -3,15 +3,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * Regenerate `src/i18n/bundled.ts` from the translation files under
- * `src/i18n/locales/<code>/<namespace>.json`. Static imports keep the build
+ * Regenerate `packages/i18n/src/bundled.ts` from the translation files under
+ * `packages/i18n/src/locales/<code>/<namespace>.json`. Static imports keep the build
  * bundler-safe (no runtime fs reads); adding a translation file just means
  * running `npm run i18n:bundle`. English lives in module `i18n` bundles, so the
  * `en` folder and files starting with `_` are skipped.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
-const i18nDir = join(here, "..", "i18n");
+const i18nDir = join(here, "..", "..", "packages", "i18n", "src");
 const localesDir = join(i18nDir, "locales");
 
 const safe = (s: string): string => s.replace(/[^a-zA-Z0-9]/g, "_");
@@ -73,4 +73,4 @@ const entries = collect();
 const out = join(i18nDir, "bundled.ts");
 writeFileSync(out, render(entries));
 if (!existsSync(out)) throw new Error("failed to write bundled.ts");
-console.log(`i18n:bundle - wrote ${entries.length} bundle(s) to src/i18n/bundled.ts`);
+console.log(`i18n:bundle - wrote ${entries.length} bundle(s) to packages/i18n/src/bundled.ts`);

@@ -12,7 +12,33 @@ lives in `docs/superpowers/specs/2026-06-05-unified-bot-core-platform-design.md`
 
 ## technical map
 
-**process topology (target - runtime layer, not yet built)**
+**Phase 00 extraction status (2026-10-17):** runtime entrypoints and modules remain under `src/`.
+Shared owners are `@rostra/config`, `@rostra/logger`, `@rostra/database`, `@rostra/cache`,
+`@rostra/i18n`, `@rostra/discord-ui`, `@rostra/contracts` and `@rostra/testing`. Their explicit export
+maps resolve ESM TypeScript source, matching the existing `tsx` runtime and no-emit build. No compiled
+package artifacts are needed at runtime. Package typechecks use the shared strict configuration and
+do not inherit the root alias.
+
+Config is the only runtime environment reader; database owns the single Prisma constructor and
+exports generated model types. Logger depends on config; cache and database depend on both. The cache
+`/bus` export owns Redis pub/sub, and i18n `/live` consumes cache/database/logger without depending on
+gateway internals. The i18n root remains the pure translator; `/bundled`, `/commandLocalizations`,
+`/locales` and `/validate` expose optional entrypoints. Discord UI exports all components at its root
+and acknowledgement through `/safeAck`. The dependency graph is acyclic and checked at the root gate.
+
+The shared `JobDefinition` lives in contracts. Gateway-specific `BotModule` and `BotClient` types
+remain in `src/types/module.ts` for Task 4; its job type re-export is the sole temporary type seam.
+Tenant preferences, scheduler, cron, gateway services and asset-bound card rendering stay with the
+runtime until their owning slices. All migrated callers already use package imports.
+
+Prisma schema and historical migrations live in `packages/database/prisma/`. Root `prisma.config.ts`
+retains migration URL and dotenv behavior; the separate generation config stays credential-free.
+The database package declares the existing Prisma CLI so its client resolves beside the schema.
+The Docker install layer includes every package manifest before frozen installation. History has
+byte-level SHA-256 tests and disables checkout line-ending conversion. Service migration, image and
+rollback execution remain unverified here and belong to the deployment slice.
+
+**existing process topology (runtime still in the root application)**
 ```
 cluster.ts (manager)
   ├─ ShardingManager (auto shards, respawn)
@@ -33,18 +59,18 @@ Today it's `NativeIpc` (discord.js `broadcastEval`). Switching to `discord-hybri
 2. Pipeline: resolve command → permission guard → cooldown (Redis bucket) → Zod-validate options →
    `execute(ctx)` inside an error boundary.
 3. Handler uses `getPrisma()` for data, `getCache()`/`getRedis()` for hot data, and replies via
-   `src/utils/components.ts` (Components V2).
+   `packages/discord-ui/src/components.ts` (Components V2).
 4. Errors → ephemeral V2 error message + structured Pino log with a trace id.
 
 **command namespacing** - ~16–18 top-level commands (`/mod`, `/economy`, `/ticket`, …) each holding
 subcommand groups/subcommands, to stay under Discord's 100-global-command cap. Map is in the spec §8.
 
-**data** - one Postgres schema (`prisma/schema.prisma`) merges all 15 bots' storage. Redis holds
+**data** - one Postgres schema (`packages/database/prisma/schema.prisma`) merges all 15 bots' storage. Redis holds
 leaderboards (sorted sets), hot config cache, rate limits, and job queues.
 
 **depends on**
-- `src/config.ts` - every subsystem reads typed config from here
-- `src/services/*` - shared singletons used everywhere
+- `packages/config/src/index.ts` - every subsystem reads typed config from here
+- `@rostra/database`, `@rostra/cache`, `@rostra/logger` - shared singleton owners
 
 ## gotchas
 

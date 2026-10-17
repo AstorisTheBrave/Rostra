@@ -1,20 +1,4 @@
-import type { GuildTenant } from "@prisma/client";
-import {
-	ButtonStyle,
-	ChannelType,
-	type ChatInputCommandInteraction,
-	MessageFlags,
-	PermissionFlagsBits,
-	SlashCommandBuilder,
-} from "discord.js";
-import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
-import { SUPPORTED_LOCALES } from "@/i18n/locales.ts";
-import { setGuildLocale } from "@/services/localization.ts";
-import { probeProvision } from "@/services/provisioning/probe.ts";
-import { runProvision } from "@/services/provisioning/runProvision.ts";
-import { getTenant, isFeatureEnabled, setFeatures, updateTenant } from "@/services/tenant.ts";
-import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
+import type { GuildTenant } from "@rostra/database";
 import {
 	Accent,
 	actionRow,
@@ -26,7 +10,23 @@ import {
 	reply,
 	settingsPanel,
 	text,
-} from "@/ui";
+} from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
+import { SUPPORTED_LOCALES } from "@rostra/i18n/locales";
+import {
+	ButtonStyle,
+	ChannelType,
+	type ChatInputCommandInteraction,
+	MessageFlags,
+	PermissionFlagsBits,
+	SlashCommandBuilder,
+} from "discord.js";
+import type { BotClient } from "@/client/BotClient.ts";
+import { setGuildLocale } from "@/services/localization.ts";
+import { probeProvision } from "@/services/provisioning/probe.ts";
+import { runProvision } from "@/services/provisioning/runProvision.ts";
+import { getTenant, isFeatureEnabled, setFeatures, updateTenant } from "@/services/tenant.ts";
+import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
 
 /** Core systems the wizard can toggle (key = tenant feature flag). */
 const FEATURES: { key: string; label: string; emoji: EmojiName }[] = [

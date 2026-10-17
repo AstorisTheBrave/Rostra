@@ -5,7 +5,7 @@
 		"rootDir": ".",
 		"paths": { "@/*": ["./src/*"] }
 	},
-	"include": ["src/**/*.ts", "prisma/**/*.ts", "tooling/**/*.ts"],
+	"include": ["src/**/*.ts", "tooling/**/*.ts"],
 	"exclude": [
 		"node_modules",
 		"dist",

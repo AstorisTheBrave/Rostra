@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Highlight } from "@prisma/client";
+import type { Highlight } from "@rostra/database";
 import { resolveHits, wordMatches } from "./service.ts";
 
 test("wordMatches is whole-word and case-insensitive", () => {

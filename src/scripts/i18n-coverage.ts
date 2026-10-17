@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { SUPPORTED_LOCALES } from "@rostra/i18n/locales";
 import { loadModules } from "@/client/loaders/modules.ts";
-import { SUPPORTED_LOCALES } from "@/i18n/locales.ts";
 
 /**
  * Report how complete each language is against the English source (module `i18n`
@@ -12,7 +12,7 @@ import { SUPPORTED_LOCALES } from "@/i18n/locales.ts";
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
-const localesDir = join(here, "..", "i18n", "locales");
+const localesDir = join(here, "..", "..", "packages", "i18n", "src", "locales");
 
 function readJson(path: string): Record<string, string> {
 	if (!existsSync(path)) return {};

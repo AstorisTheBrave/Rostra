@@ -1,7 +1,8 @@
+import { Accent, container, reply, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
+import { SUPPORTED_LOCALES } from "@rostra/i18n/locales";
 import { type ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
-import { SUPPORTED_LOCALES } from "@/i18n/locales.ts";
 import {
 	getUserPreference,
 	setUserFeature,
@@ -9,7 +10,6 @@ import {
 	type UserFeature,
 } from "@/services/localization.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/ui";
 
 // Language choices: "auto" (follow server / Discord) plus every supported locale.
 const LANG_CHOICES = [

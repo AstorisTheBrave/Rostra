@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { Accent, actionRow, button, container, reply, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
 import {
 	ButtonStyle,
 	type ChatInputCommandInteraction,
@@ -6,10 +8,8 @@ import {
 	SlashCommandBuilder,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
 import { isOptedOut } from "@/services/localization.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import {
 	checkTicTacToe,
 	getTtt,

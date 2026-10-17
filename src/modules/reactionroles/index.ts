@@ -1,4 +1,14 @@
 import {
+	Accent,
+	button,
+	buttonGrid,
+	container,
+	reply,
+	stringSelect,
+	text,
+} from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
+import {
 	ButtonStyle,
 	type ChatInputCommandInteraction,
 	type GuildMember,
@@ -7,9 +17,7 @@ import {
 	SlashCommandBuilder,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, button, buttonGrid, container, reply, stringSelect, text } from "@/ui";
 import {
 	addRole,
 	createPanel,

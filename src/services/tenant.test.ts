@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { GuildTenant } from "@prisma/client";
+import type { GuildTenant } from "@rostra/database";
 import { evictTenantL1, getSetting, isFeatureEnabled, tenantFeature } from "./tenant.ts";
 
 const tenant = (over: Partial<GuildTenant>): GuildTenant =>

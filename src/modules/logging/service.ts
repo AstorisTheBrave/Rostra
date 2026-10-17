@@ -1,4 +1,6 @@
-import type { LoggingConfig } from "@prisma/client";
+import type { LoggingConfig } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 import {
 	type AuditLogEvent,
 	type ContainerBuilder,
@@ -6,8 +8,6 @@ import {
 	MessageFlags,
 	PermissionFlagsBits,
 } from "discord.js";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 
 const log = getLogger("logging");

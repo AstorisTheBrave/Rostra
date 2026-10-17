@@ -1,11 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { config } from "@rostra/config";
+import { SUPPORTED_LOCALES } from "@rostra/i18n/locales";
+import { validateTranslation } from "@rostra/i18n/validate";
+import { getLogger } from "@rostra/logger";
 import { loadModules } from "@/client/loaders/modules.ts";
-import { config } from "@/config.ts";
-import { SUPPORTED_LOCALES } from "@/i18n/locales.ts";
-import { validateTranslation } from "@/i18n/validate.ts";
-import { getLogger } from "@/services/logger.ts";
 
 /**
  * Generate machine-translation **drafts** for every missing key in every language
@@ -21,7 +21,14 @@ import { getLogger } from "@/services/logger.ts";
  */
 
 const log = getLogger("i18n:draft");
-const i18nDir = join(dirname(fileURLToPath(import.meta.url)), "..", "i18n");
+const i18nDir = join(
+	dirname(fileURLToPath(import.meta.url)),
+	"..",
+	"..",
+	"packages",
+	"i18n",
+	"src",
+);
 const localesDir = join(i18nDir, "locales");
 
 function readJson<T>(path: string, fallback: T): T {

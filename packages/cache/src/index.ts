@@ -1,8 +1,8 @@
 import KeyvRedis from "@keyv/redis";
+import { config } from "@rostra/config";
+import { getLogger } from "@rostra/logger";
 import Redis from "ioredis";
 import Keyv from "keyv";
-import { config } from "@/config.ts";
-import { getLogger } from "@/services/logger.ts";
 
 const log = getLogger("cache");
 

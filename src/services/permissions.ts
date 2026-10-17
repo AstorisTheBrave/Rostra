@@ -1,5 +1,5 @@
+import { config } from "@rostra/config";
 import type { GuildMember, PermissionResolvable } from "discord.js";
-import { config } from "@/config.ts";
 
 // Shared permission gate. Rostra leans on Discord-native `default_member_permissions`
 // per command; this layer adds the one cross-cutting rule worth centralising: a

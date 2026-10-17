@@ -1,8 +1,8 @@
+import { config } from "@rostra/config";
+import { getLogger } from "@rostra/logger";
 import { Client, type ClientOptions, Collection, GatewayIntentBits, Partials } from "discord.js";
 import { ClusterClient, getInfo } from "discord-hybrid-sharding";
 import { createIpc, type Ipc } from "@/cluster/ipc.ts";
-import { config } from "@/config.ts";
-import { getLogger } from "@/services/logger.ts";
 import type { ComponentHandler, SlashCommand } from "@/types/module.ts";
 
 const log = getLogger("client");
@@ -83,7 +83,7 @@ export class BotClient extends Client {
 
 		// Overlay live (DB) translations on the bundled baseline and subscribe to
 		// fleet-wide reloads so language changes apply with no restart.
-		const { loadLiveLocales, subscribeLocaleReload } = await import("@/i18n/live.ts");
+		const { loadLiveLocales, subscribeLocaleReload } = await import("@rostra/i18n/live");
 		subscribeLocaleReload();
 		await loadLiveLocales();
 

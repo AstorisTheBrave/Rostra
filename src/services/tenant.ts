@@ -1,6 +1,6 @@
-import type { GuildTenant, Prisma } from "@prisma/client";
-import { cachedConfig, invalidateConfig } from "@/services/cache.ts";
-import { getPrisma } from "@/services/database.ts";
+import { cachedConfig, invalidateConfig } from "@rostra/cache";
+import type { GuildTenant, Prisma } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 /**
  * Centralized per-guild config ("tenant"). Reads come from a two-layer cache:

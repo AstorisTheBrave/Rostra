@@ -1,7 +1,7 @@
-import type { ModmailConfig, ModmailThread } from "@prisma/client";
+import type { ModmailConfig, ModmailThread } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
+import { getLogger } from "@rostra/logger";
 import { ChannelType, type Client, type Guild, type ThreadChannel } from "discord.js";
-import { getPrisma } from "@/services/database.ts";
-import { getLogger } from "@/services/logger.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 
 const log = getLogger("modmail");

@@ -1,5 +1,5 @@
-import type { VoiceRoleConfig } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
+import type { VoiceRoleConfig } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 /**
  * Voice roles: grant a role while a member is connected to any voice channel and

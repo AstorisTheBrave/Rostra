@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 test("getLogger returns a child logger bound to scope", async () => {
-	const { getLogger } = await import("./logger.ts");
+	const { getLogger } = await import("@rostra/logger");
 	const log = getLogger("test-scope");
 	assert.equal(typeof log.info, "function");
 	assert.equal(typeof log.error, "function");

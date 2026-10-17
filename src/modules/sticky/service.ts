@@ -1,5 +1,5 @@
-import type { StickyMessage } from "@prisma/client";
-import { getPrisma } from "@/services/database.ts";
+import type { StickyMessage } from "@rostra/database";
+import { getPrisma } from "@rostra/database";
 
 /**
  * Sticky messages: keep one message pinned to the bottom of a channel by

@@ -1,4 +1,6 @@
-import type { AutomodConfig } from "@prisma/client";
+import type { AutomodConfig } from "@rostra/database";
+import { Accent, container, reply, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
 import {
 	type ChatInputCommandInteraction,
 	PermissionFlagsBits,
@@ -6,7 +8,6 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { defineEvent } from "@/client/defineEvent.ts";
-import { t } from "@/i18n/index.ts";
 import {
 	getTenant,
 	isFeatureBlocked,
@@ -14,7 +15,6 @@ import {
 	setFeatures,
 } from "@/services/tenant.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
-import { Accent, container, reply, text } from "@/utils/components.ts";
 import { firstMatchingRule, RULE_ACTIONS, RULE_TRIGGERS, validateRuleInput } from "./rules.ts";
 import {
 	addRule,

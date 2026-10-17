@@ -1,3 +1,5 @@
+import { Accent, actionRow, button, container, reply, text } from "@rostra/discord-ui";
+import { t } from "@rostra/i18n";
 import {
 	type ButtonInteraction,
 	ButtonStyle,
@@ -8,11 +10,9 @@ import {
 	SlashCommandBuilder,
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
-import { t } from "@/i18n/index.ts";
 import { registerTaskHandler } from "@/services/scheduler.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { BotModule, ComponentHandler, SlashCommand } from "@/types/module.ts";
-import { Accent, actionRow, button, container, reply, text } from "@/ui";
 import { makeCaptcha } from "./captcha.ts";
 import { VERIFY_KICK, verificationEvents, verifyKickTask } from "./events.ts";
 import { getConfig, upsertConfig } from "./service.ts";

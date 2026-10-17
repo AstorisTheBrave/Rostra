@@ -1,5 +1,5 @@
+import { getLogger } from "@rostra/logger";
 import type { BotClient } from "@/client/BotClient.ts";
-import { getLogger } from "@/services/logger.ts";
 import type { BotModule } from "@/types/module.ts";
 
 const log = getLogger("loader:interactions");

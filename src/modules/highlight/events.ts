@@ -1,6 +1,6 @@
+import { getLogger } from "@rostra/logger";
 import { PermissionFlagsBits } from "discord.js";
 import { defineEvent } from "@/client/defineEvent.ts";
-import { getLogger } from "@/services/logger.ts";
 import { isFeatureBlocked } from "@/services/tenant.ts";
 import type { RegisteredEvent } from "@/types/module.ts";
 import { getGuildHighlights, markActive, resolveHits } from "./service.ts";

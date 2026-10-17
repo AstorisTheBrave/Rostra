@@ -1,5 +1,5 @@
-import { getRedis } from "@/services/cache.ts";
-import { getPrisma } from "@/services/database.ts";
+import { getRedis } from "@rostra/cache";
+import { getPrisma } from "@rostra/database";
 
 export interface ProfileStats {
 	level: number;

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 test("cache get/set/del works with in-memory fallback (no REDIS_URL)", async () => {
-	const { cacheSet, cacheGet, cacheDel } = await import("./cache.ts");
+	const { cacheSet, cacheGet, cacheDel } = await import("@rostra/cache");
 	await cacheSet("k1", { n: 1 }, 1000);
 	assert.deepEqual(await cacheGet<{ n: number }>("k1"), { n: 1 });
 	await cacheDel("k1");
@@ -10,7 +10,7 @@ test("cache get/set/del works with in-memory fallback (no REDIS_URL)", async () 
 });
 
 test("withCache computes once then serves cached", async () => {
-	const { withCache } = await import("./cache.ts");
+	const { withCache } = await import("@rostra/cache");
 	let calls = 0;
 	const fn = async () => {
 		calls++;
@@ -22,12 +22,12 @@ test("withCache computes once then serves cached", async () => {
 });
 
 test("CONFIG_TTL_MS is 5 minutes", async () => {
-	const { CONFIG_TTL_MS } = await import("./cache.ts");
+	const { CONFIG_TTL_MS } = await import("@rostra/cache");
 	assert.equal(CONFIG_TTL_MS, 300_000);
 });
 
 test("cachedConfig caches and invalidateConfig forces a reload", async () => {
-	const { cachedConfig, invalidateConfig } = await import("./cache.ts");
+	const { cachedConfig, invalidateConfig } = await import("@rostra/cache");
 	const key = `test:cfg:${Math.random().toString(36).slice(2)}`;
 	let calls = 0;
 	const loader = async () => ({ n: ++calls });

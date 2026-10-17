@@ -11,11 +11,19 @@ RUN apk add --no-cache fontconfig font-dejavu
 RUN npm install --global corepack@0.35.0 && corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tooling/biome/package.json ./tooling/biome/package.json
+COPY packages/config/package.json ./packages/config/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/database/package.json ./packages/database/package.json
+COPY packages/cache/package.json ./packages/cache/package.json
+COPY packages/logger/package.json ./packages/logger/package.json
+COPY packages/i18n/package.json ./packages/i18n/package.json
+COPY packages/discord-ui/package.json ./packages/discord-ui/package.json
+COPY packages/testing/package.json ./packages/testing/package.json
 RUN pnpm install --frozen-lockfile
 
 # Generate offline without loading deployment credentials. Migrations still use
 # prisma.config.ts and the runtime DATABASE_URL.
-COPY prisma ./prisma
+COPY packages/database/prisma ./packages/database/prisma
 COPY prisma.config.ts ./
 COPY tooling/prisma-generate.config.ts ./tooling/prisma-generate.config.ts
 RUN pnpm prisma:generate

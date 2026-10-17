@@ -65,7 +65,8 @@ rows, so they survive restart; each shard re-arms what it owns on boot (core's `
   public workspace packages in a later slice; the paths above still describe this slice's runtime.
   Owner IDs must never grant implicit guild access. Existing bypass behavior requires a tested
   security change in its owning slice. Run `npm run check:boundaries` before committing shared changes;
-  private archives and scratch are excluded from repository tools and Docker contexts.
+  the source guard includes container shell scripts alongside JS/TS and JSON. Private archives and
+  scratch are excluded from repository tools and Docker contexts.
 
 - Construct the Prisma client **only** here (`getPrisma()`); this is an invariant.
 - Prisma 7: the client needs the `@prisma/adapter-pg` adapter (`new PrismaPg({ connectionString })`),

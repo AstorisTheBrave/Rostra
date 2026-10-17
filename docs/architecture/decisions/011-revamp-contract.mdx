@@ -59,7 +59,9 @@ examples. Git may retain sanitized `.env.example` templates.
 
 `npm run check:boundaries` is the compatibility entrypoint. It checks required Git/Biome/Docker
 exclusions, tracked or visible private paths and implementation-neutral repository source without
-network access. The workspace control-plane slice exposes it as `pnpm check:boundaries` and wires
+network access. Source checks cover JS/TS, JSON metadata and `.sh` scripts, including container startup;
+private/generated paths and binary assets are excluded. The workspace control-plane slice exposes it
+as `pnpm check:boundaries` and wires
 future tools to the same exclusions. Run the adjacent boundary tests explicitly until the workspace
 test graph includes tooling. Assistant implementation names stay private; public identity is Rostra.
 

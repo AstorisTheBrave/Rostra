@@ -11,6 +11,17 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-17 (Phase 00: include executable shell source in boundary checks)
+
+**changed**: Extended source neutrality checks to `.sh`, the repository's container script format.
+Added a regression covering both untracked and tracked shell scripts while proving private archive,
+generated build output and binary assets stay outside source scans. Recorded the executable-format
+extension rule in agent guidance and the architecture/shared-services docs.
+
+**files touched**: `tooling/scripts/check-repository-boundaries.mjs`,
+`tooling/scripts/check-repository-boundaries.test.ts`, `AGENTS.md`,
+`docs/architecture/decisions/011-revamp-contract.mdx`, `docs/modules/services.mdx` and this log.
+
 ### 2026-10-17 (Phase 00: repository boundaries and revamp contract)
 
 **changed**: Added explicit lowercase archive and scratch exclusions to Git/Biome, a Docker input

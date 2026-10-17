@@ -149,3 +149,21 @@ test("checker also covers root boot scripts, infrastructure source and package m
 		);
 	}
 });
+
+test("checker scans tracked and new shell scripts while excluding private and binary inputs", (t) => {
+	const directory = fixture(t);
+	const forbidden = Buffer.from("6f70656e6169", "hex").toString();
+	mkdirSync(join(directory, "archive"));
+	mkdirSync(join(directory, "dist"));
+	writeFileSync(join(directory, "archive/private.sh"), `# ${forbidden}\n`);
+	writeFileSync(join(directory, "dist/generated.sh"), `# ${forbidden}\n`);
+	writeFileSync(join(directory, "asset.png"), Buffer.from(`\0${forbidden}`));
+	assert.equal(check(directory).status, 0);
+	writeFileSync(join(directory, "probe.sh"), `#!/bin/sh\n# ${forbidden}\n`);
+	for (const tracked of [false, true]) {
+		if (tracked) execFileSync("git", ["add", "probe.sh"], { cwd: directory });
+		const result = check(directory);
+		assert.equal(result.status, 1, result.stdout);
+		assert.equal(result.stderr.trim(), "Forbidden implementation identifier: probe.sh");
+	}
+});

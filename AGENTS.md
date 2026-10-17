@@ -99,6 +99,8 @@ ignored scratch; production code, plans, tests and docs belong in the normal tre
 may need explicit staging when a user-level ignore hides them. Never commit local environments,
 credentials, dependencies, build output or coverage. Keep the boundary checker and every later tool's
 input configuration aligned when adding a tool.
+The source neutrality guard covers JS/TS, JSON metadata and `.sh` scripts, including the container
+entrypoint. Add a regression and extend its allowlist when introducing another executable source format.
 
 No ingress-provider control plane is in scope. Document passive reverse-proxy/tunnel compatibility
 without requesting management credentials or changing external ingress resources.

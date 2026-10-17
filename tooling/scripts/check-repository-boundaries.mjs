@@ -76,7 +76,7 @@ try {
 	const forbidden = new RegExp(`${identifiers.join("|")}|\\b(${wholeWords.join("|")})\\b`, "i");
 	for (const path of [...new Set([...tracked, ...visible])].sort()) {
 		if (privatePath(path)) continue;
-		if (!/\.(?:[cm]?[jt]sx?|json)$/.test(path)) continue;
+		if (!/\.(?:[cm]?[jt]sx?|json|sh)$/.test(path)) continue;
 		if (forbidden.test(read(path))) errors.push(`Forbidden implementation identifier: ${path}`);
 	}
 } catch (error) {

@@ -1,22 +1,19 @@
 {
+	"extends": "./tooling/typescript/node.json",
 	"compilerOptions": {
-		"target": "ES2022",
-		"module": "ESNext",
-		"moduleResolution": "Bundler",
-		"allowImportingTsExtensions": true,
-		"noEmit": true,
-		"lib": ["ES2023"],
-		"strict": true,
-		"noUncheckedIndexedAccess": true,
-		"noImplicitOverride": true,
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"resolveJsonModule": true,
 		"outDir": "dist",
 		"rootDir": ".",
-		"paths": { "@/*": ["./src/*"] },
-		"types": ["node"]
+		"paths": { "@/*": ["./src/*"] }
 	},
-	"include": ["src/**/*.ts", "prisma/**/*.ts"],
-	"exclude": ["node_modules", "dist", "Archive"]
+	"include": ["src/**/*.ts", "prisma/**/*.ts", "tooling/**/*.ts"],
+	"exclude": [
+		"node_modules",
+		"dist",
+		"build",
+		"archive",
+		"Archive",
+		".superpowers",
+		"coverage",
+		"secrets"
+	]
 }

@@ -24,6 +24,7 @@
 - No ingress-provider control plane is implemented. Document passive reverse-proxy and tunnel compatibility only.
 - Keep local verification lightweight. Run isolated static/unit checks locally and move service matrices, browser tests, image builds, and security scans to GitHub Actions where practical.
 - Every task updates relevant documentation and `docs/sessions/log.mdx`. Phase completion writes an evidence report under `docs/phase-reports/phase-00/`.
+- Every completed phase must be pushed to GitHub as a rollback snapshot, with local and remote commit hashes verified equal. Push the phase branch only after its full gate and review pass; a local commit alone does not complete phase delivery.
 - Do not use em dashes in source, documentation, commits, issues, or pull request text.
 
 ## Review Focus
@@ -372,5 +373,6 @@ Phase 0 is complete only when all eight tasks have reviewed commits and the evid
 - GitHub Actions proves the Linux, service-container, browser, security, SBOM, and image-build gates.
 - The public README reads as a maintainer sharing a real product and clearly separates implemented, tested, verified, planned, platform-limited, and blocked capabilities.
 - The archive remains ignored and excluded everywhere without being force-added.
+- The reviewed Phase 0 branch is pushed to GitHub as a rollback snapshot after the full gate passes, and its local and remote commit hashes are verified equal and recorded in the evidence report.
 
 After Phase 0 passes, write and execute the Phase 01 plan. The overall revamp remains incomplete until Phases 01 through 12 and all 30 module specifications have their required evidence.

@@ -29,15 +29,17 @@ jobs:
         with:
           # Node 22+: the built-in test runner expands the `src/**/*.test.ts` glob.
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npx prisma generate
+      - run: npm install --global corepack@0.35.0
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Repository and workspace boundaries
+        run: pnpm check:boundaries
       - name: Typecheck
-        run: npm run typecheck
+        run: pnpm typecheck
       - name: Lint
-        run: npm run lint
+        run: pnpm lint
       - name: Test
-        run: npm test
+        run: pnpm test
       - name: Guard against legacy embeds (Components V2 only)
         run: |
           if grep -rn "EmbedBuilder" src; then

@@ -109,12 +109,14 @@ Redis (cache, leaderboards, queues) · BullMQ · Fastify (health + webhooks) · 
 ```bash
 git clone https://github.com/AstorisTheBrave/Rostra.git
 cd Rostra
-npm install
+# Node.js 22.22.2+ or 24.15.0+ with Corepack 0.35.0
+corepack enable
+pnpm install --frozen-lockfile
 cp .env.example .env          # fill in your values
-npm run prisma:generate
-npm run prisma:migrate        # create the database schema
-npm run deploy:commands       # register slash commands
-npm start
+pnpm prisma:generate
+pnpm prisma:migrate           # create the database schema
+pnpm deploy:commands          # register slash commands
+pnpm start
 ```
 
 Requirements: Node.js 20+, a PostgreSQL database, and (recommended for production) Redis. Without Redis,
@@ -153,7 +155,7 @@ All settings come from environment variables (see [`.env.example`](.env.example)
 | `LAVALINK_NODES` | JSON array of music nodes (multi-node failover) |
 | `TOPGG_TOKEN`, `TOPGG_WEBHOOK_AUTH` | bot-list stats + vote webhook |
 | `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | assistant backend (a standard chat-completions endpoint) |
-| `TRANSLATE_API_KEY`, `TRANSLATE_BASE_URL`, `TRANSLATE_MODEL` | optional, for `npm run i18n:draft` translation drafts |
+| `TRANSLATE_API_KEY`, `TRANSLATE_BASE_URL`, `TRANSLATE_MODEL` | optional, for `pnpm i18n:draft` translation drafts |
 
 ### Required intents
 
@@ -167,7 +169,7 @@ host can hold, switch to **hybrid clustering** (several cluster processes, optio
 setting `SHARDING_MODE=hybrid` with `REDIS_URL` configured. Everything else stays the same. Full setup
 guide: [docs/infrastructure/hybrid-sharding.mdx](docs/infrastructure/hybrid-sharding.mdx).
 
-Most changes ship without a full restart: translations (`npm run i18n:push`), feature flags and
+Most changes ship without a full restart: translations (`pnpm i18n:push`), feature flags and
 kill-switches (`/owner feature set ...`), and per-server settings apply live across every cluster over the
 Redis control bus. Code changes use a blue-green or rolling deploy (see
 [docs/infrastructure/scaling.mdx](docs/infrastructure/scaling.mdx)).

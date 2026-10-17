@@ -1,15 +1,6 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
-	"assist": { "actions": { "source": { "organizeImports": "on" } } },
-	"formatter": { "enabled": true, "indentStyle": "tab", "lineWidth": 100 },
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"recommended": true,
-			"suspicious": { "noExplicitAny": "error" },
-			"style": { "useNodejsImportProtocol": "error" }
-		}
-	},
+	"$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
+	"extends": ["./tooling/biome/biome.json"],
 	"files": {
 		"includes": [
 			"**",

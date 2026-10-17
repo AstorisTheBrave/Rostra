@@ -8,15 +8,17 @@ WORKDIR /app
 RUN apk add --no-cache fontconfig font-dejavu
 
 # Install dependencies (tsx is a runtime dependency - the bot runs TypeScript directly)
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install --global corepack@0.35.0 && corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tooling/biome/package.json ./tooling/biome/package.json
+RUN pnpm install --frozen-lockfile
 
-# Generate the Prisma client (Prisma 7 reads the datasource via prisma.config.ts).
-# generate is offline, so a placeholder URL satisfies the strict env() check at build
-# time; the real DATABASE_URL is supplied at runtime for migrate deploy and the app.
+# Generate offline without loading deployment credentials. Migrations still use
+# prisma.config.ts and the runtime DATABASE_URL.
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" npx prisma generate
+COPY tooling/prisma-generate.config.ts ./tooling/prisma-generate.config.ts
+RUN pnpm prisma:generate
 
 # App source
 COPY . .

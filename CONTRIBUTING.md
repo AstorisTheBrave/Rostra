@@ -4,18 +4,23 @@ Thanks for helping improve Rostra! This guide gets you productive fast and keeps
 
 ## Getting set up
 
+Use Node.js 22.22.2+ or 24.15.0+ with Corepack 0.35.0. The package-manager version is pinned in
+`package.json`; do not generate another lockfile. Later supported Node.js majors must be at least 26.
+
 ```bash
-npm install
+corepack enable
+pnpm install --frozen-lockfile
 cp .env.example .env          # placeholder values are fine for tests
-npm run prisma:generate
+pnpm prisma:generate
 ```
 
 Run the checks (everything must pass before a PR):
 
 ```bash
-npm run typecheck     # tsc --noEmit (strict, no `any`)
-npm run lint          # Biome (run `npm run lint:fix` to autofix)
-npm run test:env      # node:test via tsx, with .env loaded
+pnpm check:boundaries # repository inputs and workspace control plane
+pnpm typecheck        # generate the client, then strict TypeScript
+pnpm lint             # Biome (run `pnpm lint:fix` to autofix)
+pnpm test:env         # node:test via tsx, with .env loaded, concurrency capped at 2
 ```
 
 ## How the codebase is organized
@@ -78,7 +83,7 @@ unstable release to chase one.
 
 ## Adding a feature module (checklist)
 
-1. Add any Prisma models to `prisma/schema.prisma`, then `npm run prisma:generate`.
+1. Add any Prisma models to `prisma/schema.prisma`, then `pnpm prisma:generate`.
 2. Create `src/modules/<name>/` with `service.ts` (logic, cached config) and `index.ts` (the `BotModule`).
 3. Build all UI via `@/ui`; route component clicks with the `module:action:arg` customId convention.
 4. Add a unit test for the pure logic (`*.test.ts` beside the source).
@@ -93,6 +98,10 @@ force-pushes/deletions are blocked. So:
 1. Branch off `main` (`git switch -c feat/my-thing`).
 2. Make your change with tests + docs, run the checks locally.
 3. Open a PR. CI (typecheck, lint, tests, and the embed/undercover/`@/ui` guards) must be green to merge.
+
+For phase delivery, push the reviewed phase branch to GitHub as a rollback snapshot after its full
+verification gate passes. Verify that the local and remote commit hashes match and record both in the
+phase evidence report. A local commit alone does not complete a phase.
 
 - Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `build:`, `ci:`.
 - Keep PRs focused; describe what changed and how you tested it.

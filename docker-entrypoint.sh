@@ -8,7 +8,7 @@ set -e
 echo "Rostra: applying database migrations..."
 i=1
 while [ "$i" -le 12 ]; do
-	if npx prisma migrate deploy; then
+	if pnpm exec prisma migrate deploy; then
 		echo "Rostra: database is ready."
 		break
 	fi
@@ -18,4 +18,4 @@ while [ "$i" -le 12 ]; do
 done
 
 echo "Rostra: starting the bot..."
-exec npm start
+exec pnpm start

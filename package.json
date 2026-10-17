@@ -4,25 +4,33 @@
 	"description": "All-in-one Discord bot",
 	"type": "module",
 	"private": true,
+	"packageManager": "pnpm@12.14.0",
 	"engines": {
-		"node": ">=20"
+		"node": "^22.22.2 || ^24.15.0 || >=26.0.0"
 	},
 	"scripts": {
 		"dev": "tsx watch src/cluster.ts",
-		"build": "prisma generate && tsc --noEmit",
+		"build": "turbo run build legacy:build",
+		"legacy:build": "tsc --noEmit",
 		"start": "tsx src/cluster.ts",
 		"start:panel": "node panel-start.mjs",
-		"typecheck": "tsc --noEmit",
-		"check:boundaries": "node tooling/scripts/check-repository-boundaries.mjs",
-		"lint": "biome check .",
+		"typecheck": "turbo run typecheck legacy:typecheck",
+		"legacy:typecheck": "tsc --noEmit",
+		"check:boundaries": "node tooling/scripts/check-repository-boundaries.mjs && node tooling/scripts/verify-workspace.mjs",
+		"lint": "turbo run lint legacy:lint",
+		"legacy:lint": "biome check .",
 		"lint:fix": "biome check --write .",
-		"test": "node --import tsx --test \"src/**/*.test.ts\"",
-		"test:env": "node --import tsx --env-file=.env --test \"src/**/*.test.ts\"",
+		"test": "turbo run test legacy:test",
+		"legacy:test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\" \"tooling/**/*.test.ts\"",
+		"test:env": "node --import tsx --env-file=.env --test --test-concurrency=2 \"src/**/*.test.ts\" \"tooling/**/*.test.ts\"",
+		"test:integration": "turbo run test:integration",
+		"clean": "turbo run clean legacy:clean && node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.turbo', { recursive: true, force: true });\"",
+		"legacy:clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; for (const path of ['dist', 'build', 'coverage']) rmSync(path, { recursive: true, force: true });\"",
 		"deploy:commands": "node --import tsx --env-file-if-exists=.env src/scripts/deploy-commands.ts",
 		"lavalink:check": "node --import tsx --env-file-if-exists=.env src/scripts/lavalink-check.ts",
 		"emojis:generate": "node --import tsx src/scripts/generate-emojis.ts",
 		"emojis:upload": "node --import tsx --env-file-if-exists=.env src/scripts/upload-emojis.ts",
-		"prisma:generate": "prisma generate",
+		"prisma:generate": "prisma generate --config tooling/prisma-generate.config.ts",
 		"prisma:migrate": "prisma migrate deploy",
 		"i18n:bundle": "node --import tsx src/scripts/i18n-bundle.ts",
 		"i18n:coverage": "node --import tsx --env-file-if-exists=.env src/scripts/i18n-coverage.ts",
@@ -58,11 +66,7 @@
 		"dotenv": "^17.2.3",
 		"lucide-static": "^1.23.0",
 		"prisma": "^7.9.1",
+		"turbo": "2.11.9",
 		"typescript": "^7.0.2"
-	},
-	"overrides": {
-		"undici": "^6.27.0",
-		"@hono/node-server": "^1.19.13",
-		"esbuild": "^0.28.1"
 	}
 }

@@ -1,0 +1,60 @@
+{
+	"$schema": "https://turborepo.dev/schema.json",
+	"concurrency": "2",
+	"globalDependencies": [
+		"tsconfig*.json",
+		"tooling/typescript/*.json",
+		"biome.json",
+		"tooling/biome/biome.json"
+	],
+	"tasks": {
+		"build": {
+			"dependsOn": ["^build", "//#prisma:generate"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"!**/archive/**",
+				"!**/Archive/**",
+				"!**/.superpowers/**",
+				"!**/node_modules/**",
+				"!**/dist/**",
+				"!**/build/**",
+				"!**/coverage/**",
+				"!**/secrets/**",
+				"!**/.env*",
+				"!**/*.pem",
+				"!**/*.key"
+			],
+			"outputs": ["dist/**", "build/**"]
+		},
+		"typecheck": { "dependsOn": ["^typecheck", "//#prisma:generate"], "outputs": [] },
+		"lint": { "dependsOn": ["^lint"], "outputs": [] },
+		"test": { "dependsOn": ["^build", "//#prisma:generate"], "cache": false, "outputs": [] },
+		"test:integration": {
+			"dependsOn": ["^build", "//#prisma:generate"],
+			"cache": false,
+			"outputs": []
+		},
+		"clean": { "cache": false, "outputs": [] },
+		"//#prisma:generate": {
+			"cache": false,
+			"inputs": ["prisma/schema.prisma", "tooling/prisma-generate.config.ts"],
+			"outputs": []
+		},
+		"//#legacy:build": { "dependsOn": ["//#prisma:generate"], "outputs": [] },
+		"//#legacy:typecheck": { "dependsOn": ["//#prisma:generate"], "outputs": [] },
+		"//#legacy:lint": { "passThroughEnv": ["DIRECT_URL"], "outputs": [] },
+		"//#legacy:test": {
+			"dependsOn": ["//#prisma:generate"],
+			"cache": false,
+			"passThroughEnv": [
+				"DISCORD_TOKEN",
+				"DISCORD_CLIENT_ID",
+				"DATABASE_URL",
+				"NODE_ENV",
+				"LOG_LEVEL"
+			],
+			"outputs": []
+		},
+		"//#legacy:clean": { "cache": false, "outputs": [] }
+	}
+}

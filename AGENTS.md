@@ -107,22 +107,29 @@ without requesting management credentials or changing external ingress resources
 
 ## Verification and delivery
 
-During this compatibility slice:
+During this control-plane slice:
 
 ```bash
-npm run check:boundaries
-node --import tsx --test tooling/scripts/check-repository-boundaries.test.ts
-npm run typecheck
-npm run lint
-npm run test:env
+pnpm install --frozen-lockfile
+pnpm check:boundaries
+pnpm typecheck
+pnpm lint
+pnpm test
 git diff --check
 ```
 
-The control-plane slice replaces npm with pnpm and one frozen lockfile. Its root commands must cover
-build, typecheck, lint, unit/integration tests, boundary checks and clean. Keep local checks lightweight;
+The control plane uses pinned pnpm and one frozen lockfile. Root commands cover build, typecheck,
+lint, unit/integration tests, boundary checks and clean. Root `legacy:*` Turbo tasks temporarily own
+the existing application; do not move runtime code until its extraction task. Client generation is
+uncached and runs before build/typecheck/test consumers without loading deployment credentials.
+`pnpm test` uses placeholder environment values supplied by CI or the caller; `pnpm test:env` loads
+the local environment. Both cap test-file concurrency at two. The integration task has no service
+tests until the owning slices add them. Keep local checks lightweight;
 use CI for service/browser/security/image matrices where practical. New logic needs a focused test.
 Moving code also needs public-export, unchanged migration and normalized command/module parity proof.
 Record measured evidence and unresolved limitations before claiming a phase passes.
 
 `main` is protected: use a branch and PR with green CI. Commit with a conventional subject, no attribution
 trailers and no em dashes. Do not confuse a locally green slice with completed Phase 00 delivery.
+Every completed phase must be pushed to GitHub as a rollback snapshot after its full gate and review
+pass. Verify and record matching local and remote commit hashes before claiming phase delivery.

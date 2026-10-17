@@ -42,6 +42,7 @@ Thumbs.db
 # Misc
 coverage/
 .cache/
+.turbo/
 tmp/
 
 # Archived source bots (reference only, removed as ported)

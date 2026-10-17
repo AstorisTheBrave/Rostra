@@ -1,0 +1,30 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "modules/*"
+  - "integrations/*"
+  - "games/*"
+  - "tooling/*"
+  - "!**/archive/**"
+  - "!**/Archive/**"
+  - "!**/.superpowers/**"
+  - "!**/node_modules/**"
+  - "!**/dist/**"
+  - "!**/build/**"
+  - "!**/coverage/**"
+  - "!**/secrets/**"
+
+engineStrict: true
+verifyDepsBeforeRun: error
+skills:
+  dirs: []
+overrides:
+  undici: "^6.27.0"
+  "@hono/node-server": "^1.19.13"
+  esbuild: "^0.28.1"
+allowBuilds:
+  "@prisma/client": false
+  "@prisma/engines": true
+  prisma: false
+  esbuild: true
+  msgpackr-extract: true

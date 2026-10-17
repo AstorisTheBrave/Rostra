@@ -1,0 +1,14 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
+	"root": false,
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"formatter": { "enabled": true, "indentStyle": "tab", "lineWidth": 100 },
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended",
+			"suspicious": { "noExplicitAny": "error" },
+			"style": { "useNodejsImportProtocol": "error" }
+		}
+	}
+}

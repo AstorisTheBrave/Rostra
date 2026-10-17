@@ -11,6 +11,36 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-17 (Phase 00: workspace control plane)
+
+**changed**: Pinned stable pnpm 12.14.0 and Turbo 2.11.9, imported the existing npm dependency
+resolutions into the sole pnpm lockfile, and moved security overrides into workspace settings.
+Added six explicit workspace roots, private/generated exclusions, reviewed dependency build permissions,
+and disabled dependency-provided agent skills. Added shared TypeScript/Biome configs, root Turbo aliases
+with temporary legacy root tasks, and an offline workspace verifier. Prisma client generation now uses
+a schema-only config and runs before build/typecheck/test consumers without deployment credentials.
+Updated CI, Docker and active contributor/setup instructions for the single lockfile. Runtime source,
+command registration and every Prisma migration remain unchanged.
+Recorded the delivery requirement in the tracked Phase 0 plan, agent and contributing guidance:
+every completed phase is pushed to GitHub as a rollback snapshot after its full gate and review pass,
+with matching local/remote commit hashes recorded. Task 2 does not push a partial Phase 0 snapshot.
+
+**evidence**: The workspace tests failed first with the absent verifier/control files, then passed
+6/6; combined repository/workspace tests passed 16/16. Frozen install, root build/typecheck/lint and
+265/265 tests passed locally on Node 24.19.0, with test-file concurrency two and fake Discord/database
+credentials. Lint checked 302 files without warnings. Turbo's dry graph resolved only the root and
+`@rostra/biome`, with generation preceding the legacy build. The integration entrypoint and clean ran
+successfully, but integration currently contains no service tests. No gateway or container was booted.
+Official release/support rationale and the Dependabot pnpm 12 support limitation are recorded in
+decision 011. Corepack 0.35.0 requires Node 22.22.2+ or 24.15.0+; CI/Docker remain on Node 22.
+This completes only the local control-plane slice, not Phase 00 or remote CI/image verification.
+
+**files touched**: root workspace/lock/task/TypeScript/Biome configuration, `tooling/{typescript,biome}`,
+`tooling/prisma-generate.config.ts`, `tooling/scripts/verify-workspace.*`, `.gitignore`,
+`.github/{dependabot.yml,workflows/ci.yml,PULL_REQUEST_TEMPLATE.md}`, `Dockerfile`,
+`docker-entrypoint.sh`, `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, `MIGRATION.md`, decision 011 and this log.
+Also updated `docs/superpowers/plans/2026-10-17-phase-00-monorepo.md` for phase delivery evidence.
+
 ### 2026-10-17 (Phase 00: include executable shell source in boundary checks)
 
 **changed**: Extended source neutrality checks to `.sh`, the repository's container script format.

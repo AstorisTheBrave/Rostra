@@ -11,6 +11,30 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-17 (Phase 00: gateway and legacy module compatibility migration)
+
+**changed**: Moved the Discord runtime into `apps/gateway/src/` and all current feature modules into
+`modules/`. Added the `@rostra/module-sdk` public contract with validated manifests, cancellable
+lifecycle hooks and a compatibility adapter for the existing module objects. The gateway package now
+owns runtime build, typecheck, lint and test tasks; root commands, container inputs, panel startup,
+CI guards, aliases and active documentation point at the workspace paths. Added stable command and
+module registry fixtures plus offline snapshot tools covering intents, partials and feature flags.
+
+**evidence**: Frozen installation, workspace boundaries, root build/typecheck/lint and the full root
+test suite pass with placeholder credentials and at most two test files running concurrently. All 287
+tests passed. The focused compatibility suite proves duplicate module IDs fail, abort signals stop
+legacy lifecycles, package-private imports fail and a fake-token registry boot performs no Discord
+login or REST request.
+Normalized snapshots match the Task 3 baseline exactly: 47 commands, 42 modules and 48 events, with
+component/job inventories preserved and zero network attempts. Of 223 moved TypeScript files, 208 are
+byte-identical; the other 15 contain the adapter/snapshot seams or required path and documentation
+updates. All database schema and migration bytes remain unchanged. No Discord publication, external
+service, container or deployment was run. This is a local Task 4 slice, not completed Phase 00 delivery.
+
+**files touched**: `apps/gateway/`, `modules/`, `packages/module-sdk/`, registry tooling and fixtures,
+root workspace/runtime configuration, CI guards, active architecture/module/hosting documentation and
+this log.
+
 ### 2026-10-17 (Phase 00: shared packages and preserved database history)
 
 **changed**: Extracted `@rostra/config`, `@rostra/contracts`, `@rostra/database`, `@rostra/cache`,

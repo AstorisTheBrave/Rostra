@@ -12,9 +12,9 @@ each message, reacts ✅ (or 🏆 on a new record), and resets the count to 1 on
 ## technical map
 
 **file paths**
-- command: `src/modules/counting/index.ts`
-- messageCreate validator: `src/modules/counting/events.ts`
-- config + pure rules: `src/modules/counting/service.ts` (+ `service.test.ts`)
+- command: `modules/counting/index.ts`
+- messageCreate validator: `modules/counting/events.ts`
+- config + pure rules: `modules/counting/service.ts` (+ `service.test.ts`)
 - model: `CountingConfig` (keyed by `channelId`)
 
 **command** - `/counting setup <channel>` · `disable <channel>` · `status <channel>` (Manage Server).

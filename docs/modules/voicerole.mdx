@@ -12,9 +12,9 @@ Voice roles: grant a role while a member is connected to any voice channel and r
 ## technical map
 
 **file paths**
-- command: `src/modules/voicerole/index.ts`
-- listener: `src/modules/voicerole/events.ts` (voiceStateUpdate)
-- config + decision: `src/modules/voicerole/service.ts` (+ `service.test.ts`)
+- command: `modules/voicerole/index.ts`
+- listener: `modules/voicerole/events.ts` (voiceStateUpdate)
+- config + decision: `modules/voicerole/service.ts` (+ `service.test.ts`)
 - model: `VoiceRoleConfig` (one row per guild: `roleId`)
 
 **how it works** - `voiceRoleAction(wasConnected, isConnected)` collapses the voice state diff into

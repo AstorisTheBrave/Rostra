@@ -13,10 +13,10 @@ Optionally adds a quick math captcha before granting and auto-kicks members who 
 ## technical map
 
 **file paths**
-- command + verify button handler: `src/modules/verification/index.ts`
-- auto-kick scheduling + handler: `src/modules/verification/events.ts`
-- captcha generator (pure): `src/modules/verification/captcha.ts` (+ `captcha.test.ts`)
-- cached config: `src/modules/verification/service.ts`
+- command + verify button handler: `modules/verification/index.ts`
+- auto-kick scheduling + handler: `modules/verification/events.ts`
+- captcha generator (pure): `modules/verification/captcha.ts` (+ `captcha.test.ts`)
+- cached config: `modules/verification/service.ts`
 - model: `VerificationConfig` (adds `captcha`, `kickAfterMin`)
 
 **command** - `/verification setup <role>` · `panel` · `captcha <enabled>` · `autokick <minutes>` (0 = off)

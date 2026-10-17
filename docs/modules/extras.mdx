@@ -13,9 +13,9 @@ you and greets you when you return), **snipe** (show the last deleted message in
 ## technical map
 
 **file paths**
-- commands: `src/modules/extras/index.ts` (exports three commands: `/afk`, `/snipe`, `/autoresponder`)
-- message handlers: `src/modules/extras/events.ts`
-- state + storage: `src/modules/extras/service.ts` (+ `service.test.ts`)
+- commands: `modules/extras/index.ts` (exports three commands: `/afk`, `/snipe`, `/autoresponder`)
+- message handlers: `modules/extras/events.ts`
+- state + storage: `modules/extras/service.ts` (+ `service.test.ts`)
 - models: `prisma/schema.prisma` → `AfkStatus`, `AutoResponder`
 
 **commands** - `/afk [reason]`, `/snipe`, `/autoresponder add|remove|list` (Manage Server).

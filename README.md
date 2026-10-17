@@ -186,10 +186,10 @@ Commands are slash-only and grouped under top-level commands with subcommands (w
 
 ## Architecture
 
-Each feature is a self-contained module under `src/modules/<name>/` exporting
+Each feature is a self-contained module under `modules/<name>/` exporting
 `{ commands, events, interactions, jobs, i18n }`; modules are auto-discovered at boot. Shared
-infrastructure lives in `src/services` (database, cache, logger), `src/ui` (the Components-V2 UI library),
-`src/pipeline` (permission/cooldown/error handling), and `src/cluster` (sharding). See
+infrastructure lives in the public `packages/`, while `apps/gateway/src/` owns sharding, routing and
+runtime services. `@rostra/module-sdk` validates the legacy module inventory during the Phase 00 move. See
 [`docs/overview.mdx`](docs/overview.mdx) for the full map.
 
 ## Contributing

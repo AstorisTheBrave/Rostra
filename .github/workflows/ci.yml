@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          # Node 22+: the built-in test runner expands the `src/**/*.test.ts` glob.
+          # Node 22+: the built-in test runner expands workspace test globs.
           node-version: 22
       - run: npm install --global corepack@0.35.0
       - run: corepack enable
@@ -42,19 +42,19 @@ jobs:
         run: pnpm test
       - name: Guard against legacy embeds (Components V2 only)
         run: |
-          if grep -rn "EmbedBuilder" src packages --include='*.ts' --exclude-dir={node_modules,archive,Archive,.superpowers,dist,build,coverage,secrets,.turbo}; then
+          if grep -rn "EmbedBuilder" apps modules packages --include='*.ts' --exclude-dir={node_modules,archive,Archive,.superpowers,dist,build,coverage,secrets,.turbo}; then
             echo "::error::EmbedBuilder found - this project uses Components V2 only."
             exit 1
           fi
       - name: Guard undercover mode (no AI provider names)
         run: |
-          if grep -rinE "openai|anthropic|claude|groq|\bgpt\b|gemini|\bllama\b|mistral" src packages --include='*.ts' --exclude-dir={node_modules,archive,Archive,.superpowers,dist,build,coverage,secrets,.turbo}; then
+          if grep -rinE "openai|anthropic|claude|groq|\bgpt\b|gemini|\bllama\b|mistral" apps modules packages --include='*.ts' --exclude-dir={node_modules,archive,Archive,.superpowers,dist,build,coverage,secrets,.turbo}; then
             echo "::error::AI provider reference found - undercover mode forbids this."
             exit 1
           fi
       - name: Guard UI library (modules must not hand-roll component builders)
         run: |
-          if grep -rnE "new (ButtonBuilder|ActionRowBuilder|ContainerBuilder|StringSelectMenuBuilder|ModalBuilder|TextInputBuilder)" src/modules; then
+          if grep -rnE "new (ButtonBuilder|ActionRowBuilder|ContainerBuilder|StringSelectMenuBuilder|ModalBuilder|TextInputBuilder)" modules; then
             echo "::error::Module hand-rolls a component builder - use @rostra/discord-ui instead."
             exit 1
           fi

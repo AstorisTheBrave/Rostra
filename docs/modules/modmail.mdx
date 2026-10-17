@@ -13,9 +13,9 @@ alternative to tickets for "contact staff" conversations.
 ## technical map
 
 **file paths**
-- command + module wiring: `src/modules/modmail/index.ts`
-- DM <-> thread relay events: `src/modules/modmail/events.ts`
-- config + thread CRUD + pure helpers: `src/modules/modmail/service.ts` (+ `service.test.ts`)
+- command + module wiring: `modules/modmail/index.ts`
+- DM <-> thread relay events: `modules/modmail/events.ts`
+- config + thread CRUD + pure helpers: `modules/modmail/service.ts` (+ `service.test.ts`)
 - models: `ModmailConfig` (per-guild staff channel + enabled), `ModmailThread` (open thread per user)
 
 **command** - `/modmail setup <channel>` (sets the staff parent channel + enables + flips the tenant flag) ·

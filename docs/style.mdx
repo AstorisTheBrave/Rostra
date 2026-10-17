@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-10-17
 owner: AstorisTheBrave
 status: stable
 ---
@@ -22,8 +22,9 @@ If you'd explain it to a new teammate on day one, it's here.
   …) directly in a module. If `@rostra/discord-ui` lacks something, add it there (with a test) first, then use it. `@rostra/discord-ui`
   is the single source of truth for the bot's visual language.
 - Slash-only commands; no message-prefix engine.
-- Each feature is a self-contained `src/modules/<name>/`; modules never import each other's internals -
-  only shared `services/`, `utils/`, `types/`, `i18n/`.
+- Each feature is a self-contained `modules/<name>/`; modules never import each other's internals.
+  Shared packages use public `@rostra/*` exports. The `@/` alias is temporary compatibility for gateway
+  services and types until Phase 01 replaces legacy discovery.
 - No `any` (use `unknown` + narrow); ESM imports only.
 - Every user-facing string goes through the i18n `t()` helper.
 - **Document every change:** a new `docs/sessions/log.mdx` entry plus the relevant `docs/modules/<name>.mdx`,
@@ -39,7 +40,8 @@ then structure and modular ownership, then simple setup and specialist feature d
 **naming**
 - Files: lowerCamelCase for modules/utils (`reactionRoleService.ts`); singletons named by accessor
   (`getPrisma`, `getCache`, `getLogger`, `config`).
-- Imports use the `@/` alias for `src` (e.g. `@/services/logger.ts`) with explicit `.ts` extension.
+- Gateway compatibility imports use `@/` for `apps/gateway/src` with explicit `.ts` extensions.
+  Shared authorities use their public `@rostra/*` exports.
 - i18n keys: `namespace:dotted.key` (e.g. `common:ping.pong`).
 - Interaction customIds: `module:action:scope:arg`.
 

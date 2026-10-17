@@ -13,9 +13,9 @@ in a staff-defined **shop** (consumable items and buyable roles).
 ## technical map
 
 **file paths**
-- command: `src/modules/economy/index.ts`
-- accounts, cooldowns, leaderboard: `src/modules/economy/service.ts` (+ `service.test.ts`)
-- shop + inventory + purchase logic: `src/modules/economy/shop.ts` (+ `shop.test.ts`)
+- command: `modules/economy/index.ts`
+- accounts, cooldowns, leaderboard: `modules/economy/service.ts` (+ `service.test.ts`)
+- shop + inventory + purchase logic: `modules/economy/shop.ts` (+ `shop.test.ts`)
 - models: `prisma/schema.prisma` → `EconomyUser` (composite id `[guildId, userId]`), `ShopItem`,
   `InventoryItem`
 

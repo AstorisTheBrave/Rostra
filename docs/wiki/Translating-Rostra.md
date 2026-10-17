@@ -19,7 +19,7 @@ module plus `common.json`.
 1. See what is missing:
 
    ```
-   npm run i18n:coverage
+   pnpm i18n:coverage
    ```
 
 2. Edit or add `src/i18n/locales/<code>/<namespace>.json`. Keep every `{placeholder}` exactly as in English,
@@ -29,7 +29,7 @@ module plus `common.json`.
 3. Check your work:
 
    ```
-   npm run i18n:validate
+   pnpm i18n:validate
    ```
 
    This fails if any string does not compile or changes the placeholder set.
@@ -37,13 +37,13 @@ module plus `common.json`.
 4. Rebuild and ship:
 
    ```
-   npm run i18n:bundle    # regenerate the static bundle
-   npm run i18n:push      # push to the live store; every shard reloads with no restart
+   pnpm i18n:bundle    # regenerate the static bundle
+   pnpm i18n:push      # push to the live store; every shard reloads with no restart
    ```
 
 ## AI drafts
 
-To fill many languages quickly, a maintainer can run `npm run i18n:draft`, which machine translates every
+To fill many languages quickly, a maintainer can run `pnpm i18n:draft`, which machine translates every
 missing key as a draft for human review (it needs a translation provider configured). Drafts are validated
 before they are written, and recorded for review. Reviewed drafts go live with `i18n:push`.
 

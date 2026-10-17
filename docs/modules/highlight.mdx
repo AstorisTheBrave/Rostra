@@ -13,9 +13,9 @@ kill it from `/setup` (tenant flag `highlights`).
 ## technical map
 
 **file paths**
-- command: `src/modules/highlight/index.ts`
-- scan + DM: `src/modules/highlight/events.ts` (messageCreate)
-- cache + matching: `src/modules/highlight/service.ts` (+ `service.test.ts`)
+- command: `modules/highlight/index.ts`
+- scan + DM: `modules/highlight/events.ts` (messageCreate)
+- cache + matching: `modules/highlight/service.ts` (+ `service.test.ts`)
 - model: `Highlight` (unique per guild+user+word; word stored lowercased)
 
 **how it works** - per-guild word lists are cached in-process (`getGuildHighlights`, invalidated on

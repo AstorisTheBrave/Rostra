@@ -37,7 +37,7 @@ a hosted instance, ask the operator whether music is enabled.
 
 ## I run the bot myself and something is broken
 
-- Re run `npm run deploy:commands` after changing commands.
+- Re run `pnpm deploy:commands` after changing commands.
 - Check `DATABASE_URL` and `REDIS_URL` are set and reachable.
 - See [[Getting Started]] for setup and [[Deploying]] for updates without downtime.
 

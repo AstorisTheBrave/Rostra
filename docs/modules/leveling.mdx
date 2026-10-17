@@ -13,10 +13,10 @@ also an XP leaderboard.
 ## technical map
 
 **file paths**
-- command: `src/modules/leveling/index.ts`
-- XP-on-message handler: `src/modules/leveling/events.ts`
-- curve, accounts, rewards, leaderboard: `src/modules/leveling/service.ts` (+ `service.test.ts`)
-- rank card renderer (`@napi-rs/canvas`): `src/modules/leveling/card.ts`
+- command: `modules/leveling/index.ts`
+- XP-on-message handler: `modules/leveling/events.ts`
+- curve, accounts, rewards, leaderboard: `modules/leveling/service.ts` (+ `service.test.ts`)
+- rank card renderer (`@napi-rs/canvas`): `modules/leveling/card.ts`
 - models: `prisma/schema.prisma` → `LevelConfig`, `LevelUser`, `LevelReward`
 
 **command** - `/level`: `rank [user]` (image card), `leaderboard`, `enable`, `disable`, `announcechannel`,

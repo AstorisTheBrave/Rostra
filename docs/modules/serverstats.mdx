@@ -13,9 +13,9 @@ minutes.
 ## technical map
 
 **file paths**
-- command: `src/modules/serverstats/index.ts` (creates a Connect-denied voice channel, then registers it)
-- counts + rename + DB: `src/modules/serverstats/service.ts` (+ `service.test.ts`)
-- cron registration: `src/jobs/builtins.ts` (`poll-stats-channels`, every 10 min)
+- command: `modules/serverstats/index.ts` (creates a Connect-denied voice channel, then registers it)
+- counts + rename + DB: `modules/serverstats/service.ts` (+ `service.test.ts`)
+- cron registration: `apps/gateway/src/jobs/builtins.ts` (`poll-stats-channels`, every 10 min)
 - model: `StatsChannel` (`channelId` id, `type`, `template`)
 
 **how it works** - `pollStatsChannels` runs in the **manager** process and uses REST only (no gateway

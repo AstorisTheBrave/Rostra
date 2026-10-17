@@ -15,11 +15,11 @@ locks the server down (raises verification) and auto-lifts.
 ## technical map
 
 **file paths**
-- command + module wiring: `src/modules/security/index.ts`
-- detection events: `src/modules/security/events.ts`
-- audit-log attribution: `src/modules/security/audit.ts`
-- config + punishment: `src/modules/security/service.ts`
-- anti-raid lockdown: `src/modules/security/raid.ts` (+ `raid.test.ts`)
+- command + module wiring: `modules/security/index.ts`
+- detection events: `modules/security/events.ts`
+- audit-log attribution: `modules/security/audit.ts`
+- config + punishment: `modules/security/service.ts`
+- anti-raid lockdown: `modules/security/raid.ts` (+ `raid.test.ts`)
 - model: `prisma/schema.prisma` → `AntinukeConfig`
 
 **command** - `/security` (Administrator-only): `enable`, `disable`, `status`, `punishment <ban|kick|

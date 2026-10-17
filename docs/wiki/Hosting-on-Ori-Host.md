@@ -72,7 +72,7 @@ is locked to the egg default, and that is correct. Fill these fields instead:
 If there is an `AUTO_UPDATE` field, set it to `1` so the bot pulls the latest version on every restart.
 
 > The `MAIN_FILE` field is usually further down the Startup tab under Environment Variables, separate from the
-> Startup Command box. Set it to exactly `panel-start.mjs`. Not `src/bot.ts`, not `src/cluster.ts`, not a path
+> Startup Command box. Set it to exactly `panel-start.mjs`. Not a gateway source file, not a path
 > with folders. Just the file name. This is the field that breaks most setups.
 
 ## Step 4: add your settings as a .env file
@@ -124,7 +124,7 @@ Match the message you see to the fix.
 | You see | What it means | Fix |
 | --- | --- | --- |
 | `Cannot find package '@/config.ts'` or `@/client`, and no Prisma output above it | `node` is running the TypeScript directly, so `panel-start.mjs` never ran | Set **MAIN_FILE** to exactly `panel-start.mjs`. This is the number one cause. |
-| No Prisma lines at all before the crash | the launcher is not in control | Same fix: MAIN_FILE must be `panel-start.mjs`, not a `src/...` file |
+| No Prisma lines at all before the crash | the launcher is not in control | Same fix: MAIN_FILE must be `panel-start.mjs`, not an app source file |
 | `tsconfig.json needs import attribute of type json` | the panel is pointed at the wrong file | Same fix: MAIN_FILE is `panel-start.mjs` |
 | `MAIN_FILE is not set. Skipping execution.` | misleading. The egg prints this whenever the program exits non-zero, even when MAIN_FILE is set | Ignore this line. Read the real error above it |
 | `Skipping git operations, missing variables` | the clone fields are incomplete | Fill **Username** and **Access Token** in the Startup tab |

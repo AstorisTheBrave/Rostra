@@ -25,7 +25,7 @@ pnpm test:env         # node:test via tsx, with .env loaded, concurrency capped 
 
 ## How the codebase is organized
 
-Each feature is a self-contained **module** in `src/modules/<name>/` that default-exports a `BotModule`:
+Each feature is a self-contained **module** in `modules/<name>/` that default-exports a `BotModule`:
 
 ```ts
 const myModule: BotModule = {
@@ -39,8 +39,8 @@ const myModule: BotModule = {
 export default myModule;
 ```
 
-Modules are auto-discovered at boot - drop a folder in and it loads. Use `src/modules/core` (simple) and
-`src/modules/moderation` / `src/modules/tickets` (richer) as references.
+Modules are auto-discovered at boot - drop a folder in and it loads. Use `modules/core` (simple) and
+`modules/moderation` / `modules/tickets` (richer) as references.
 
 Shared code (import these; don't reinvent them):
 - `getPrisma()` - database (`packages/database/src/index.ts`)
@@ -62,8 +62,8 @@ Shared code (import these; don't reinvent them):
 5. **Slash-only commands**, namespaced under a top-level command via subcommands/groups.
 6. **Every user-facing string** goes through the i18n `t()` helper.
 7. **Modules are isolated** - don't import another module's internals. Shared owners use explicit
-   `@rostra/*` public exports, never package-private paths. Remaining gateway services and types still
-   use the root alias until their Task 4 extraction.
+   `@rostra/*` public exports, never package-private paths. Existing modules temporarily use the gateway
+   `@/` alias for services and types until Phase 01 replaces compatibility discovery.
 8. **Wrap I/O in try/catch** with structured Pino logs; handle missing permissions and API errors
    gracefully.
 
@@ -73,9 +73,8 @@ Shared code (import these; don't reinvent them):
 11. **Stable dependencies only** - no beta/alpha/RC/`-dev` versions unless that is the package's only
     stable channel.
 
-When trade-offs conflict, prioritize in this order: **structure, then modularity, then futureproofing.**
-Never sacrifice clear structure or module isolation for a futureproofing win, and never pull in an
-unstable release to chase one.
+When trade-offs conflict, follow decision 011: correctness and tenant isolation, security, recovery,
+measured performance, then structure and modular ownership.
 
 > Note: this project ships an AI assistant whose underlying provider is intentionally a hidden
 > implementation detail. Do not reference any AI provider or model name anywhere in code, comments,
@@ -85,7 +84,7 @@ unstable release to chase one.
 ## Adding a feature module (checklist)
 
 1. Add any Prisma models to `packages/database/prisma/schema.prisma`, then `pnpm prisma:generate`.
-2. Create `src/modules/<name>/` with `service.ts` (logic, cached config) and `index.ts` (the `BotModule`).
+2. Create `modules/<name>/` with `service.ts` (logic, cached config) and `index.ts` (the `BotModule`).
 3. Build all UI via `@rostra/discord-ui`; route component clicks with the `module:action:arg` customId convention.
 4. Add a unit test for the pure logic (`*.test.ts` beside the source).
 5. Run `typecheck` + `lint` + `test:env`; make sure the loader picks it up.

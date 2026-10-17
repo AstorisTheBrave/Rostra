@@ -44,9 +44,10 @@ Shared authorities are `@rostra/config`, `@rostra/database`, `@rostra/cache`, `@
 `@rostra/i18n`, `@rostra/contracts`, `@rostra/module-sdk` and `@rostra/discord-ui`. Web clients/UI and
 auth/operations have separate packages. The shared owners now export source through explicit package
 maps. Use `@rostra/config`, `@rostra/database`, `@rostra/cache`, `@rostra/logger`, `@rostra/i18n` and
-`@rostra/discord-ui`; tests may use `@rostra/testing`. The root `@/` alias remains only for runtime code
-awaiting Task 4. Gateway-specific types stay in `src/types/module.ts`; `JobDefinition` is exported by
-`@rostra/contracts`. Never import another package's private files, including through relative paths.
+`@rostra/discord-ui`; tests may use `@rostra/testing`. The `@/` alias is a temporary gateway and legacy
+module compatibility seam scoped to `apps/gateway/src/` plus `modules/`. Gateway-specific types stay in
+`apps/gateway/src/types/module.ts`; `JobDefinition` is exported by `@rostra/contracts`. New packages must
+not use the alias. Never import another package's private files, including through relative paths.
 
 ## Hard invariants
 
@@ -122,8 +123,8 @@ git diff --check
 ```
 
 The control plane uses pinned pnpm and one frozen lockfile. Root commands cover build, typecheck,
-lint, unit/integration tests, boundary checks and clean. Root `legacy:*` Turbo tasks temporarily own
-the existing application; do not move runtime code until its extraction task. Client generation is
+lint, unit/integration tests, boundary checks and clean. `@rostra/gateway` owns the moved runtime and
+includes the legacy module tree in its checks until Phase 01 replaces compatibility discovery. Client generation is
 uncached and runs before build/typecheck/test consumers without loading deployment credentials.
 `pnpm test` uses placeholder environment values supplied by CI or the caller; `pnpm test:env` loads
 the local environment. Both cap test-file concurrency at two; root tests serialize workspace tasks so

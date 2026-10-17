@@ -12,8 +12,8 @@ with 👍/👎 vote buttons. Staff approve or deny by number, which updates the 
 ## technical map
 
 **file paths**
-- command + render + vote handler: `src/modules/suggest/index.ts`
-- config + suggestions + vote tally: `src/modules/suggest/service.ts` (+ `service.test.ts`)
+- command + render + vote handler: `modules/suggest/index.ts`
+- config + suggestions + vote tally: `modules/suggest/service.ts` (+ `service.test.ts`)
 - models: `SuggestionConfig`, `Suggestion` (per-guild `number`), `SuggestionVote` (one per user, cascade),
   `GuildSuggestionCounter` (sequential numbers)
 

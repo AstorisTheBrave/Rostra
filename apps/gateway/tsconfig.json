@@ -1,0 +1,11 @@
+{
+	"extends": "../../tooling/typescript/node.json",
+	"compilerOptions": {
+		"paths": {
+			"@/modules/*": ["../../modules/*"],
+			"@/*": ["./src/*"]
+		}
+	},
+	"include": ["src/**/*.ts", "../../modules/**/*.ts"],
+	"exclude": ["node_modules", "dist", "build", "coverage"]
+}

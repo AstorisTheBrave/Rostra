@@ -20,12 +20,12 @@ shipped in waves); adding a language is data, not code.
 - bundled-file registration: `packages/i18n/src/bundled.ts` (**generated** - run `pnpm i18n:bundle`)
 - tooling: `i18n:bundle` (regenerate the bundle), `i18n:coverage` (completeness report), `i18n:push`
   (promote files to the live store), `i18n:validate` (CI gate: ICU compiles + placeholders match English,
-  `packages/i18n/src/validate.ts` + `src/scripts/i18n-validate.ts`), `i18n:draft` (AI-draft all missing keys for all
-  16 langs via a configurable provider, `src/scripts/i18n-draft.ts`)
+  `packages/i18n/src/validate.ts` + `apps/gateway/src/scripts/i18n-validate.ts`), `i18n:draft` (AI-draft all missing keys for all
+  16 langs via a configurable provider, `apps/gateway/src/scripts/i18n-draft.ts`)
 - live overlay + hot reload: `packages/i18n/src/live.ts` (+ `live.test.ts`), `packages/cache/src/bus.ts` (Redis control
   bus), model `LocaleString`
 - native command-metadata localization: `packages/i18n/src/commandLocalizations.ts`
-- the service (peer to tenant): `src/services/localization.ts`
+- the service (peer to tenant): `apps/gateway/src/services/localization.ts`
 - model: `UserPreference` (locale + feature opt-outs)
 
 **engine (`i18n/index.ts`)** - `t(key, vars?, locale?)` formats with **ICU MessageFormat**

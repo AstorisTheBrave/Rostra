@@ -48,7 +48,7 @@ That spawns 4 clusters of 12 shards each (48 total).
 Same entry point as native. Start the manager process:
 
 ```
-npm run start
+pnpm start
 ```
 
 With `SHARDING_MODE=hybrid` the manager uses the cluster manager instead of the native one, spawns the
@@ -76,7 +76,7 @@ from the manager exactly as before.
 
 ### Shipping changes without a full restart
 
-Most changes do not need a restart at all: translations (`npm run i18n:push`), feature flags and
+Most changes do not need a restart at all: translations (`pnpm i18n:push`), feature flags and
 kill-switches (`/owner feature set ...`), and per-server settings all apply live across every cluster. Code
 changes (new command handlers, bug fixes) use a blue-green or rolling deploy. See
 [scaling.mdx](./scaling) for the deploy runbook.

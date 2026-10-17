@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-10-17
 owner: AstorisTheBrave
 status: in-flux
 ---
@@ -17,21 +17,25 @@ can find their way around without reading the whole codebase.
 **read first each session:** this file, then `docs/architecture/index.mdx`, then only the
 `docs/modules/*.mdx` relevant to the task.
 
-**current state:** the working Discord runtime and feature modules still live in `src/`. Phase 00
-has extracted config, logging, database, cache, Discord UI and i18n into shared workspace packages.
-Contracts and test helpers have explicit public packages too. Gateway extraction and independently
-bootable applications are later tasks. See `docs/sessions/log.mdx` for measured progress.
+**current state:** the working Discord runtime lives in `apps/gateway/`, and all 42 existing features
+live under `modules/`. The compatibility loader validates every legacy module through
+`@rostra/module-sdk`; permanent fixtures preserve 47 command definitions, 48 events, components, jobs,
+gateway intents and feature flags without logging in or writing to Discord REST. Independently bootable
+API, worker, web, realtime and Activity applications remain later Phase 00 tasks.
 
 **where things live**
 - `packages/config/src/index.ts` - environment configuration (the only place env is read)
 - `packages/{logger,database,cache}/` - shared singletons through public exports
 - `packages/discord-ui/` - Components V2 primitives and safe acknowledgement
 - `packages/contracts/` - shared job registration type
+- `packages/module-sdk/` - validated manifests, lifecycle contracts and the legacy adapter
 - `packages/testing/` - isolated fixture directory lifecycle
-- `src/services/` - tenant, localization preferences and runtime services pending extraction
-- `src/utils/cardFont.ts` - asset-backed rendering helper pending its owning feature move
+- `apps/gateway/src/` - sharding, client, routing, runtime services and maintenance scripts
+- `modules/<name>/` - one behavior-preserved feature module and its tests
+- `apps/gateway/src/services/` - tenant, localization preferences and runtime services pending extraction
+- `apps/gateway/src/utils/cardFont.ts` - asset-backed rendering helper pending its owning feature move
 - `packages/i18n/src/` - translation helper + `locales/en/`
-- `src/cluster/` - sharding/IPC abstraction (`ipc.ts`); will hold `cluster.ts` manager entry
+- `apps/gateway/src/cluster.ts` and `apps/gateway/src/cluster/` - manager entrypoint and sharding/IPC
 - `packages/database/prisma/schema.prisma` - database models
 - `docs/superpowers/specs/` and `docs/superpowers/plans/` - the design spec and implementation plans
 

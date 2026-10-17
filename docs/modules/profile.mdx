@@ -13,10 +13,10 @@ edit your own card. Ported from the zyn-bot profile cog + card_generator.
 ## technical map
 
 **file paths**
-- command: `src/modules/profile/index.ts`
-- DB helpers + pure validators: `src/modules/profile/service.ts` (+ `service.test.ts`)
-- leveling/economy stats: `src/modules/profile/stats.ts` (+ `stats.test.ts`)
-- image rendering (canvas): `src/modules/profile/card.ts` (kept separate so the test never loads the
+- command: `modules/profile/index.ts`
+- DB helpers + pure validators: `modules/profile/service.ts` (+ `service.test.ts`)
+- leveling/economy stats: `modules/profile/stats.ts` (+ `stats.test.ts`)
+- image rendering (canvas): `modules/profile/card.ts` (kept separate so the test never loads the
   native canvas module)
 - model: `Profile` in `prisma/schema.prisma`
 
@@ -37,7 +37,7 @@ per guild).
   font setup.
 - The card is sent as an attachment referenced by a Components V2 media gallery
   (`gallery(["attachment://profile.png"])` + `files: [AttachmentBuilder]`). `AttachmentBuilder` is not a
-  component builder, so the `@/ui`-only invariant is respected (components still come from `@/ui`).
+  component builder, so the `@rostra/discord-ui`-only invariant is respected (components still come from `@rostra/discord-ui`).
 - Avatar and background images are fetched as bytes (5s timeout) and passed to `loadImage`; any failure
   degrades gracefully (no avatar / solid background) rather than erroring.
 - Background URLs are restricted to https with an image extension; accent is validated as 6-digit hex.

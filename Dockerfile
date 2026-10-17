@@ -19,6 +19,8 @@ COPY packages/logger/package.json ./packages/logger/package.json
 COPY packages/i18n/package.json ./packages/i18n/package.json
 COPY packages/discord-ui/package.json ./packages/discord-ui/package.json
 COPY packages/testing/package.json ./packages/testing/package.json
+COPY packages/module-sdk/package.json ./packages/module-sdk/package.json
+COPY apps/gateway/package.json ./apps/gateway/package.json
 RUN pnpm install --frozen-lockfile
 
 # Generate offline without loading deployment credentials. Migrations still use

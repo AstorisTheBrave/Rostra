@@ -13,8 +13,8 @@ with the End button.
 ## technical map
 
 **file paths**
-- command + button handler: `src/modules/poll/index.ts`
-- persistence + tally + pure `resultBar`: `src/modules/poll/service.ts` (+ `service.test.ts`)
+- command + button handler: `modules/poll/index.ts`
+- persistence + tally + pure `resultBar`: `modules/poll/service.ts` (+ `service.test.ts`)
 - models: `Poll`, `PollVote` (unique per `[pollId, userId]`, cascade-deleted with the poll)
 
 **flow** - `create` writes a `Poll` and replies with the Components V2 message (`renderPoll`), then stores

@@ -8,17 +8,17 @@ status: stable
 
 The server setup wizard: `/setup` (Administrator) opens an interactive Components V2 panel to toggle core
 systems, apply a recommended baseline, and create a log channel. All choices save to the centralized
-`GuildTenant` (see `src/services/tenant.ts`), so features resolve them from cache with no raw lookups.
+`GuildTenant` (see `apps/gateway/src/services/tenant.ts`), so features resolve them from cache with no raw lookups.
 
 ## technical map
 
 **file paths**
-- command + component: `src/modules/setup/index.ts` (+ `index.test.ts`)
+- command + component: `modules/setup/index.ts` (+ `index.test.ts`)
 - no model of its own (writes the `GuildTenant`)
 
 **command** - `/setup` (default member permission: Administrator).
 
-**panel** - feature toggles via the `@/ui` `settingsPanel` (customId `setup:toggle:<feature>`), plus
+**panel** - feature toggles via the `@rostra/discord-ui` `settingsPanel` (customId `setup:toggle:<feature>`), plus
 `setup:baseline` (enables automod/logging/welcome/security) and `setup:logchannel` (creates `#rostra-logs`
 and stores its id on the tenant). The component re-renders with `interaction.update`.
 

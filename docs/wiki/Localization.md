@@ -25,10 +25,10 @@ supports all of them from day one; translations are filled in over time.
 ## For contributors and operators
 
 - Translations live in JSON files, one folder per language. Anything missing falls back to English.
-- `npm run i18n:coverage` shows how complete each language is.
-- `npm run i18n:validate` checks that every translation compiles and keeps the same placeholders as English.
-- `npm run i18n:draft` produces machine translation drafts for review (needs a translation provider).
-- `npm run i18n:push` makes translations live across every shard with no restart.
+- `pnpm i18n:coverage` shows how complete each language is.
+- `pnpm i18n:validate` checks that every translation compiles and keeps the same placeholders as English.
+- `pnpm i18n:draft` produces machine translation drafts for review (needs a translation provider).
+- `pnpm i18n:push` makes translations live across every shard with no restart.
 
 The engine uses ICU MessageFormat, so plurals, select, and number formatting work correctly in every
 language.

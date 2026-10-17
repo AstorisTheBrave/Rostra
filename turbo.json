@@ -16,6 +16,8 @@
 		"@rostra/i18n#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"@rostra/discord-ui#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"@rostra/testing#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/module-sdk#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/gateway#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"build": {
 			"dependsOn": ["^build", "//#prisma:generate"],
 			"inputs": [
@@ -59,11 +61,8 @@
 			"inputs": ["packages/database/prisma/schema.prisma", "tooling/prisma-generate.config.ts"],
 			"outputs": []
 		},
-		"//#legacy:build": { "dependsOn": ["//#prisma:generate"], "outputs": [] },
-		"//#legacy:typecheck": { "dependsOn": ["//#prisma:generate"], "outputs": [] },
-		"//#legacy:lint": { "passThroughEnv": ["DIRECT_URL"], "outputs": [] },
-		"//#legacy:test": {
-			"dependsOn": ["//#prisma:generate"],
+		"@rostra/gateway#test": {
+			"dependsOn": ["^build", "//#prisma:generate"],
 			"cache": false,
 			"passThroughEnv": [
 				"DISCORD_TOKEN",
@@ -73,7 +72,6 @@
 				"LOG_LEVEL"
 			],
 			"outputs": []
-		},
-		"//#legacy:clean": { "cache": false, "outputs": [] }
+		}
 	}
 }

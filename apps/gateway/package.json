@@ -1,0 +1,43 @@
+{
+	"name": "@rostra/gateway",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "tsc --noEmit",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check src ../../modules package.json tsconfig.json",
+		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\" \"../../modules/**/*.test.ts\""
+	},
+	"dependencies": {
+		"@fastify/rate-limit": "^11.1.0",
+		"@keyv/redis": "^5.1.6",
+		"@napi-rs/canvas": "^1.0.2",
+		"@rostra/cache": "workspace:*",
+		"@rostra/config": "workspace:*",
+		"@rostra/contracts": "workspace:*",
+		"@rostra/database": "workspace:*",
+		"@rostra/discord-ui": "workspace:*",
+		"@rostra/i18n": "workspace:*",
+		"@rostra/logger": "workspace:*",
+		"@rostra/module-sdk": "workspace:*",
+		"@top-gg/sdk": "^3.1.6",
+		"bad-words": "^4.0.0",
+		"bullmq": "^5.79.2",
+		"discord-hybrid-sharding": "^3.0.1",
+		"discord.js": "^14.16.3",
+		"fastify": "^5.12.1",
+		"ioredis": "^5.4.1",
+		"keyv": "^5.2.1",
+		"lavalink-client": "^2.10.3",
+		"pino": "^10.3.1",
+		"tsx": "^4.23.0",
+		"zod": "^4.4.3"
+	},
+	"devDependencies": {
+		"@resvg/resvg-js": "^2.6.2",
+		"@types/node": "^26.1.0",
+		"lucide-static": "^1.23.0",
+		"typescript": "^7.0.2"
+	}
+}

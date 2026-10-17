@@ -14,10 +14,10 @@ their own **custom rules** (keyword / wildcard / regex with a per-rule action).
 ## technical map
 
 **file paths**
-- command + messageCreate guard: `src/modules/automod/index.ts`
-- detection logic + config + enforcement + rule CRUD: `src/modules/automod/service.ts`
-- pure detectors: `src/modules/automod/checks.ts` (+ `checks.test.ts`)
-- pure custom-rule engine: `src/modules/automod/rules.ts` (+ `rules.test.ts`)
+- command + messageCreate guard: `modules/automod/index.ts`
+- detection logic + config + enforcement + rule CRUD: `modules/automod/service.ts`
+- pure detectors: `modules/automod/checks.ts` (+ `checks.test.ts`)
+- pure custom-rule engine: `modules/automod/rules.ts` (+ `rules.test.ts`)
 - models: `prisma/schema.prisma` → `AutomodConfig`, `AutomodRule`
 
 **command** - `/automod` (Manage Server): `enable`, `disable`, `status`, `action <delete|warn|timeout>`,

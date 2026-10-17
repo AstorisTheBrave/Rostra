@@ -13,9 +13,9 @@ someone talks. `/sticky set|remove|list` (Manage Server). Admins can kill it fro
 ## technical map
 
 **file paths**
-- command: `src/modules/sticky/index.ts`
-- repost loop: `src/modules/sticky/events.ts` (messageCreate, debounced)
-- cache + DB: `src/modules/sticky/service.ts` (+ `service.test.ts`)
+- command: `modules/sticky/index.ts`
+- repost loop: `modules/sticky/events.ts` (messageCreate, debounced)
+- cache + DB: `modules/sticky/service.ts` (+ `service.test.ts`)
 - model: `StickyMessage` (`channelId` is the id; `lastMessageId` tracks the current repost)
 
 **how it works** - per-guild sticky config is cached in-process (`getGuildStickies`, invalidated on

@@ -1,14 +1,20 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { temporaryDirectory } from "@rostra/testing";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const checker = join(root, "tooling/scripts/verify-workspace.mjs");
-const controls = ["package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml", "turbo.json"];
+const controls = [
+	"package.json",
+	"pnpm-workspace.yaml",
+	"pnpm-lock.yaml",
+	"turbo.json",
+	"apps/gateway/package.json",
+];
 
 test("active installation guides never bypass the frozen workspace lock with npm", () => {
 	const guides = ["README.md", "CONTRIBUTING.md"];
@@ -29,7 +35,11 @@ function check(directory: string) {
 
 function fixture(t: test.TestContext) {
 	const directory = temporaryDirectory(t);
-	for (const name of controls) copyFileSync(join(root, name), join(directory, name));
+	for (const name of controls) {
+		const destination = join(directory, name);
+		mkdirSync(dirname(destination), { recursive: true });
+		copyFileSync(join(root, name), destination);
+	}
 	return directory;
 }
 

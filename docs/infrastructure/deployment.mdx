@@ -19,14 +19,14 @@ dev/test commands work today.
 - Canonical setup: [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 **develop**
-- `pnpm dev` - runs `src/cluster.ts` via tsx watch
+- `pnpm dev` - runs `apps/gateway/src/cluster.ts` via tsx watch
 - `pnpm typecheck` - generate the client, then `tsc --noEmit`
 - `pnpm lint` / `pnpm lint:fix` - Biome
 - `pnpm test` - tests using caller-supplied placeholders; `pnpm test:env` loads local `.env`
 
 **build & run**
 - `pnpm build` - generate the client and check TypeScript without emitting a bundle
-- `pnpm start` - run `src/cluster.ts` through tsx
+- `pnpm start` - run `apps/gateway/src/cluster.ts` through tsx
 - `pnpm deploy:commands` - register slash commands with Discord
 
 **database**

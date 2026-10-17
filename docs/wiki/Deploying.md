@@ -7,7 +7,7 @@ strategy with little or no user visible downtime.
 
 These apply across every shard and cluster instantly over the Redis control bus:
 
-- Translations: `npm run i18n:push`
+- Translations: `pnpm i18n:push`
 - Feature flags and kill switches: `/owner feature set <name> <on|off>`
 - Per server settings and most content (tags, autoresponders, welcome text, thresholds)
 

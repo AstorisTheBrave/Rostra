@@ -9,7 +9,7 @@ status: active
 How Rostra scales from ~100K to 1M+ servers and ships changes with minimal downtime. Decisions locked:
 **hybrid clustering** (discord-hybrid-sharding), **blue-green deploys**, **AI translation drafts + review**,
 and **dormant-by-default feature flags**. The coordination primitive for everything below is the Redis
-**control bus** (`src/services/bus.ts`).
+**control bus** (`packages/cache/src/bus.ts`).
 
 ## Shards & clusters
 
@@ -19,7 +19,7 @@ owning a contiguous shard range.
 
 **Plan (discord-hybrid-sharding, behind `SHARDING_MODE=hybrid`):**
 - A `ClusterManager` spawns N clusters; each cluster internally shards over its range. The existing `Ipc`
-  abstraction (`src/cluster/ipc.ts`) gets a real `HybridIpc` over the lib's `ClusterClient` (cross-cluster
+  abstraction (`apps/gateway/src/cluster/ipc.ts`) gets a real `HybridIpc` over the lib's `ClusterClient` (cross-cluster
   `broadcastEval`), so modules that use `Ipc`/`broadcastEval`/the bus need no changes.
 - **Pinned shard count**: fetch `GET /gateway/bot` recommended, add a buffer, round to a multiple of
   `max_concurrency`, and pin `TOTAL_SHARDS` so every cluster agrees on `shardIdForGuildId` (per-guild
@@ -31,7 +31,7 @@ owning a contiguous shard range.
   in-memory state (raid windows, spam buckets, afk/snipe) is single-owner. Cross-cluster signals
   (modmail relay, i18n reload, feature flags) ride the control bus.
 - **Single-instance jobs**: the manager crons (feeds, server-stats, autopost, command sync) must run on
-  exactly one cluster. `src/services/leader.ts` (`startWhenLeader`) holds a renewing Redis lease;
+  exactly one cluster. `apps/gateway/src/services/leader.ts` (`startWhenLeader`) holds a renewing Redis lease;
   `cluster.ts` gates the crons on it. If the leader dies, the lease expires and a standby takes over.
 - **Resilience**: a cluster crash drops only its shards (they RESUME in seconds); the rest serve.
 
@@ -44,8 +44,8 @@ wiring `discord-hybrid-sharding`'s `ClusterManager` + identify queue is the rema
 Split every change into **data** (instant, fleet-wide, no restart) or **code** (rolling/blue-green).
 
 **Data / config / content -> instant via the control bus + DB/Redis (built):**
-- Translations: `LocaleString` overlay + `npm run i18n:push` (`src/i18n/live.ts`).
-- Feature flags / kill-switches: `src/services/featureFlags.ts` + `/owner feature set` - flip a feature on
+- Translations: `LocaleString` overlay + `pnpm i18n:push` (`packages/i18n/src/live.ts`).
+- Feature flags / kill-switches: `apps/gateway/src/services/featureFlags.ts` + `/owner feature set` - flip a feature on
   or off fleet-wide in seconds (e.g. `/owner feature set ai off` when an upstream degrades).
 - Per-guild config + feature toggles: tenant config (cached, invalidated on write).
 - Most "content" (tags, autoresponders, welcome text, thresholds) already lives in the DB.

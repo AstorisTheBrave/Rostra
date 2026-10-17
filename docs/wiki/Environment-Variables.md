@@ -34,7 +34,7 @@ Free hosted options exist for both if you do not want to install them.
 | `LAVALINK_NODES` | Music audio nodes, as a JSON list. Leave as `[]` to turn music off. |
 | `TOPGG_TOKEN`, `TOPGG_WEBHOOK_AUTH` | Bot list stats and vote webhook, only if you list on top.gg. |
 | `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | Backend for the assistant command. Optional. |
-| `TRANSLATE_API_KEY`, `TRANSLATE_BASE_URL`, `TRANSLATE_MODEL` | Only for `npm run i18n:draft` when generating translation drafts. |
+| `TRANSLATE_API_KEY`, `TRANSLATE_BASE_URL`, `TRANSLATE_MODEL` | Only for `pnpm i18n:draft` when generating translation drafts. |
 
 ## Scaling (advanced)
 

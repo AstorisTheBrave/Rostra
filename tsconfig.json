@@ -3,9 +3,12 @@
 	"compilerOptions": {
 		"outDir": "dist",
 		"rootDir": ".",
-		"paths": { "@/*": ["./src/*"] }
+		"paths": {
+			"@/modules/*": ["./modules/*"],
+			"@/*": ["./apps/gateway/src/*"]
+		}
 	},
-	"include": ["src/**/*.ts", "tooling/**/*.ts"],
+	"include": ["apps/gateway/src/**/*.ts", "modules/**/*.ts", "tooling/**/*.ts"],
 	"exclude": [
 		"node_modules",
 		"dist",

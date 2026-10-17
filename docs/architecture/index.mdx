@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-10-17
 owner: AstorisTheBrave
 status: in-flux
 ---
@@ -12,9 +12,10 @@ lives in `docs/superpowers/specs/2026-06-05-unified-bot-core-platform-design.md`
 
 ## technical map
 
-**Phase 00 extraction status (2026-10-17):** runtime entrypoints and modules remain under `src/`.
+**Phase 00 extraction status (2026-10-17):** the runtime is an `@rostra/gateway` workspace application
+under `apps/gateway/`, and all existing feature folders are under `modules/`.
 Shared owners are `@rostra/config`, `@rostra/logger`, `@rostra/database`, `@rostra/cache`,
-`@rostra/i18n`, `@rostra/discord-ui`, `@rostra/contracts` and `@rostra/testing`. Their explicit export
+`@rostra/i18n`, `@rostra/discord-ui`, `@rostra/contracts`, `@rostra/module-sdk` and `@rostra/testing`. Their explicit export
 maps resolve ESM TypeScript source, matching the existing `tsx` runtime and no-emit build. No compiled
 package artifacts are needed at runtime. Package typechecks use the shared strict configuration and
 do not inherit the root alias.
@@ -26,10 +27,12 @@ gateway internals. The i18n root remains the pure translator; `/bundled`, `/comm
 `/locales` and `/validate` expose optional entrypoints. Discord UI exports all components at its root
 and acknowledgement through `/safeAck`. The dependency graph is acyclic and checked at the root gate.
 
-The shared `JobDefinition` lives in contracts. Gateway-specific `BotModule` and `BotClient` types
-remain in `src/types/module.ts` for Task 4; its job type re-export is the sole temporary type seam.
-Tenant preferences, scheduler, cron, gateway services and asset-bound card rendering stay with the
-runtime until their owning slices. All migrated callers already use package imports.
+The shared `JobDefinition` lives in contracts. `@rostra/module-sdk` defines complete manifest and
+lifecycle contracts; its compatibility adapter validates IDs, rejects duplicates and wires abort to
+idempotent stop. Gateway-specific `BotModule` and `BotClient` types remain in
+`apps/gateway/src/types/module.ts` while Phase 01 replaces legacy discovery. Tenant preferences,
+scheduler, cron, gateway services and asset-bound card rendering stay with the runtime until their
+owning slices.
 
 Prisma schema and historical migrations live in `packages/database/prisma/`. Root `prisma.config.ts`
 retains migration URL and dotenv behavior; the separate generation config stays credential-free.
@@ -38,19 +41,23 @@ The Docker install layer includes every package manifest before frozen installat
 byte-level SHA-256 tests and disables checkout line-ending conversion. Service migration, image and
 rollback execution remain unverified here and belong to the deployment slice.
 
-**existing process topology (runtime still in the root application)**
+**existing process topology (`apps/gateway/`)**
 ```
 cluster.ts (manager)
   ├─ ShardingManager (auto shards, respawn)
   ├─ Fastify: /health, /health/shards, /metrics, /votes/topgg
   ├─ top.gg autoposter (aggregates guild count across shards via IPC, then posts)
   └─ N × bot.ts (one BotClient per shard)
-        ├─ loaders: commands, events, interactions, jobs (auto-discover src/modules/*)
+        ├─ loaders: commands, events, interactions, jobs (auto-discover modules/*)
         ├─ services: getPrisma(), getCache(), getLogger(), createIpc(client)
         └─ BullMQ workers (in-process; splittable later)
 ```
 
-**sharding / IPC** - `src/cluster/ipc.ts` defines an `Ipc` interface (`broadcast`, `fetchValues`).
+The loader discovers the repository-level `modules/` tree, passes every module through the compatibility
+adapter, then registers the unchanged command/event/component/job objects. Stable fixtures prove parity
+against the pre-move registry. The local `@/` alias is limited to this gateway compatibility window.
+
+**sharding / IPC** - `apps/gateway/src/cluster/ipc.ts` defines an `Ipc` interface (`broadcast`, `fetchValues`).
 Today it's `NativeIpc` (discord.js `broadcastEval`). Switching to `discord-hybrid-sharding` later is a
 `SHARDING_MODE=hybrid` config change + a `HybridIpc` class - modules never touch the sharding lib.
 

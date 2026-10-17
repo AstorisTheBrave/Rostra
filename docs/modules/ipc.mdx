@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-10-17
 owner: AstorisTheBrave
 status: in-flux
 ---
@@ -14,8 +14,8 @@ sharding technology can be swapped later without changing any feature code.
 ## technical map
 
 **file paths**
-- primary: `src/cluster/ipc.ts`
-- test: `src/cluster/ipc.test.ts`
+- primary: `apps/gateway/src/cluster/ipc.ts`
+- test: `apps/gateway/src/cluster/ipc.test.ts`
 
 **exports**
 - `interface Ipc` - `{ mode, broadcast(fn), fetchValues(fn) }`
@@ -23,10 +23,10 @@ sharding technology can be swapped later without changing any feature code.
 
 **depends on**
 - `discord.js` `Client` (`client.shard.broadcastEval`)
-- `src/config.ts` - `config.sharding.mode`
+- `@rostra/config` - `config.sharding.mode`
 
 **imported by**
-- (later) `cluster.ts` manager (stats aggregation, vote routing) and any cross-shard feature
+- the gateway manager (stats aggregation, vote routing) and any cross-shard feature
 
 ## gotchas
 

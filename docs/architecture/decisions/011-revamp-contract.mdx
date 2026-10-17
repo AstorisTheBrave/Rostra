@@ -66,21 +66,21 @@ private; public identity is Rostra.
 
 ## Workspace control plane
 
-The current root application stays in `src/` while pnpm selects only `apps/*`, `packages/*`,
-`modules/*`, `integrations/*`, `games/*` and `tooling/*`, with explicit private/generated exclusions.
+The Discord runtime now lives in `apps/gateway/`, with feature folders under `modules/`. pnpm selects
+`apps/*`, `packages/*`, `modules/*`, `integrations/*`, `games/*` and `tooling/*`, with explicit private/generated exclusions.
 Use the pinned package manager and `pnpm install --frozen-lockfile`. Existing dependency resolutions
 were imported from the previous lockfile and the security overrides moved into workspace settings.
 Dependency build scripts are explicitly allowed or denied, package-provided agent skills are disabled,
 and task invocation fails instead of silently reinstalling outdated dependencies.
 
-Turbo root aliases cover build, typecheck, lint, tests, integration tests and clean. Temporary
-`legacy:*` root tasks keep the existing app in the graph without recursively invoking the aliases.
+Turbo root aliases cover build, typecheck, lint, tests, integration tests and clean. The gateway is a
+normal workspace application; root tests run repository tooling after serialized workspace tests.
 Build outputs are `dist/` and `build/`; checks have no artifact outputs. Shared TypeScript/Biome files
 are global cache inputs, normal Git exclusions remain enabled, and tests and clean are never cached.
 Client generation is an uncached prerequisite for build/typecheck/test consumers because its output
 lives in platform-specific dependencies. Its separate Prisma config reads only the existing schema,
 without loading local deployment credentials. Migrations continue using `prisma.config.ts` unchanged.
-No runtime source or migration history moved in this slice. Integration is a graph entrypoint only,
+Task 4 moved runtime source without moving migration history. Integration is a graph entrypoint only,
 with no service integration tests yet. Existing build behavior remains strict no-emit compilation.
 
 On 2026-10-17, [pnpm's current stable release](https://github.com/pnpm/pnpm/releases/tag/v12.14.0)
@@ -106,6 +106,12 @@ package imports, undeclared shared-package dependencies, manifest cycles and dup
 authorities. Only gateway-specific types and runtime services keep root aliases. See the current
 architecture map for exact ownership and optional subpath exports. Earlier control-plane notes above
 describe the Task 2 baseline; they do not imply that shared runtime source still lives in `src/`.
+
+Task 4 added `@rostra/gateway` and `@rostra/module-sdk`, moved the 42 legacy feature directories to
+`modules/`, and removed the root legacy Turbo tasks. The adapter validates module IDs and lifecycle
+cancellation without rewriting feature behavior. Command and module fixtures run with fake credentials,
+block network access and preserve the pre-move registry. The local gateway alias remains a temporary
+compatibility seam until Phase 01 replaces discovery.
 
 Later slices have one ownership and security contract, with temporary compatibility imports only where
 needed for parity. Public documentation must distinguish target ownership from verified implementation.

@@ -1,0 +1,533 @@
+{
+	"intents": [
+		"DirectMessages",
+		"GuildBans",
+		"GuildEmojisAndStickers",
+		"GuildInvites",
+		"GuildMembers",
+		"GuildMessageReactions",
+		"GuildMessages",
+		"GuildPresences",
+		"GuildVoiceStates",
+		"GuildWebhooks",
+		"Guilds",
+		"MessageContent"
+	],
+	"partials": ["Channel", "GuildMember", "Message", "Reaction", "User"],
+	"featureFlags": [
+		{
+			"name": "ai",
+			"default": true,
+			"live": true
+		}
+	],
+	"modules": [
+		{
+			"name": "ai",
+			"commands": ["ask"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "automod",
+			"commands": ["automod"],
+			"events": [
+				{
+					"name": "messageCreate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "birthday",
+			"commands": ["birthday"],
+			"events": [
+				{
+					"name": "ready",
+					"once": true
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "bulkrole",
+			"commands": ["role"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "core",
+			"commands": ["help", "ping", "shards", "stats"],
+			"events": [
+				{
+					"name": "ready",
+					"once": true
+				}
+			],
+			"components": ["help", "shards"],
+			"jobs": []
+		},
+		{
+			"name": "counting",
+			"commands": ["counting"],
+			"events": [
+				{
+					"name": "messageCreate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "economy",
+			"commands": ["economy"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "extras",
+			"commands": ["afk", "autoresponder", "snipe"],
+			"events": [
+				{
+					"name": "messageCreate",
+					"once": false
+				},
+				{
+					"name": "messageDelete",
+					"once": false
+				},
+				{
+					"name": "ready",
+					"once": true
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "feedback",
+			"commands": ["feedback"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "feeds",
+			"commands": ["feeds"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "games",
+			"commands": ["game"],
+			"events": [],
+			"components": ["game"],
+			"jobs": []
+		},
+		{
+			"name": "giveaways",
+			"commands": ["giveaway"],
+			"events": [
+				{
+					"name": "ready",
+					"once": true
+				}
+			],
+			"components": ["giveaway"],
+			"jobs": []
+		},
+		{
+			"name": "highlight",
+			"commands": ["highlight"],
+			"events": [
+				{
+					"name": "messageCreate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "joinToCreate",
+			"commands": ["voicehub"],
+			"events": [
+				{
+					"name": "voiceStateUpdate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "leveling",
+			"commands": ["level"],
+			"events": [
+				{
+					"name": "messageCreate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "logging",
+			"commands": ["logging"],
+			"events": [
+				{
+					"name": "channelCreate",
+					"once": false
+				},
+				{
+					"name": "channelDelete",
+					"once": false
+				},
+				{
+					"name": "guildBanAdd",
+					"once": false
+				},
+				{
+					"name": "guildBanRemove",
+					"once": false
+				},
+				{
+					"name": "guildMemberAdd",
+					"once": false
+				},
+				{
+					"name": "guildMemberRemove",
+					"once": false
+				},
+				{
+					"name": "guildMemberUpdate",
+					"once": false
+				},
+				{
+					"name": "messageDelete",
+					"once": false
+				},
+				{
+					"name": "messageDeleteBulk",
+					"once": false
+				},
+				{
+					"name": "messageUpdate",
+					"once": false
+				},
+				{
+					"name": "roleCreate",
+					"once": false
+				},
+				{
+					"name": "roleDelete",
+					"once": false
+				},
+				{
+					"name": "voiceStateUpdate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "moderation",
+			"commands": ["mod"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "modmail",
+			"commands": ["modmail"],
+			"events": [
+				{
+					"name": "messageCreate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "music",
+			"commands": ["music"],
+			"events": [
+				{
+					"name": "ready",
+					"once": true
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "owner",
+			"commands": ["owner"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "poll",
+			"commands": ["poll"],
+			"events": [],
+			"components": ["poll"],
+			"jobs": []
+		},
+		{
+			"name": "preferences",
+			"commands": ["preferences"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "profile",
+			"commands": ["profile"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "reactionroles",
+			"commands": ["reactionrole"],
+			"events": [],
+			"components": ["rr", "rrs"],
+			"jobs": []
+		},
+		{
+			"name": "reminders",
+			"commands": ["reminder"],
+			"events": [
+				{
+					"name": "ready",
+					"once": true
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "reputation",
+			"commands": ["rep"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "roleplay",
+			"commands": ["roleplay"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "security",
+			"commands": ["security"],
+			"events": [
+				{
+					"name": "channelCreate",
+					"once": false
+				},
+				{
+					"name": "channelDelete",
+					"once": false
+				},
+				{
+					"name": "guildBanAdd",
+					"once": false
+				},
+				{
+					"name": "guildMemberAdd",
+					"once": false
+				},
+				{
+					"name": "guildMemberAdd",
+					"once": false
+				},
+				{
+					"name": "guildMemberRemove",
+					"once": false
+				},
+				{
+					"name": "guildUpdate",
+					"once": false
+				},
+				{
+					"name": "roleCreate",
+					"once": false
+				},
+				{
+					"name": "roleDelete",
+					"once": false
+				},
+				{
+					"name": "webhooksUpdate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "serverstats",
+			"commands": ["serverstats"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "setup",
+			"commands": ["setup"],
+			"events": [],
+			"components": ["setup"],
+			"jobs": []
+		},
+		{
+			"name": "starboard",
+			"commands": ["starboard"],
+			"events": [
+				{
+					"name": "messageCreate",
+					"once": false
+				},
+				{
+					"name": "messageDelete",
+					"once": false
+				},
+				{
+					"name": "messageReactionAdd",
+					"once": false
+				},
+				{
+					"name": "messageReactionRemove",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "steal",
+			"commands": ["steal"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "sticky",
+			"commands": ["sticky"],
+			"events": [
+				{
+					"name": "messageCreate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "suggest",
+			"commands": ["suggest"],
+			"events": [],
+			"components": ["sug"],
+			"jobs": []
+		},
+		{
+			"name": "tags",
+			"commands": ["tag"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "tickets",
+			"commands": ["ticket"],
+			"events": [
+				{
+					"name": "messageCreate",
+					"once": false
+				}
+			],
+			"components": ["ticket"],
+			"jobs": []
+		},
+		{
+			"name": "trivia",
+			"commands": ["trivia"],
+			"events": [],
+			"components": ["trivia"],
+			"jobs": []
+		},
+		{
+			"name": "utility",
+			"commands": ["util"],
+			"events": [],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "vanityroles",
+			"commands": ["vanityrole"],
+			"events": [
+				{
+					"name": "presenceUpdate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "verification",
+			"commands": ["verification"],
+			"events": [
+				{
+					"name": "guildMemberAdd",
+					"once": false
+				}
+			],
+			"components": ["verify"],
+			"jobs": []
+		},
+		{
+			"name": "voicerole",
+			"commands": ["voicerole"],
+			"events": [
+				{
+					"name": "voiceStateUpdate",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		},
+		{
+			"name": "welcome",
+			"commands": ["welcome"],
+			"events": [
+				{
+					"name": "guildMemberAdd",
+					"once": false
+				},
+				{
+					"name": "guildMemberRemove",
+					"once": false
+				}
+			],
+			"components": [],
+			"jobs": []
+		}
+	]
+}

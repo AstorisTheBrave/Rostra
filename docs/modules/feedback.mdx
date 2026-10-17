@@ -12,8 +12,8 @@ Lets members send feedback to the staff: `/feedback send` posts their message in
 ## technical map
 
 **file paths**
-- command: `src/modules/feedback/index.ts`
-- config: `src/modules/feedback/service.ts`
+- command: `modules/feedback/index.ts`
+- config: `modules/feedback/service.ts`
 - model: `prisma/schema.prisma` → `FeedbackConfig`
 
 **command** - `/feedback send <message>` · `/feedback setup <channel> [anonymous]` (Manage Server).
@@ -23,5 +23,5 @@ Lets members send feedback to the staff: `/feedback send` posts their message in
 ## gotchas
 
 - The submitter's ack is ephemeral; the feedback post goes to the configured channel as a Components-V2
-  container (built via `@/ui`). When `anonymous` is on, the author isn't shown.
+  container (built via `@rostra/discord-ui`). When `anonymous` is on, the author isn't shown.
 - Requires `prisma migrate` for `FeedbackConfig`.

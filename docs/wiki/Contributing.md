@@ -9,13 +9,14 @@ Fastify, and Biome for lint and format. ESM only.
 
 ## Project shape
 
-- `src/modules/<name>/` is one self contained feature, exporting commands, events, interactions, jobs, and
+- `modules/<name>/` is one self contained feature, exporting commands, events, interactions, jobs, and
   i18n. Modules do not import each other's internals, only shared services, utils, and types.
-- `src/services/` holds the platform: database, cache, the localization service, the control bus, feature
+- `apps/gateway/src/services/` holds gateway-only runtime services; shared config, database, cache,
+  logging, localization and Discord UI live in public `packages/`.
   flags, leader election, and the scheduler.
-- `src/ui/` is the single source of truth for the interface. All UI is built from here using Components V2;
+- `@rostra/discord-ui` is the single source of truth for the interface. All UI uses Components V2;
   modules never build raw discord.js components.
-- `src/i18n/` is the localization engine. Every user facing string goes through the `t()` helper.
+- `@rostra/i18n` is the localization engine. Every user facing string goes through the `t()` helper.
 - `prisma/schema.prisma` is the data model.
 
 ## Conventions

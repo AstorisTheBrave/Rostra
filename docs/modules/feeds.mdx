@@ -14,9 +14,9 @@ set.
 ## technical map
 
 **file paths**
-- command: `src/modules/feeds/index.ts`
-- polling + APIs + DB: `src/modules/feeds/service.ts` (+ `service.test.ts`)
-- cron registration: `src/jobs/builtins.ts` (poll-feeds, every 5 min)
+- command: `modules/feeds/index.ts`
+- polling + APIs + DB: `modules/feeds/service.ts` (+ `service.test.ts`)
+- cron registration: `apps/gateway/src/jobs/builtins.ts` (poll-feeds, every 5 min)
 - model: `FeedSubscription` (unique per guild+type+source)
 
 **how it polls** - the `poll-feeds` cron runs in the **manager** process and posts via REST

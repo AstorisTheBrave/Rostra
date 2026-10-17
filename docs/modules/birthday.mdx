@@ -12,9 +12,9 @@ optionally giving them a temporary birthday role for the day.
 ## technical map
 
 **file paths**
-- command: `src/modules/birthday/index.ts`
-- daily scheduler: `src/modules/birthday/events.ts`
-- storage + helpers: `src/modules/birthday/service.ts` (+ `service.test.ts`)
+- command: `modules/birthday/index.ts`
+- daily scheduler: `modules/birthday/events.ts`
+- storage + helpers: `modules/birthday/service.ts` (+ `service.test.ts`)
 - models: `prisma/schema.prisma` → `BirthdayConfig`, `Birthday`
 
 **command** - `/birthday`: `set <day> <month> [year]`, `remove`, `view [user]`, `next`, and (Manage

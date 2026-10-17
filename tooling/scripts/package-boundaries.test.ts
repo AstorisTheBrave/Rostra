@@ -15,16 +15,16 @@ test("package boundary guard rejects private imports and duplicate shared author
 	]);
 	for (const source of [
 		'import x from "@rostra/config/src/index.ts";',
-		'export * from "../../../packages/config/src/index.ts";',
+		'export * from "../../packages/config/src/index.ts";',
 		'const x = import("@rostra/database/private");',
 		"const x = process.env.SECRET;",
 		"const x = new PrismaClient();",
 	]) {
-		assert.ok(sourceViolations("src/modules/example/index.ts", source, packages).length, source);
+		assert.ok(sourceViolations("modules/example/index.ts", source, packages).length, source);
 	}
 	assert.deepEqual(
 		sourceViolations(
-			"src/modules/example/index.ts",
+			"modules/example/index.ts",
 			'import { config } from "@rostra/config";',
 			packages,
 		),

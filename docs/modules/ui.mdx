@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-10-17
 owner: AstorisTheBrave
 status: stable
 ---
@@ -14,13 +14,13 @@ instead of re-writing builder boilerplate.
 ## technical map
 
 **file paths**
-- barrel (import from here): `src/ui/index.ts` → `@/ui`
-- interactive primitives: `src/ui/interactive.ts`
-- higher-level patterns: `src/ui/patterns.ts`
-- layout primitives (re-exported): `src/utils/components.ts`
-- tests: `src/ui/ui.test.ts`
+- barrel (import from here): `packages/discord-ui/src/index.ts` -> `@rostra/discord-ui`
+- interactive primitives: `packages/discord-ui/src/interactive.ts`
+- higher-level patterns: `packages/discord-ui/src/patterns.ts`
+- layout primitives (re-exported): `packages/discord-ui/src/components.ts`
+- tests: `packages/discord-ui/src/ui.test.ts`
 
-**import** - `import { container, text, button, actionRow, confirmRow, settingsPanel, paginatorRow, reply } from "@/ui";`
+**import** - use the public `@rostra/discord-ui` export.
 
 **primitives (interactive.ts)** - `button(spec)`, `linkButton(label,url)`, `actionRow(...)`,
 `buttonGrid(buttons)` (auto-chunks to 5×5), `stringSelect(id, options, opts)`, `modal(id, title, inputs)`,
@@ -37,11 +37,11 @@ label)` + `settingsPanel(prefix, items)` (on/off config grid), `paginatorRow(pre
 uploaded, else a unicode fallback, so UI looks fine immediately. `EMOJI_FALLBACK` is the semantic registry
 (status + per-module + system/stats + controls); `EMOJI_NAMES` lists the keys. Custom art is generated and
 uploaded by two build-time scripts:
-- `npm run emojis:generate` - rasterises Lucide icons onto coloured badges (white stroke on a rounded
+- `pnpm emojis:generate` - rasterises Lucide icons onto coloured badges (white stroke on a rounded
   accent square, 128px) via `@resvg/resvg-js` into `assets/emojis/<name>.png`. Mapping lives in
-  `src/scripts/generate-emojis.ts`.
-- `npm run emojis:upload` - uploads those PNGs as the bot's **application emojis** (usable in every server)
-  and writes their ids into `src/ui/emoji-ids.json`. Idempotent (reuses existing by name).
+  `apps/gateway/src/scripts/generate-emojis.ts`.
+- `pnpm emojis:upload` - uploads those PNGs as the bot's **application emojis** (usable in every server)
+  and writes their ids into `packages/discord-ui/src/emoji-ids.json`. Idempotent (reuses existing by name).
 
 Both scripts and their deps (`lucide-static`, `@resvg/resvg-js`) are devDependencies; the runtime only
 reads `emoji-ids.json` (ships empty -> all unicode until uploaded).
@@ -53,8 +53,7 @@ reads `emoji-ids.json` (ships empty -> all unicode until uploaded).
   wire the "onClick". Keep prefixes unique per module.
 - `button()` always sets `disabled` to a concrete boolean. Action buttons need `id`; link buttons need `url`
   (mutually exclusive).
-- `@/ui` re-exports `@/utils/components.ts`, so it's a superset - existing modules importing the latter keep
-  working; new code should import from `@/ui`.
+- The package root exports layouts, interactive primitives, patterns, emojis and acknowledgement helpers.
 - `reply.components()` accepts button and select action rows alongside containers (the `TopLevel` type
   includes `ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>`), so a panel can mix a `container`
   with a `stringSelect`/`paginatorRow` in one V2 reply.

@@ -50,28 +50,23 @@ try {
 		);
 	}
 	assert.match(pkg.scripts["check:boundaries"], /verify-workspace\.mjs/);
-	assert.match(pkg.scripts["legacy:test"], /--test-concurrency=2/);
 	assert.match(
 		pkg.scripts.test,
 		/--concurrency=1/,
 		"Serialize test tasks to cap total active test files at two",
 	);
-	assert.match(pkg.scripts["legacy:test"], /tooling\/\*\*\/\*\.test\.ts/);
+	assert.match(pkg.scripts.test, /--test-concurrency=2/);
+	assert.match(pkg.scripts.test, /tooling\/\*\*\/\*\.test\.ts/);
+	const gateway = JSON.parse(read("apps/gateway/package.json"));
+	assert.match(gateway.scripts.test, /--test-concurrency=2/);
+	assert.match(gateway.scripts.test, /\.\.\/\.\.\/modules\/\*\*\/\*\.test\.ts/);
 	const { tasks } = JSON.parse(read("turbo.json"));
 	for (const name of ["build", "typecheck", "lint", "test", "test:integration", "clean"]) {
 		assert.ok(Array.isArray(tasks[name]?.outputs), `${name}: declare outputs`);
 		if (name !== "clean")
 			assert.ok(Array.isArray(tasks[name]?.dependsOn), `${name}: declare dependsOn`);
 	}
-	for (const name of [
-		"build",
-		"typecheck",
-		"test",
-		"test:integration",
-		"//#legacy:build",
-		"//#legacy:typecheck",
-		"//#legacy:test",
-	]) {
+	for (const name of ["build", "typecheck", "test", "test:integration"]) {
 		assert.ok(
 			tasks[name].dependsOn.includes("//#prisma:generate"),
 			`${name}: dependsOn must generate the client`,

@@ -53,6 +53,7 @@ test("package boundary guard rejects private imports and duplicate shared author
 
 test("package guard rejects cycles and ignores private fixture directories", (t) => {
 	const directory = temporaryDirectory(t);
+	mkdirSync(join(directory, "games"), { recursive: true });
 	for (const name of ["first", "second"]) {
 		const pkg = join(directory, "packages", name);
 		mkdirSync(join(pkg, "src"), { recursive: true });

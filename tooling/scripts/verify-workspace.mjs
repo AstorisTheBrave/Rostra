@@ -11,6 +11,8 @@ const privateDirectories = [
 	"dist",
 	"build",
 	"coverage",
+	"playwright-report",
+	"test-results",
 	"secrets",
 ];
 

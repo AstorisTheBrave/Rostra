@@ -11,6 +11,8 @@
 **/dist
 **/build
 **/coverage
+**/playwright-report
+**/test-results
 **/.cache
 **/.turbo
 **/tmp

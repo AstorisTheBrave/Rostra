@@ -19,9 +19,14 @@
 		"@rostra/module-sdk#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"@rostra/auth#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"@rostra/operations#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/web-client#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/web-ui#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/game-core#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"@rostra/gateway#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"@rostra/api#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"@rostra/workers#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/realtime#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/activity#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"build": {
 			"dependsOn": ["^build", "//#prisma:generate"],
 			"inputs": [
@@ -33,6 +38,8 @@
 				"!**/dist/**",
 				"!**/build/**",
 				"!**/coverage/**",
+				"!**/playwright-report/**",
+				"!**/test-results/**",
 				"!**/secrets/**",
 				"!**/.env*",
 				"!**/*.pem",

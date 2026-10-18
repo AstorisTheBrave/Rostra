@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-10-17
+last-updated: 2026-10-18
 owner: AstorisTheBrave
 status: in-flux
 ---
@@ -21,8 +21,9 @@ can find their way around without reading the whole codebase.
 live under `modules/`. The compatibility loader validates every legacy module through
 `@rostra/module-sdk`; permanent fixtures preserve 47 command definitions, 48 events, components, jobs,
 gateway intents and feature flags without logging in or writing to Discord REST. Independently bootable
-API and worker applications now own HTTP domain boundaries and durable queue consumption. Web,
-realtime and Activity applications remain later Phase 00 tasks.
+API and worker applications now own HTTP domain boundaries and durable queue consumption. The web shell
+provides OAuth login, tenant-scoped read-only guild summaries and public/member/admin/operator route groups.
+Realtime and Activity are optional authenticated seams, not multiplayer or device-verified products.
 
 **where things live**
 - `packages/config/src/index.ts` - environment configuration (the only place env is read)
@@ -36,6 +37,10 @@ realtime and Activity applications remain later Phase 00 tasks.
 - `apps/gateway/src/` - sharding, client, routing, runtime services and maintenance scripts
 - `apps/api/src/` - health, vote webhook and scope-authorized operation routes
 - `apps/workers/src/` - tracked queue consumers, intent reconciliation and graceful drain
+- `apps/web/src/` - public/member/admin/operator routes, OAuth callback and typed API reads
+- `apps/realtime/src/` and `apps/activity/src/` - optional authenticated runtime seams
+- `packages/web-client/` and `packages/web-ui/` - typed guild API client and accessible web shell
+- `games/core/src/` - pure game session/result contracts and fixtures
 - `modules/<name>/` - one behavior-preserved feature module and its tests
 - `apps/gateway/src/services/` - tenant, localization preferences and runtime services pending extraction
 - `apps/gateway/src/utils/cardFont.ts` - asset-backed rendering helper pending its owning feature move

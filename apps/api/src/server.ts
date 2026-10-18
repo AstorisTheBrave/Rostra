@@ -2,6 +2,7 @@ import rateLimit from "@fastify/rate-limit";
 import {
 	AuthorizationError,
 	type Principal,
+	requireGuildPermission,
 	requireHost,
 	requireOperationRead,
 	verifySecret,
@@ -14,6 +15,7 @@ import type {
 	OperationRepository,
 } from "@rostra/operations";
 import { createAndPublishOperation, IdempotencyConflictError } from "@rostra/operations";
+import type { GuildSummary } from "@rostra/web-client";
 import Fastify, { type FastifyInstance } from "fastify";
 import { parseVotePayload, type VotePayload } from "./vote.ts";
 
@@ -25,6 +27,9 @@ export interface ApiDependencies {
 	): Promise<Principal | undefined> | Principal | undefined;
 	voteToken?: string;
 	ready(): Promise<boolean>;
+	guildDirectory: {
+		get(guildId: string): Promise<GuildSummary | undefined>;
+	};
 	repository: OperationRepository;
 	publisher: OperationPublisher;
 	recordVote(vote: VotePayload): Promise<void>;
@@ -66,6 +71,30 @@ export async function createApi(deps: ApiDependencies): Promise<FastifyInstance>
 		if (!ready) reply.code(503);
 		return { status: ready ? "ready" : "not_ready" };
 	});
+
+	app.get<{ Params: { guildId: string } }>(
+		"/internal/v1/guilds/:guildId/summary",
+		async (request, reply) => {
+			const principal = await principalFor(request, deps);
+			if (!principal) {
+				reply.code(401);
+				return { error: "unauthorized" };
+			}
+			try {
+				requireGuildPermission(principal, request.params.guildId, "guilds:read");
+			} catch (error) {
+				if (!(error instanceof AuthorizationError)) throw error;
+				reply.code(404);
+				return { error: "not_found" };
+			}
+			const guild = await deps.guildDirectory.get(request.params.guildId);
+			if (!guild) {
+				reply.code(404);
+				return { error: "not_found" };
+			}
+			return guild;
+		},
+	);
 
 	app.post(
 		"/votes/topgg",

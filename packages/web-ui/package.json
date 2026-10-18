@@ -1,0 +1,29 @@
+{
+	"name": "@rostra/web-ui",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./styles.css": "./src/styles.css"
+	},
+	"scripts": {
+		"build": "tsc --noEmit",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check src package.json tsconfig.json",
+		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.tsx\""
+	},
+	"dependencies": {
+		"@rostra/i18n": "workspace:*",
+		"@rostra/web-client": "workspace:*",
+		"react": "19.3.1"
+	},
+	"devDependencies": {
+		"@types/node": "^26.1.0",
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
+		"react-dom": "19.3.1",
+		"tsx": "^4.23.0",
+		"typescript": "^7.0.2"
+	}
+}

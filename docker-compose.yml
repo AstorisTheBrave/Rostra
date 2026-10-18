@@ -12,6 +12,28 @@ services:
     ports:
       - "3000:3000"
 
+  realtime:
+    profiles: ["realtime"]
+    build: .
+    restart: unless-stopped
+    entrypoint: ["pnpm", "start:realtime"]
+    env_file: .env
+    environment:
+      REALTIME_ENABLED: "true"
+    ports:
+      - "3003:3003"
+
+  activity:
+    profiles: ["activity"]
+    build: .
+    restart: unless-stopped
+    entrypoint: ["pnpm", "start:activity"]
+    env_file: .env
+    environment:
+      ACTIVITY_ENABLED: "true"
+    ports:
+      - "3004:3004"
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped

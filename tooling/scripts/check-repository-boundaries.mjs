@@ -9,6 +9,8 @@ const directories = [
 	"dist",
 	"build",
 	"coverage",
+	"playwright-report",
+	"test-results",
 	"secrets",
 ];
 const errors = [];

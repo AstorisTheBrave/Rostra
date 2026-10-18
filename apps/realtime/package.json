@@ -1,0 +1,27 @@
+{
+	"name": "@rostra/realtime",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/server.ts",
+		"./contracts": "./src/contracts.ts"
+	},
+	"scripts": {
+		"build": "tsc --noEmit",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check src package.json tsconfig.json",
+		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\""
+	},
+	"dependencies": {
+		"@rostra/auth": "workspace:*",
+		"@rostra/config": "workspace:*",
+		"@rostra/logger": "workspace:*",
+		"fastify": "^5.12.1"
+	},
+	"devDependencies": {
+		"@types/node": "^26.1.0",
+		"tsx": "^4.23.0",
+		"typescript": "^7.0.2"
+	}
+}

@@ -6,6 +6,7 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./bundled": "./src/bundled.ts",
+		"./browser": "./src/browser.ts",
 		"./commandLocalizations": "./src/commandLocalizations.ts",
 		"./live": "./src/live.ts",
 		"./locales": "./src/locales.ts",

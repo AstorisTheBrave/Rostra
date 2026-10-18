@@ -11,13 +11,16 @@
 			"!**/Archive",
 			"!**/.superpowers",
 			"!**/coverage",
+			"!**/playwright-report",
+			"!**/test-results",
 			"!**/secrets",
 			"!**/.env*",
 			"!**/*.pem",
 			"!**/*.key",
 			"!**/.cache",
 			"!**/.turbo",
-			"!**/prisma/migrations"
+			"!**/prisma/migrations",
+			"!apps/web/src/routeTree.gen.ts"
 		]
 	}
 }

@@ -1,4 +1,4 @@
-import { verifyBearer } from "@rostra/auth";
+import { verifyBearer, verifyPrincipalToken } from "@rostra/auth";
 import { config } from "@rostra/config";
 import { disconnectPrisma, getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
@@ -12,10 +12,23 @@ const log = getLogger("api");
 async function main(): Promise<void> {
 	const transport = createOperationQueueTransport(config.redis.url);
 	const app = await createApi({
-		authenticate: (authorization) =>
-			verifyBearer(authorization, config.api.internalToken)
-				? { kind: "host", subjectId: "internal-api" }
-				: undefined,
+		authenticate: (authorization) => {
+			if (verifyBearer(authorization, config.api.internalToken))
+				return { kind: "host", subjectId: "internal-api" };
+			return verifyPrincipalToken(
+				authorization?.startsWith("Bearer ") ? authorization.slice(7) : undefined,
+				config.webApp.sessionSecret,
+			);
+		},
+		guildDirectory: {
+			async get(guildId) {
+				const guild = await getPrisma().guild.findUnique({
+					where: { id: guildId },
+					select: { id: true },
+				});
+				return guild ? { id: guild.id, configured: true } : undefined;
+			},
+		},
 		voteToken: config.topgg.webhookAuth,
 		repository: new PrismaOperationRepository(),
 		publisher: transport,

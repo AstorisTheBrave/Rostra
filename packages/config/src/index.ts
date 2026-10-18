@@ -21,6 +21,7 @@ type LavalinkNode = z.infer<typeof lavalinkNode>;
 const schema = z.object({
 	DISCORD_TOKEN: z.string().min(1).optional(),
 	DISCORD_CLIENT_ID: z.string().min(1).optional(),
+	DISCORD_CLIENT_SECRET: z.string().min(1).optional(),
 	OWNER_IDS: z.string().optional(),
 	DEV_GUILD_ID: z.string().optional(),
 	NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -30,7 +31,16 @@ const schema = z.object({
 	PORT: z.coerce.number().int().default(3000),
 	HOST: z.string().default("0.0.0.0"),
 	API_PORT: z.coerce.number().int().default(3001),
+	API_BASE_URL: z.url().default("http://localhost:3001"),
 	INTERNAL_API_TOKEN: z.string().optional(),
+	WEB_PORT: z.coerce.number().int().default(3002),
+	WEB_PUBLIC_URL: z.url().default("http://localhost:3002"),
+	WEB_AUTH_MODE: z.enum(["discord", "fixture"]).default("discord"),
+	WEB_SESSION_SECRET: z.string().min(32).optional(),
+	REALTIME_PORT: z.coerce.number().int().default(3003),
+	REALTIME_ENABLED: z.enum(["true", "false"]).default("false"),
+	ACTIVITY_PORT: z.coerce.number().int().default(3004),
+	ACTIVITY_ENABLED: z.enum(["true", "false"]).default("false"),
 	// Named TOTAL_SHARDS (not SHARD_COUNT) to avoid colliding with discord.js's reserved
 	// SHARD_COUNT env var that the ShardingManager sets on spawned shard processes.
 	TOTAL_SHARDS: z.coerce.number().int().positive().optional(),
@@ -57,12 +67,27 @@ const schema = z.object({
 
 export type Config = {
 	env: "development" | "production" | "test";
-	discord: { token?: string; clientId?: string; ownerIds: string[]; devGuildId?: string };
+	discord: {
+		token?: string;
+		clientId?: string;
+		clientSecret?: string;
+		ownerIds: string[];
+		devGuildId?: string;
+	};
 	logLevel: string;
 	database: { url: string };
 	redis: { url?: string };
 	web: { port: number; host: string };
-	api: { port: number; host: string; internalToken?: string };
+	api: { port: number; host: string; baseUrl: string; internalToken?: string };
+	webApp: {
+		port: number;
+		host: string;
+		publicUrl: string;
+		authMode: "discord" | "fixture";
+		sessionSecret?: string;
+	};
+	realtime: { port: number; host: string; enabled: boolean };
+	activity: { port: number; host: string; enabled: boolean };
 	sharding: { count?: number; mode: "native" | "hybrid"; shardsPerCluster?: number };
 	ai: { apiKey?: string; baseUrl?: string; model?: string };
 	translate: { apiKey?: string; baseUrl?: string; model?: string };
@@ -92,6 +117,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 		discord: {
 			token: e.DISCORD_TOKEN,
 			clientId: e.DISCORD_CLIENT_ID,
+			clientSecret: e.DISCORD_CLIENT_SECRET,
 			ownerIds: csv(e.OWNER_IDS),
 			devGuildId: e.DEV_GUILD_ID,
 		},
@@ -99,7 +125,21 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 		database: { url: e.DATABASE_URL },
 		redis: { url: e.REDIS_URL },
 		web: { port: e.PORT, host: e.HOST },
-		api: { port: e.API_PORT, host: e.HOST, internalToken: e.INTERNAL_API_TOKEN },
+		api: {
+			port: e.API_PORT,
+			host: e.HOST,
+			baseUrl: e.API_BASE_URL,
+			internalToken: e.INTERNAL_API_TOKEN,
+		},
+		webApp: {
+			port: e.WEB_PORT,
+			host: e.HOST,
+			publicUrl: e.WEB_PUBLIC_URL,
+			authMode: e.WEB_AUTH_MODE,
+			sessionSecret: e.WEB_SESSION_SECRET,
+		},
+		realtime: { port: e.REALTIME_PORT, host: e.HOST, enabled: e.REALTIME_ENABLED === "true" },
+		activity: { port: e.ACTIVITY_PORT, host: e.HOST, enabled: e.ACTIVITY_ENABLED === "true" },
 		sharding: {
 			count: e.TOTAL_SHARDS,
 			mode: e.SHARDING_MODE,

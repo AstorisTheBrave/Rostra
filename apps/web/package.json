@@ -1,0 +1,38 @@
+{
+	"name": "@rostra/web",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build && tsc --noEmit",
+		"start": "vite preview --host 0.0.0.0 --port 3002 --strictPort",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check src e2e package.json playwright.config.ts tsconfig.json vite.config.ts",
+		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\" \"src/**/*.test.tsx\"",
+		"test:browser": "playwright test"
+	},
+	"dependencies": {
+		"@rostra/auth": "workspace:*",
+		"@rostra/config": "workspace:*",
+		"@rostra/i18n": "workspace:*",
+		"@rostra/logger": "workspace:*",
+		"@rostra/web-client": "workspace:*",
+		"@rostra/web-ui": "workspace:*",
+		"@tanstack/react-router": "1.170.45",
+		"@tanstack/react-start": "1.169.3",
+		"react": "19.3.1",
+		"react-dom": "19.3.1"
+	},
+	"devDependencies": {
+		"@axe-core/playwright": "4.14.0",
+		"@playwright/test": "1.64.1",
+		"@types/node": "^26.1.0",
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
+		"@vitejs/plugin-react": "6.1.2",
+		"tsx": "^4.23.0",
+		"typescript": "^7.0.2",
+		"vite": "8.3.4"
+	}
+}

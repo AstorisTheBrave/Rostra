@@ -2161,3 +2161,28 @@ at it. Reference docs are in `Archive/` (yagpdb-docs, arcane-docs, zyn-bot). No 
 
 **files touched**: `docs/superpowers/plans/2026-06-07-remaining-features-backlog.md`, `memory.md` (local),
 this log.
+
+### 2026-10-18 - Phase 00 Task 6 web, realtime and Activity seams
+
+Added `apps/web/` with public login and policy routes, member home/profile/server routes, and admin/operator route
+groups. Discord OAuth uses validated state, PKCE, an opaque server-side session id and HttpOnly SameSite=Lax
+cookies. Typed API reads authorize the exact guild principal at the API endpoint and return read-only guild
+configuration summaries. Shared web UI implements the accepted dark shell, desktop rail, mobile navigation,
+account menu, server list and explicit loading/empty/degraded/unauthorized/callback failure states. Tests cover
+landmarks, skip navigation, keyboard use, axe, reduced motion, 390px layout and the 640px effective viewport used
+to represent 200% zoom.
+
+Added optional `apps/realtime/` and `apps/activity/` authenticated seams, pure game-core session/result types and
+fixtures, and shared typed web client/UI packages. Realtime and Activity remain disabled in the default runtime;
+these contracts do not claim multiplayer or device verification. OAuth sessions are currently process-local and
+require shared durable storage before multi-instance deployment.
+
+### 2026-10-18 - Phase 00 Task 6 visual review
+
+Browser/IAB launch did not return within the tool timeout. Local Playwright Chromium was used for desktop 1440x900
+and mobile 390x844 screenshots in ignored `.superpowers/sdd/2026-10-17-phase-00-monorepo/task-6-rendered/` scratch.
+Compared with the accepted concepts: (1) deep navy page and near-black rail/surfaces match; (2) white headings,
+muted blue-gray copy and violet actions match; (3) desktop rail, account menu and open list hierarchy match; (4) the
+mobile bottom navigation and compact server rows match, with the count above the fixed bar; (5) login and guild
+selector copy match exactly. The login flow uses small code-native outline icons and simple straight lines instead
+of curved decorative connectors. Above-fold copy diff: none. Concept and rendered screenshots are scratch only.

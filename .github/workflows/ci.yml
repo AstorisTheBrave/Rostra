@@ -59,6 +59,26 @@ jobs:
             exit 1
           fi
 
+  browser-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm install --global corepack@0.35.0
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Install browser runtime
+        run: pnpm --filter @rostra/web exec playwright install --with-deps ${{ matrix.browser }}
+      - name: Run fake-adapter browser smoke
+        run: pnpm --filter @rostra/web test:browser --project=${{ matrix.browser }}
+
   service-integration:
     runs-on: ubuntu-latest
     services:

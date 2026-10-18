@@ -199,7 +199,7 @@
 
   Run gateway typecheck/unit tests, all module tests, command snapshot diff, module inventory diff, no-cycle/package-boundary checks, and a fake-token boot test that cannot reach Discord REST.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
   Commit: `refactor: move the discord gateway into the workspace`
 
@@ -255,23 +255,23 @@
 - Produces: public/member/admin/operator route groups, login and callback route contracts, guild selector shell, typed domain client, realtime health endpoint, Activity authentication seam, and pure game-core session/result types.
 - Consumes: API contracts and shared auth/config/logging packages.
 
-- [ ] **Step 1: Verify the current stable web stack and deployment compatibility from official sources**
+- [x] **Step 1: Verify the current stable web stack and deployment compatibility from official sources**
 
   Record choices in the Phase 0 report. Keep charting, rich editing, realtime room engines, and advanced primitives out until their owning phase.
 
-- [ ] **Step 2: Write route, accessibility, and auth-boundary tests**
+- [x] **Step 2: Write route, accessibility, and auth-boundary tests**
 
   Cover loading, empty, degraded, unauthorized, and callback-failure states. Verify keyboard navigation and narrow viewport rendering. Use fake OAuth and domain adapters in CI.
 
-- [ ] **Step 3: Implement a real login/guild-selection shell**
+- [x] **Step 3: Implement a real login/guild-selection shell**
 
   The shell must execute the typed API contract and display persisted read-only guild/profile data under fake/disposable integration fixtures. It must not be a dashboard of inert controls.
 
-- [ ] **Step 4: Implement buildable realtime and Activity seams**
+- [x] **Step 4: Implement buildable realtime and Activity seams**
 
   Provide authenticated connection contracts, health checks, pure game-core fixtures, and disabled-by-default runtime profiles. Do not claim multiplayer or device verification in Phase 0.
 
-- [ ] **Step 5: Run builds and browser smoke tests**
+- [x] **Step 5: Run builds and browser smoke tests**
 
   Run web unit/accessibility tests locally if lightweight. Run browser/device matrices in GitHub Actions.
 

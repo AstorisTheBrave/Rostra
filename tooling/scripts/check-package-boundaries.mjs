@@ -10,6 +10,8 @@ const excluded = new Set([
 	"dist",
 	"build",
 	"coverage",
+	"playwright-report",
+	"test-results",
 	"secrets",
 	".git",
 	".turbo",
@@ -71,23 +73,27 @@ export function sourceViolations(path, source, packages) {
 export function checkPackages() {
 	const packages = new Map();
 	const errors = [];
-	for (const entry of readdirSync("packages", { withFileTypes: true })) {
-		if (!entry.isDirectory() || excluded.has(entry.name)) continue;
-		const directory = `packages/${entry.name}`;
-		const pkg = JSON.parse(readFileSync(`${directory}/package.json`, "utf8"));
-		if (pkg.type !== "module" || !pkg.exports?.["."])
-			errors.push(`${directory}: missing ESM public export`);
-		for (const [key, target] of Object.entries(pkg.exports ?? {})) {
-			if (
-				key.includes("*") ||
-				typeof target !== "string" ||
-				!target.startsWith("./src/") ||
-				target.includes("..") ||
-				!existsSync(`${directory}/${target}`)
-			)
-				errors.push(`${directory}: invalid export ${key}`);
+	for (const root of ["packages", "games"]) {
+		for (const entry of readdirSync(root, { withFileTypes: true })) {
+			if (!entry.isDirectory() || excluded.has(entry.name)) continue;
+			const directory = `${root}/${entry.name}`;
+			const manifest = `${directory}/package.json`;
+			if (!existsSync(manifest)) continue;
+			const pkg = JSON.parse(readFileSync(manifest, "utf8"));
+			if (pkg.type !== "module" || !pkg.exports?.["."])
+				errors.push(`${directory}: missing ESM public export`);
+			for (const [key, target] of Object.entries(pkg.exports ?? {})) {
+				if (
+					key.includes("*") ||
+					typeof target !== "string" ||
+					!target.startsWith("./src/") ||
+					target.includes("..") ||
+					!existsSync(`${directory}/${target}`)
+				)
+					errors.push(`${directory}: invalid export ${key}`);
+			}
+			packages.set(pkg.name, { ...pkg, directory });
 		}
-		packages.set(pkg.name, { ...pkg, directory });
 	}
 	const visiting = new Set();
 	const visited = new Set();

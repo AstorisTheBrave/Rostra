@@ -51,6 +51,12 @@ function repository(): OperationRepository {
 	};
 }
 
+const guildDirectory = {
+	async get(guildId: string) {
+		return guildId === "guild-1" ? { id: guildId, configured: true } : undefined;
+	},
+};
+
 function authenticate(authorization: string | undefined): Principal | undefined {
 	if (authorization === "Bearer internal-secret") return { kind: "host", subjectId: "operator" };
 	if (authorization === "Bearer guild-1")
@@ -58,14 +64,14 @@ function authenticate(authorization: string | undefined): Principal | undefined 
 			kind: "guild",
 			subjectId: "user-1",
 			guildId: "guild-1",
-			permissions: ["operations:read"],
+			permissions: ["operations:read", "guilds:read"],
 		};
 	if (authorization === "Bearer guild-2")
 		return {
 			kind: "guild",
 			subjectId: "user-2",
 			guildId: "guild-2",
-			permissions: ["operations:read"],
+			permissions: ["operations:read", "guilds:read"],
 		};
 	if (authorization === "Bearer no-scope")
 		return { kind: "guild", subjectId: "user-1", guildId: "guild-1", permissions: [] };
@@ -75,6 +81,7 @@ function authenticate(authorization: string | undefined): Principal | undefined 
 test("public health routes expose only status", async (t) => {
 	const app = await createApi({
 		authenticate,
+		guildDirectory,
 		ready: async () => false,
 		repository: repository(),
 		publisher: { async publish() {} },
@@ -93,6 +100,7 @@ test("versioned internal routes require host bearer auth", async (t) => {
 	let publishes = 0;
 	const app = await createApi({
 		authenticate,
+		guildDirectory,
 		ready: async () => true,
 		repository: repository(),
 		publisher: {
@@ -130,6 +138,7 @@ test("operation reads enforce the stored host or guild scope", async (t) => {
 	const repo = repository();
 	const app = await createApi({
 		authenticate,
+		guildDirectory,
 		ready: async () => true,
 		repository: {
 			...repo,
@@ -165,6 +174,7 @@ test("delivery failures return a generic unavailable response after durable crea
 	const repo = repository();
 	const app = await createApi({
 		authenticate,
+		guildDirectory,
 		ready: async () => false,
 		repository: {
 			...repo,
@@ -195,6 +205,7 @@ test("mismatched idempotency ownership returns a conflict", async (t) => {
 	const repo = repository();
 	const app = await createApi({
 		authenticate,
+		guildDirectory,
 		ready: async () => true,
 		repository: {
 			...repo,
@@ -219,6 +230,7 @@ test("vote route preserves external authentication and validation", async (t) =>
 	let votes = 0;
 	const app = await createApi({
 		authenticate,
+		guildDirectory,
 		voteToken: "vote-secret",
 		ready: async () => true,
 		repository: repository(),
@@ -255,4 +267,31 @@ test("vote route preserves external authentication and validation", async (t) =>
 		200,
 	);
 	assert.equal(votes, 1);
+});
+
+test("guild summaries authorize the exact stored tenant at the data endpoint", async (t) => {
+	const app = await createApi({
+		authenticate,
+		guildDirectory,
+		ready: async () => true,
+		repository: repository(),
+		publisher: { async publish() {} },
+		async recordVote() {},
+	});
+	t.after(() => app.close());
+	const request = (guildId: string, authorization?: string) =>
+		app.inject({
+			method: "GET",
+			url: `/internal/v1/guilds/${guildId}/summary`,
+			headers: authorization ? { authorization } : undefined,
+		});
+	assert.equal((await request("guild-1")).statusCode, 401);
+	assert.equal((await request("guild-1", "Bearer internal-secret")).statusCode, 404);
+	assert.equal((await request("guild-1", "Bearer guild-2")).statusCode, 404);
+	assert.equal((await request("guild-1", "Bearer no-scope")).statusCode, 404);
+	assert.equal((await request("guessed", "Bearer guild-1")).statusCode, 404);
+	assert.deepEqual((await request("guild-1", "Bearer guild-1")).json(), {
+		id: "guild-1",
+		configured: true,
+	});
 });

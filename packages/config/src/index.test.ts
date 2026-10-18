@@ -14,9 +14,28 @@ test("loadConfig parses required vars and applies defaults", async () => {
 	assert.deepEqual(cfg.discord.ownerIds, ["1", "2", "3"]);
 	assert.equal(cfg.web.port, 3000);
 	assert.equal(cfg.api.port, 3001);
+	assert.equal(cfg.webApp.port, 3002);
+	assert.equal(cfg.webApp.authMode, "discord");
+	assert.equal(cfg.realtime.enabled, false);
+	assert.equal(cfg.activity.enabled, false);
 	assert.equal(cfg.sharding.mode, "native");
 	assert.equal(cfg.redis.url, undefined);
 	assert.deepEqual(cfg.lavalink.nodes, []);
+});
+
+test("web and optional application settings remain explicit", async () => {
+	const { loadConfig } = await import("@rostra/config");
+	const cfg = loadConfig({
+		DATABASE_URL: "postgresql://localhost/db",
+		WEB_AUTH_MODE: "fixture",
+		WEB_SESSION_SECRET: "test-session-secret-with-enough-entropy",
+		REALTIME_ENABLED: "true",
+		ACTIVITY_ENABLED: "true",
+	});
+	assert.equal(cfg.webApp.authMode, "fixture");
+	assert.equal(cfg.webApp.sessionSecret, "test-session-secret-with-enough-entropy");
+	assert.equal(cfg.realtime.enabled, true);
+	assert.equal(cfg.activity.enabled, true);
 });
 
 test("loadConfig throws aggregated error on missing required vars", async () => {

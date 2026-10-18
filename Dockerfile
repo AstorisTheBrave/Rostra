@@ -22,9 +22,15 @@ COPY packages/testing/package.json ./packages/testing/package.json
 COPY packages/module-sdk/package.json ./packages/module-sdk/package.json
 COPY packages/auth/package.json ./packages/auth/package.json
 COPY packages/operations/package.json ./packages/operations/package.json
+COPY packages/web-client/package.json ./packages/web-client/package.json
+COPY packages/web-ui/package.json ./packages/web-ui/package.json
 COPY apps/gateway/package.json ./apps/gateway/package.json
 COPY apps/api/package.json ./apps/api/package.json
 COPY apps/workers/package.json ./apps/workers/package.json
+COPY apps/web/package.json ./apps/web/package.json
+COPY apps/realtime/package.json ./apps/realtime/package.json
+COPY apps/activity/package.json ./apps/activity/package.json
+COPY games/core/package.json ./games/core/package.json
 RUN pnpm install --frozen-lockfile
 
 # Generate offline without loading deployment credentials. Migrations still use

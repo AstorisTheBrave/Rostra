@@ -16,7 +16,7 @@ It's the first full feature module and the reference example for how modules are
 - command + subcommand routing: `modules/moderation/index.ts`
 - business logic + persistence: `modules/moderation/service.ts`
 - duration parsing: `modules/moderation/duration.ts` (+ `duration.test.ts`)
-- database models: `prisma/schema.prisma` → `ModerationCase`, `GuildCaseCounter`
+- database models: `packages/database/prisma/schema.prisma` → `ModerationCase`, `GuildCaseCounter`
 
 **command** - one top-level `/mod` with subcommands: `ban`, `unban`, `kick`, `timeout`, `untimeout`,
 `warn`, `warnings`, `removewarn`, `cases`, `note`, `purge`, `slowmode`, `lock`, `unlock`, `nick`.

@@ -10,7 +10,7 @@ Turkish, Ukrainian, Japanese, Korean, Traditional Chinese, and Arabic.
 
 ## Where translations live
 
-Translation files are JSON, one folder per language under `src/i18n/locales/<code>/`. Each file is a
+Translation files are JSON, one folder per language under `packages/i18n/src/locales/<code>/`. Each file is a
 namespace (for example `moderation.json`) that mirrors the English keys. The English source comes from each
 module plus `common.json`.
 
@@ -22,7 +22,7 @@ module plus `common.json`.
    pnpm i18n:coverage
    ```
 
-2. Edit or add `src/i18n/locales/<code>/<namespace>.json`. Keep every `{placeholder}` exactly as in English,
+2. Edit or add `packages/i18n/src/locales/<code>/<namespace>.json`. Keep every `{placeholder}` exactly as in English,
    and keep ICU syntax (plural and select forms, the `#`, and braces). Do not translate the brand and
    feature terms listed in `_glossary.json`.
 

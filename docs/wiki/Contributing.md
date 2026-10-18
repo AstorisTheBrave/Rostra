@@ -1,5 +1,7 @@
 # Contributing
 
+This wiki page is a short overview. The repository [CONTRIBUTING.md](../../CONTRIBUTING.md) is the canonical setup and workflow guide for the current workspace.
+
 Thanks for wanting to help. This page is a quick map of the project for code contributors.
 
 ## Tech stack
@@ -17,7 +19,7 @@ Fastify, and Biome for lint and format. ESM only.
 - `@rostra/discord-ui` is the single source of truth for the interface. All UI uses Components V2;
   modules never build raw discord.js components.
 - `@rostra/i18n` is the localization engine. Every user facing string goes through the `t()` helper.
-- `prisma/schema.prisma` is the data model.
+- `packages/database/prisma/schema.prisma` is the data model.
 
 ## Conventions
 

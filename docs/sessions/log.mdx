@@ -2238,3 +2238,27 @@ database, then uses fixture OAuth and the typed HTTP client. The fixture include
 guild, and the browser test proves only the three persisted guild rows render. In-memory web sessions remain a
 single-process limitation. The database-backed browser proof passed locally against temporary PostgreSQL/Redis
 containers and is configured for the GitHub browser matrix.
+
+### 2026-10-18 - Phase 00 Task 8 product docs and local evidence
+
+Rewrote the README for community owners and self-hosters, refreshed the workspace and architecture maps, and aligned
+the contributor, environment, deployment and stack guides with the current pnpm workspace. Added a capability-status
+page, roadmap and Phase 00 baseline, security, performance and rollback reports. Updated active module and wiki paths
+that still pointed at the pre-move Prisma or locale directories. No screenshot was published because the implemented
+web app did not yet have an approved deterministic public capture.
+
+The final local pass used Node.js 24.19.0 and Docker Engine 29.7.2. Frozen install, Prisma client generation,
+repository/package boundaries, typecheck, lint, unit tests with CI placeholders, build, Chromium browser smoke,
+registry parity, migration status and `git diff --check` passed. Lint retains six existing warnings. Registry parity
+reported 47 commands, 42 modules and 48 events with zero network attempts. Linux Compose applied all 11 migrations,
+then the correlated smoke passed with ID `91b89fc2-8862-45d6-8c0d-f598afec888d`, one PostgreSQL effect after duplicate
+delivery, and a denied swapped-guild read. Separate Linux service tests passed the PostgreSQL claim-fencing proof
+and worker restart proof, one each.
+
+The root `pnpm test:integration` command failed on the Windows host in the claim-fencing service test during Prisma
+row creation, with no detailed Prisma error body; the same test passed inside a Linux container. Reported elapsed times and the configured Compose
+resource limits are in `docs/phase-reports/phase-00/performance.mdx`. Peak resource utilization was not captured.
+
+Phase 00 decision remains PENDING. Independent review, remote CI, prior-image rollback rehearsal, browser matrix,
+six image targets, secret/dependency scans, SBOM, CodeQL and local/remote SHA equality remain unverified until the
+final branch snapshot runs on GitHub.

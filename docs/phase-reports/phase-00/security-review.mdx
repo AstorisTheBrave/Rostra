@@ -1,0 +1,37 @@
+---
+last-updated: 2026-10-18
+owner: AstorisTheBrave
+status: pending
+---
+
+# Phase 00 security review
+
+This page summarizes the security boundaries and automated evidence present in the Phase 00 implementation. It is not an external penetration test, production audit or security certification. Independent review and the remote security workflow remain pending for the final commit.
+
+## Tenant and authentication boundaries
+
+- Guild actions and private reads require an explicit principal scoped to the exact guild. Host principals are limited to host-scoped records and do not bypass guild authorization.
+- API operation reads authorize against the stored row after resolving the principal. Guessed, missing or swapped tenant identifiers do not reveal another tenant's record.
+- Web-issued signed principals bind to an exact audience (`api`, `realtime` or `activity`). The receiving app verifies its own audience and exact guild permission.
+- Web OAuth uses signed state, PKCE, an opaque server-side session identifier and an HttpOnly SameSite=Lax cookie. The API repeats authorization at the data boundary; route guards are navigation only.
+- Fixture OAuth is test-only and rejected in production mode. The browser proof seeds disposable rows and checks that missing guild configuration is not fabricated.
+
+Task 5 and Task 6 reports record the corresponding negative tests. These prove tested contracts in the current implementation, not the absence of every authorization defect.
+
+## Durable work and secrets
+
+- PostgreSQL records operation intent before Redis publication. Duplicate delivery is expected and handlers are idempotent.
+- Worker claim versions fence late settlement. Worker shutdown drains tracked handles before Redis disconnects.
+- Migration failure stops the app command. Migration verification uses fake credentials and does not boot a gateway or publish commands.
+- Public health endpoints return status only. Internal routes use bearer authentication; authorization headers are included in logger redaction.
+- The Compose smoke network is internal and uses fake Discord credentials. It cannot log into Discord or publish command definitions.
+- Repository boundary checks and Docker build inputs exclude ignored private reference and planning material, secrets, local environments and generated output. No private reference or planning files are tracked.
+
+## Findings and limits
+
+1. **Web session storage is process-local.** Multiple web replicas do not share sessions and are unsupported until a shared durable store is added.
+2. **Remote security evidence is pending.** Secret scanning, dependency review, SBOM and CodeQL workflows are configured but have not been run on this final commit.
+3. **No external security audit or load test is claimed.** Automated checks cover specific code contracts and repository inputs only.
+4. **Rollback has not been remotely rehearsed.** The integration workflow builds the prior image and starts it after forward migration, but this remains pending a successful GitHub run.
+
+The current local results and exact final commit are listed in the [evidence index](index.mdx) and [performance record](performance.mdx). Do not interpret this review summary as a PASS until independent review and remote jobs complete.

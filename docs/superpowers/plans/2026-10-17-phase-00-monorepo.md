@@ -342,15 +342,15 @@
 - Consumes: verified results from Tasks 1 through 7.
 - Produces: truthful public product documentation and the evidence package used to decide Phase 0 PASS, FAIL, or BLOCKED.
 
-- [ ] **Step 1: Rewrite the README in the maintainer's product voice**
+- [x] **Step 1: Rewrite the README in the maintainer's product voice**
 
   Present Rostra as a personal open-source product: what it is, why it exists, what currently works, architecture, screenshots/assets that really exist, quick start, operations, docs map, security, contributing, roadmap, and honest capability labels. Do not address an agent or narrate a handoff. Do not claim later-phase features are shipped.
 
-- [ ] **Step 2: Reconcile every stale architectural claim with current source**
+- [x] **Step 2: Reconcile every stale architectural claim with current source**
 
   Update paths, commands, runtime boundaries, deployment behavior, module inventory, and limitations. Keep the ignored dossier out of links intended for GitHub readers.
 
-- [ ] **Step 3: Publish the Phase 0 evidence report**
+- [x] **Step 3: Publish the Phase 0 evidence report**
 
   Include scope, baseline, move map, architecture, unchanged migration proof, command/module parity, test commands/results, service smoke traces, security review, measured startup/build/test resource data, failure drill, rollback, screenshots where relevant, known limitations, and an explicit PASS/FAIL/BLOCKED decision.
 
@@ -358,7 +358,10 @@
 
   Run the root frozen-install, generate, typecheck, lint, unit, integration, build, migration dry-run, boundary/cycle, command/module parity, Compose smoke, and browser smoke commands. Trigger GitHub CI for Linux/service/security/image evidence. Confirm `archive/` is absent from Git and every artifact.
 
-- [ ] **Step 5: Commit**
+  - [x] Local install, generation, boundaries, typecheck, lint, unit tests, build, Chromium smoke, registry parity, migration status, Compose config and Linux worker/correlation proofs are recorded in `docs/phase-reports/phase-00/performance.mdx`.
+  - [ ] Root `pnpm test:integration` failed on the Windows host during claim-row creation; independent Linux service tests passed. GitHub required jobs and final SHA equality remain pending.
+
+- [x] **Step 5: Commit**
 
   Commit: `docs: publish the phase zero product and evidence guide`
 

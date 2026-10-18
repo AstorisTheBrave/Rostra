@@ -18,7 +18,7 @@ their own **custom rules** (keyword / wildcard / regex with a per-rule action).
 - detection logic + config + enforcement + rule CRUD: `modules/automod/service.ts`
 - pure detectors: `modules/automod/checks.ts` (+ `checks.test.ts`)
 - pure custom-rule engine: `modules/automod/rules.ts` (+ `rules.test.ts`)
-- models: `prisma/schema.prisma` → `AutomodConfig`, `AutomodRule`
+- models: `packages/database/prisma/schema.prisma` → `AutomodConfig`, `AutomodRule`
 
 **command** - `/automod` (Manage Server): `enable`, `disable`, `status`, `action <delete|warn|timeout>`,
 `module <name> <bool>`, `limits [spam_count] [mention_limit] [caps_percent] [timeout_minutes]`,

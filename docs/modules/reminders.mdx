@@ -15,7 +15,7 @@ remind command, on Rostra's per-shard timer pattern.
 **file paths**
 - command + scheduling + resync: `modules/reminders/index.ts`
 - DB helpers + duration parser: `modules/reminders/service.ts` (+ `service.test.ts`)
-- model: `Reminder` in `prisma/schema.prisma`
+- model: `Reminder` in `packages/database/prisma/schema.prisma`
 
 **command** - `/reminder set <when> <message>` · `/reminder list` · `/reminder cancel <id>`.
 `when` accepts compound durations (`10m`, `1h30m`, `2d`, `1w`), min 1s, max 365 days.

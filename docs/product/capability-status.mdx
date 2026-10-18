@@ -1,0 +1,39 @@
+---
+last-updated: 2026-10-18
+owner: AstorisTheBrave
+status: in-flux
+---
+
+# Capability status
+
+This page separates current product behavior from test evidence and future work. “Implemented” means code exists in this checkout. It does not by itself mean a feature has been deployed, externally reviewed or proven at production scale.
+
+| Area | Status | What the evidence supports |
+| --- | --- | --- |
+| Discord gateway and feature modules | Implemented; locally tested | 42 modules load through the compatibility adapter. Registry fixtures preserve 47 command definitions and 48 events without a Discord login or REST write. |
+| Shared packages and workspace boundaries | Implemented; locally tested | Public exports, strict typechecks and repository/package boundary checks are part of the local gate. |
+| API and durable workers | Implemented; locally tested with PostgreSQL and Redis | Durable intent is recorded before queue delivery. Duplicate and replacement-worker tests verify one effect and claim fencing. |
+| Web login and guild summaries | Implemented; locally tested in Chromium with disposable PostgreSQL | Fixture OAuth exercises the real API and typed client; only persisted guild rows appear. This is not a production OAuth deployment. |
+| Realtime and Activity | Implemented as authenticated scaffolds; locally tested | Apps build and check their authorization seams. They remain disabled by default and do not provide multiplayer or device verification. |
+| Compose deployment and cross-service smoke | Implemented; Linux smoke passed locally; remote CI pending | Smoke applies preserved migrations and traces one correlation ID through API, Redis, worker effect and typed client. Remote rollback rehearsal and image matrix have not been verified. |
+| Multi-instance web sessions | Platform-limited | Sessions are process-local. Multiple web replicas are unsupported until session storage is shared and durable. |
+| Automated GitHub validation for Phase 00 | Configured; pending remote run | Linux CI, service/browser jobs, rollback, image targets, dependency review, secret scan, SBOM and CodeQL require a passing remote run on the final commit. |
+| Ingress and hosting resources | Out of scope | Compose supports a passive reverse proxy or tunnel. Rostra does not provision DNS, TLS, storage or ingress-provider resources. |
+| Third-party hosting walkthroughs | Unverified | The legacy Ori Host wiki page has not been validated against its current panel. Use the supported Compose runbook; provider-specific pricing and recipes are not endorsed. |
+| Later module and web work | Planned | See the [roadmap](roadmap.mdx). Planned work is not part of the current product. |
+
+## What is established today
+
+The bot is the established Rostra product. It includes moderation, server safety, member support, community engagement, music, games and utilities. The exact command inventory is maintained in the gateway; this page intentionally groups capabilities instead of duplicating its command registry.
+
+The current move preserves the recorded command and module inventory. Tests use placeholder credentials, block Discord network access where they load the registry, and never publish commands. A migration or web smoke does not establish a live deployment.
+
+## What remains unproven
+
+- The Phase 00 pull request has not run on GitHub. Remote required jobs, independent review and equality between local and remote commit hashes are outstanding.
+- The prior-image rollback workflow is configured but has not been run remotely. Local documentation and a workflow definition are not a rollback rehearsal.
+- The six-target image matrix, Firefox/WebKit browser jobs, dependency review, secret scan, SBOM and CodeQL are configured but not remotely verified for this phase.
+- No load test, production-scale capacity result, production OAuth deployment or external security audit is claimed here.
+- Optional realtime and Activity tests prove scaffold authentication behavior only.
+
+See the [Phase 00 evidence index](../phase-reports/phase-00/index.mdx) for commands, counts, dates, measured timings and the current phase decision.

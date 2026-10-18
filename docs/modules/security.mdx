@@ -20,7 +20,7 @@ locks the server down (raises verification) and auto-lifts.
 - audit-log attribution: `modules/security/audit.ts`
 - config + punishment: `modules/security/service.ts`
 - anti-raid lockdown: `modules/security/raid.ts` (+ `raid.test.ts`)
-- model: `prisma/schema.prisma` → `AntinukeConfig`
+- model: `packages/database/prisma/schema.prisma` → `AntinukeConfig`
 
 **command** - `/security` (Administrator-only): `enable`, `disable`, `status`, `punishment <ban|kick|
 strip>`, `antiraid <enabled> [threshold] [window] [minutes]`, `panic <on|off>`, `logchannel <channel>`,

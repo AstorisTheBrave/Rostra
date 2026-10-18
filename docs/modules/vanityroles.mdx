@@ -15,7 +15,7 @@ Rewards members who advertise the server: if a member's status/activity text con
 - command: `modules/vanityroles/index.ts`
 - presence handler: `modules/vanityroles/events.ts`
 - config + matcher: `modules/vanityroles/service.ts` (+ `service.test.ts`)
-- model: `prisma/schema.prisma` → `VanityRoleConfig`
+- model: `packages/database/prisma/schema.prisma` → `VanityRoleConfig`
 
 **command** - `/vanityrole set <keyword> <role>` · `/vanityrole disable` · `/vanityrole status`
 (Manage Server).

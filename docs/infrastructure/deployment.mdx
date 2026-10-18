@@ -1,52 +1,46 @@
 ---
-last-updated: 2026-10-17
+last-updated: 2026-10-18
 owner: AstorisTheBrave
 status: in-flux
 ---
 
-## what this is
+## Develop and run
 
-How to run, test, and (later) deploy Rostra. The deploy/Docker pieces land with the runtime plan; the
-dev/test commands work today.
+Install Node.js `22.22.2+` or `24.15.0+` (or a supported later major) and Corepack 0.35.0. Use the root frozen pnpm lockfile. The canonical contributor setup is in [CONTRIBUTING.md](../../CONTRIBUTING.md); production Compose procedures are in the [deployment runbook](../runbooks/deployment.mdx).
 
-## technical map
+```sh
+corepack enable
+pnpm install --frozen-lockfile
+pnpm prisma:generate
+```
 
-**install**
-- Use a Node.js version matching `engines.node` in `package.json`, with Corepack 0.35.0.
-- `corepack enable`
-- `pnpm install --frozen-lockfile` - use the single reviewed lockfile and workspace security overrides
-- `pnpm prisma:generate` - generate the Prisma client (after any schema change)
-- Canonical setup: [CONTRIBUTING.md](../../CONTRIBUTING.md).
+The root scripts start the gateway by default and expose separate apps for development:
 
-**develop**
-- `pnpm dev` - runs `apps/gateway/src/cluster.ts` via tsx watch
-- `pnpm start:api` - runs the API on `API_PORT` without requiring Discord credentials
-- `pnpm start:workers` - runs durable consumers; requires PostgreSQL and `REDIS_URL`
-- `pnpm typecheck` - generate the client, then `tsc --noEmit`
-- `pnpm lint` / `pnpm lint:fix` - Biome
-- `pnpm test` - tests using caller-supplied placeholders; `pnpm test:env` loads local `.env`
+- `pnpm dev` - gateway with tsx watch
+- `pnpm start` - Discord gateway
+- `pnpm start:api` - API
+- `pnpm start:workers` - durable workers
+- `pnpm start:web` - web app
+- `pnpm start:realtime` and `pnpm start:activity` - optional apps
+- `pnpm deploy:commands` - publish slash-command definitions to Discord
 
-**build & run**
-- `pnpm build` - generate the client and check TypeScript without emitting a bundle
-- `pnpm start` - run `apps/gateway/src/cluster.ts` through tsx
-- `pnpm start:api` / `pnpm start:workers` - run the separated API and worker processes
-- `pnpm deploy:commands` - register slash commands with Discord
+The last command has a live external effect. It is not part of migration verification, tests or service smoke.
 
-**database**
-- `pnpm prisma:migrate` - apply the existing migrations
-- Production: Postgres + pgBouncer (transaction mode) recommended at scale
-- `pnpm test:integration` - real PostgreSQL/Redis duplicate-delivery and worker-restart proof; CI
-  supplies disposable service containers and the replacement worker recovers the retained failed job
+## Quality checks
 
-**current HTTP ownership**
-- Gateway `PORT`: compatibility `/health`, shard detail and process metrics.
-- API `API_PORT`: detail-free `/health/live` and `/health/ready`, `/votes/topgg`, and authenticated
-  `/internal/v1/*` smoke routes. `INTERNAL_API_TOKEN` authenticates the host principal, which can access
-  only host-scoped operation records; guild records require a matching guild principal and permission.
-- The existing container starts the gateway only. Task 7 owns the multi-process Compose profiles.
+- `pnpm check:boundaries` - repository, workspace and package boundaries
+- `pnpm typecheck` - generate the database client, then strict TypeScript
+- `pnpm lint` - package lint plus root Biome check
+- `pnpm test` - unit tests with placeholders supplied by the caller or CI
+- `pnpm test:env` - direct Node test run loading local `.env`
+- `pnpm test:integration` - worker restart/delivery proof; needs disposable PostgreSQL and Redis
+- `pnpm build` - all workspace build tasks
+- `pnpm test:browser --project=chromium` - browser smoke; needs generated client and disposable database/cache services
 
-## gotchas
+## Data and service boundaries
 
-- tsup/esbuild needs explicit handling for the `@/*` path alias and `.ts` import extensions - wire this
-  when adding the build entry points, or the bundle will fail to resolve imports.
-- Commands register globally (one REST push); `/owner` registers to `DEV_GUILD_ID` only.
+PostgreSQL is required and owns durable application state and operation intent. Redis backs shared cache and at-least-once queue delivery. Some local paths have an in-memory fallback, which is not a substitute for shared Redis in a multi-process deployment. Migration commands use a direct PostgreSQL URL.
+
+Gateway configuration lives behind `@rostra/config`. API, web and workers can run independently. Web does not query the database directly. Realtime and Activity remain disabled in the default Compose profile. Web sessions are process-local, so multiple web instances are not supported.
+
+See [environment variables](env.mdx), [deployment](../runbooks/deployment.mdx), [recovery](../runbooks/recovery.mdx), and the [Phase 00 evidence index](../phase-reports/phase-00/index.mdx) for configuration, operations and the current verification decision.

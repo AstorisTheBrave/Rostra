@@ -17,7 +17,7 @@ Messages support placeholders so each one is personalized, and the welcome greet
 - join/leave handlers: `modules/welcome/events.ts`
 - config + templating: `modules/welcome/service.ts` (+ `service.test.ts`)
 - welcome card renderer (`@napi-rs/canvas`): `modules/welcome/card.ts`
-- model: `prisma/schema.prisma` → `WelcomeConfig` (adds `welcomeCard`)
+- model: `packages/database/prisma/schema.prisma` → `WelcomeConfig` (adds `welcomeCard`)
 
 **command** - `/welcome` (Manage Server): `channel <welcome|goodbye> <channel>`,
 `message <welcome|goodbye|dm> <text>`, `toggle <welcome|goodbye|dm> <bool>`, `card <bool>`, `test`,

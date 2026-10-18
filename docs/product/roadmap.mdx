@@ -1,0 +1,27 @@
+---
+last-updated: 2026-10-18
+owner: AstorisTheBrave
+status: in-flux
+---
+
+# Roadmap
+
+Rostra is developed in reviewed slices. This roadmap describes direction, not a release promise. Work begins only after the current phase has the evidence and review it requires.
+
+## Phase 00: workspace and service boundaries
+
+The current slice moves the existing Discord runtime into a workspace, adds API, web, worker, realtime and Activity boundaries, and documents deployment and recovery. Its local implementation and smoke evidence are recorded in the [Phase 00 report](../phase-reports/phase-00/index.mdx). Phase 00 is not complete while remote CI, review and matching remote commit evidence are pending.
+
+## Next: replace temporary module discovery
+
+The gateway currently loads the existing modules through a compatibility adapter. A later phase is expected to move toward explicit module manifests and lifecycle ownership, while preserving the command and behavior contracts covered by the current fixtures.
+
+## Deeper product work
+
+Future slices can improve individual modules, authorization coverage, operations and the web experience. Each capability needs its own scope, security review and test evidence before it is described as shipped. Realtime rooms, multiplayer games, verified devices, multi-instance web sessions and automated ingress management are not current capabilities.
+
+## How priorities change
+
+Correctness and tenant isolation come first, followed by least privilege and recovery. Performance claims need measurements on a defined workload. Structure and feature depth follow those constraints. Community feedback and evidence from real usage can change priorities; no schedule or completion date is promised here.
+
+For present-tense capability labels, see [capability status](capability-status.mdx).

@@ -4,128 +4,95 @@ owner: AstorisTheBrave
 status: in-flux
 ---
 
-## what this is
+# Architecture map
 
-How Rostra's pieces fit together: how it scales across shards, how a slash command flows from a user to
-a database and back, and how the optional services (Redis, top.gg, Lavalink) plug in. The full design
-lives in `docs/superpowers/specs/2026-06-05-unified-bot-core-platform-design.md`.
+Rostra keeps the established Discord bot working while separating shared code and service responsibilities into a workspace. The current map describes what exists in this checkout, not a claim that every planned boundary is complete. Decision [011](decisions/011-revamp-contract.mdx) defines the ownership and security rules.
 
-## technical map
+## Runtime layout
 
-**Phase 00 extraction status (2026-10-18):** the Discord runtime is an `@rostra/gateway` workspace application
-under `apps/gateway/`, and all existing feature folders are under `modules/`.
-Shared owners are `@rostra/config`, `@rostra/logger`, `@rostra/database`, `@rostra/cache`,
-`@rostra/i18n`, `@rostra/discord-ui`, `@rostra/contracts`, `@rostra/module-sdk` and `@rostra/testing`. Their explicit export
-maps resolve ESM TypeScript source, matching the existing `tsx` runtime and no-emit build. No compiled
-package artifacts are needed at runtime. Package typechecks use the shared strict configuration and
-do not inherit the root alias.
+```text
+Discord
+  -> apps/gateway/ -> modules/* -> @rostra/{database,cache,logger,i18n,discord-ui}
+                           |
+                           +-> API fanout for domain operations
 
-Config is the only runtime environment reader; database owns the single Prisma constructor and
-exports generated model types. Logger depends on config; cache and database depend on both. The cache
-`/bus` export owns Redis pub/sub, and i18n `/live` consumes cache/database/logger without depending on
-gateway internals. The i18n root remains the pure translator; `/bundled`, `/commandLocalizations`,
-`/locales` and `/validate` expose optional entrypoints. Discord UI exports all components at its root
-and acknowledgement through `/safeAck`. The dependency graph is acyclic and checked at the root gate.
+Web browser -> apps/web/ -> @rostra/web-client -> apps/api/
+                                         |             |
+                                         |             +-> PostgreSQL durable intent
+                                         |                       |
+                                         +-----------------------+-> Redis delivery
+                                                                   -> apps/workers/
 
-The shared `JobDefinition` lives in contracts. `@rostra/module-sdk` defines complete manifest and
-lifecycle contracts; its compatibility adapter validates IDs, rejects duplicates and wires abort to
-idempotent stop. Gateway-specific `BotModule` and `BotClient` types remain in
-`apps/gateway/src/types/module.ts` while Phase 01 replaces legacy discovery. Tenant preferences,
-scheduler, cron, gateway services and asset-bound card rendering stay with the runtime until their
-owning slices.
-
-Prisma schema and historical migrations live in `packages/database/prisma/`. Root `prisma.config.ts`
-retains migration URL and dotenv behavior; the separate generation config stays credential-free.
-The database package declares the existing Prisma CLI so its client resolves beside the schema.
-The Docker install layer includes every package manifest before frozen installation. History has
-byte-level SHA-256 tests and disables checkout line-ending conversion. Task 7 adds bounded Compose
-profiles under `infra/compose/`, a shared multi-target image and a fail-closed entrypoint that applies
-the preserved migrations over a direct PostgreSQL connection before executing an app. The default
-profile runs PostgreSQL, Redis, gateway, API, workers and web; realtime and Activity stay opt-in. The
-development overlay binds local ports to loopback, and the VPS overlay requires an immutable image
-tag and strong database credentials. Redis uses AOF persistence and `noeviction`.
-
-The Task 7 Linux Compose smoke applies all 11 existing migrations inside the API image over the
-internal `postgres` hostname, then proves API intent, Redis delivery, one worker effect and typed web
-client scope with one correlation ID. Its network is internal and the smoke uses placeholder Discord
-credentials without a gateway login or command publication. Migration-failure unit coverage confirms
-startup stops before the app command. The previous-image rollback rehearsal is defined in the
-integration workflow and recovery runbook; it still requires a passing GitHub workflow run before it
-can be reported as remotely verified.
-
-**existing process topology (`apps/gateway/`)**
-```
-cluster.ts (manager)
-  ├─ ShardingManager (auto shards, respawn)
-  ├─ Fastify: /health, /health/shards, /metrics
-  ├─ top.gg autoposter (aggregates guild count across shards via IPC, then posts)
-  └─ N × bot.ts (one BotClient per shard)
-        ├─ loaders: commands, events, interactions, jobs (auto-discover modules/*)
-        ├─ services: getPrisma(), getCache(), getLogger(), createIpc(client)
-        └─ no BullMQ consumers
-
-api.ts (independent process)
-  ├─ /health/live and /health/ready
-  ├─ /votes/topgg
-  └─ /internal/v1/smoke and operation status
-
-workers.ts (independent process)
-  ├─ tracked BullMQ consumers with graceful drain
-  └─ recoverable-intent reconciler
+Optional: apps/realtime/ and apps/activity/ (authenticated, disabled by default)
 ```
 
-The loader discovers the repository-level `modules/` tree, passes every module through the compatibility
-adapter, then registers the unchanged command/event/component/job objects. Stable fixtures prove parity
-against the pre-move registry. The local `@/` alias is limited to this gateway compatibility window.
+The web server does not connect to PostgreSQL. It issues a short-lived principal for an exact service audience and guild scope; the API validates that scope again. PostgreSQL is the durable source of operation intent. Redis delivery is at least once, so operation handlers are idempotent and claims fence stale workers.
 
-The API writes operation intent to PostgreSQL before publishing its identifier to Redis. Queue jobs use
-deterministic operation IDs, and the worker republishes pending, retryable and expired leased intent so
-delivery failure and exhausted retries remain recoverable. Claim versions fence late workers from
-settling a newer lease. Each claim returns its incremented version while the same PostgreSQL transaction
-still holds the row lock, so a concurrent takeover cannot replace the first claimant's returned fence.
-Duplicate delivery is safe because durable effects have one row per operation.
-Public live/ready responses contain status only. Internal reads authorize against the stored operation
-scope: guild principals need the matching guild and permission, while host principals can read only
-host-scoped records. The current compatibility registry declares zero module jobs, so moving consumer
-ownership out of gateway shards does not remove a live handler.
+## Workspace ownership
 
-**web and optional runtimes (`apps/web/`, `apps/realtime/`, `apps/activity/`)**
-Web login uses an authorization-code adapter with signed state, PKCE, an opaque server-side session id and an
-HttpOnly SameSite=Lax cookie. Server routes issue short-lived API-audience guild principals and call the API's
-exact-guild summary endpoint; UI route guards provide navigation only. The API rechecks audience, session and tenant
-scope on every request. Browser smoke uses fixture OAuth with the typed HTTP client, a disposable migrated
-PostgreSQL database and persisted guild rows; an OAuth-visible but unconfigured guild proves missing rows are not
-fabricated by a web fixture. Sessions currently use an in-memory store, so production multi-instance deployments
-need shared durable session storage. Principal tokens are audience-bound separately to API, Realtime or Activity.
-Realtime exposes detail-free health and an authenticated exact-guild connection seam. Activity uses its own
-app/origin boundary and explicit guild launch authorization. Both remain disabled by default. These scaffolds do not
-implement multiplayer or claim device verification. `@rostra/web-client` owns typed summary reads, `@rostra/web-ui`
-owns semantic shell components, and `@rostra/game-core` contains pure game contracts.
+| Path | Responsibility |
+| --- | --- |
+| `apps/gateway/` | Discord sharding, interaction acknowledgement, routing and event fanout |
+| `apps/api/` | Authenticated, validated domain routes, health and webhook boundaries |
+| `apps/web/` | OAuth flow and public/member/admin/operator route groups using the typed API |
+| `apps/workers/` | Durable queue consumers, reconciliation and graceful drain |
+| `apps/realtime/` | Optional authorized realtime connection seam |
+| `apps/activity/` | Optional embedded Discord client with its own origin and auth boundary |
+| `modules/` | Existing feature behavior and tests, loaded through a compatibility adapter |
+| `packages/` | Shared services, public contracts and explicit package exports |
+| `integrations/` | Authorized external-service adapters |
+| `games/` | Pure game contracts and implementations |
+| `infra/` | Compose profiles, containers and recovery/deployment tooling |
+| `tooling/` | Workspace, boundary, parity and smoke checks |
 
-**sharding / IPC** - `apps/gateway/src/cluster/ipc.ts` defines an `Ipc` interface (`broadcast`, `fetchValues`).
-Today it's `NativeIpc` (discord.js `broadcastEval`). Switching to `discord-hybrid-sharding` later is a
-`SHARDING_MODE=hybrid` config change + a `HybridIpc` class - modules never touch the sharding lib.
+The compatibility loader currently validates 42 modules. Fixtures preserve 47 command definitions and 48 events from the recorded baseline. The registry currently declares no module-owned durable queue handlers; workers own the active queue runtime.
 
-**command flow (target)**
-1. User runs `/mod ban …` → `interactionCreate` on a shard.
-2. Pipeline: resolve command → permission guard → cooldown (Redis bucket) → Zod-validate options →
-   `execute(ctx)` inside an error boundary.
-3. Handler uses `getPrisma()` for data, `getCache()`/`getRedis()` for hot data, and replies via
-   `packages/discord-ui/src/components.ts` (Components V2).
-4. Errors → ephemeral V2 error message + structured Pino log with a trace id.
+## Shared authorities and imports
 
-**command namespacing** - ~16–18 top-level commands (`/mod`, `/economy`, `/ticket`, …) each holding
-subcommand groups/subcommands, to stay under Discord's 100-global-command cap. Map is in the spec §8.
+- `@rostra/config` reads runtime environment variables and exposes validated configuration.
+- `@rostra/database` constructs the single Prisma client and owns `packages/database/prisma/schema.prisma` plus migration history.
+- `@rostra/cache` owns cache, Redis access and pub/sub.
+- `@rostra/logger` provides structured logs and credential redaction.
+- `@rostra/i18n` owns translation contracts and locale entrypoints.
+- `@rostra/discord-ui` owns Components V2 and safe acknowledgement helpers.
+- `@rostra/contracts` owns shared job contracts.
+- `@rostra/module-sdk` owns module manifests, lifecycle types and the current legacy adapter.
+- `@rostra/auth` and `@rostra/operations` own authorization and durable operation contracts.
+- `@rostra/web-client` and `@rostra/web-ui` own the typed web API and accessible shared UI.
+- `@rostra/testing` provides isolated fixtures.
 
-**data** - one Postgres schema (`packages/database/prisma/schema.prisma`) merges all 15 bots' storage. Redis holds
-leaderboards (sorted sets), hot config cache, rate limits, and job queues.
+Package exports point to ESM TypeScript source and use explicit export maps. New packages must not use the `@/` alias. The alias remains a temporary compatibility seam in `apps/gateway/src/` and `modules/` while legacy discovery is in use. Never reach into another package's private source.
 
-**depends on**
-- `packages/config/src/index.ts` - every subsystem reads typed config from here
-- `@rostra/database`, `@rostra/cache`, `@rostra/logger` - shared singleton owners
+## Gateway and module flow
 
-## gotchas
+The manager in `apps/gateway/src/cluster.ts` starts Discord shards and owns manager-level health and aggregate work. Each shard loads commands, events, interactions and modules from the repository-level `modules/` directory. `@rostra/module-sdk` validates module IDs and lifecycle cancellation; it does not rewrite feature behavior.
 
-- top.gg stats must be posted from the **manager** process (aggregate across shards), not per shard -
-  per-shard counts are partial.
-- Build order matters: foundation → runtime → feature modules (see `docs/sessions/log.mdx` and the spec).
+A slash interaction is acknowledged and routed through shared helpers. The handler checks permissions and validated options, performs feature work through public package owners, and returns Components V2 output with localized user-facing strings. Durable domain operations cross the gateway/API boundary; expensive work belongs in workers.
+
+Discord registration budgets are scoped by interaction type and registration scope. Global and per-guild chat-input limits are separate; context menus and Activity entrypoints have their own platform budgets. Reconciliation must account for each type and scope explicitly.
+
+## API, operations and workers
+
+The API exposes detail-free health routes, the authenticated vote webhook and internal operation routes. Public live/ready responses contain status only. Internal records are authorized against their stored scope: host principals can access host-scoped records, while guild principals need permission for the exact guild. Guessed or swapped tenant identifiers are denied without revealing another tenant's record.
+
+The API records intent in PostgreSQL before publishing an identifier to Redis. Deterministic operation IDs and idempotency constraints prevent duplicate durable effects. Workers claim records and return the incremented claim version from the same transaction that updates the lease. Completion and failure are fenced by that claim version. A reconciler republishes pending, retryable and expired work, and shutdown drains tracked consumers before disconnecting Redis.
+
+The current module inventory has no active `JobDefinition` handlers. Future module-owned consumers must enter through explicit manifests and the tracked worker runtime rather than creating a worker in a module or gateway shard.
+
+## Web and optional apps
+
+The web login uses OAuth authorization code flow with signed state, PKCE, an opaque server-side session identifier and an HttpOnly SameSite=Lax cookie. The browser uses a typed API client for persisted, read-only guild summaries. Route guards provide navigation, while the API remains the authorization boundary.
+
+Browser smoke uses fixture OAuth with the real web/API path and disposable PostgreSQL rows. It verifies that an OAuth-visible guild with no persisted configuration is not fabricated in the result. Sessions are currently stored in memory, so multiple web instances are not supported.
+
+Realtime and Activity verify signed principals scoped to their own audience and exact guild permission. They are disabled in the default profile. Their health and auth tests do not establish multiplayer or device compatibility.
+
+## Database, migrations and deployment
+
+The schema and all migration directories live under `packages/database/prisma/`. Historical migration paths and bytes are checked. New schema work is additive and forward-only; a failed migration prevents startup. Every app container runs the migration entrypoint over a direct PostgreSQL connection before executing the app.
+
+The default Compose profile runs PostgreSQL, Redis, gateway, API, workers and web with bounded resources. The development overlay binds database and Redis ports to loopback. The VPS overlay pins immutable image tags and does not expose database ports. Realtime and Activity are opt-in. Redis uses append-only persistence and `noeviction`.
+
+The Linux Compose smoke applies all 11 migrations inside the API image, then verifies the gateway-owned API adapter, API intent, Redis delivery, one worker effect and typed web-client scope under one correlation ID. The test network is internal and fake Discord credentials cannot login or publish commands. The prior-image rollback rehearsal is configured in GitHub Actions and remains pending a successful remote run.
+
+See [deployment](../runbooks/deployment.mdx), [recovery](../runbooks/recovery.mdx), [capability status](../product/capability-status.mdx) and the [Phase 00 evidence index](../phase-reports/phase-00/index.mdx) for operational instructions and verification limits.

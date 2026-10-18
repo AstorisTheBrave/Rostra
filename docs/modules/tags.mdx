@@ -14,7 +14,7 @@ text. Staff create/edit/delete them; anyone can fetch or list.
 **file paths**
 - command: `modules/tags/index.ts`
 - storage: `modules/tags/service.ts`
-- model: `prisma/schema.prisma` → `Tag` (composite id `[guildId, name]`)
+- model: `packages/database/prisma/schema.prisma` → `Tag` (composite id `[guildId, name]`)
 
 **command** - `/tag get <name>` · `/tag add <name> <content>` (Manage Messages) · `/tag remove <name>`
 (Manage Messages) · `/tag list`.

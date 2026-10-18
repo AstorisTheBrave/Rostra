@@ -17,7 +17,7 @@ types to log, and which channels to ignore.
 - command + module wiring: `modules/logging/index.ts`
 - event handlers: `modules/logging/events.ts`
 - config + dispatch: `modules/logging/service.ts` (+ `service.test.ts`)
-- model: `prisma/schema.prisma` → `LoggingConfig`
+- model: `packages/database/prisma/schema.prisma` → `LoggingConfig`
 
 **command** - `/logging` (Manage Server): `channel <channel>`, `toggle <type> <bool>`, `status`, and
 group `ignore add|remove <channel>`.

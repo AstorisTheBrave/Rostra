@@ -1,0 +1,32 @@
+---
+last-updated: 2026-10-18
+owner: AstorisTheBrave
+status: pending
+---
+
+# Failure and rollback evidence
+
+## Failure behavior tested locally
+
+The container startup entrypoint runs `infra/migrate.sh` before the selected app command. Retry count and delay are bounded. If migrations exhaust their retries, startup returns the migration failure and does not execute the application. The startup regression test checks both the failure path and the successful handoff.
+
+Task 7's Linux Compose smoke applied the forward migrations through the internal PostgreSQL service, completed the correlated API/worker/web-client flow, and reported the schema up to date. Task 5's PostgreSQL/Redis integration test drained an interrupted worker, started a replacement, recovered the retained job and verified one durable effect. Task 7's private report records cleanup of its disposable containers, volumes and network.
+
+For the final Task 8 run, record the unique Compose project, migration status and correlation ID in [performance evidence](performance.mdx). Remove the project containers, network and volumes, then verify no task-owned process or resource remains.
+
+## Application rollback procedure
+
+The [recovery runbook](../../runbooks/recovery.mdx) is the operator procedure. In short: stop new application services while preserving PostgreSQL and Redis volumes, set `ROSTRA_PREVIOUS_IMAGE` to the prior immutable monolithic image, then start the `legacy-gateway` rollback overlay. The prior app runs against the forward-migrated database; no down migration is used.
+
+The previous image must be retained and schema compatibility verified before deployment. Restoring a database backup can discard all state written after that backup, so it is a separate operator decision and is not part of code rollback.
+
+## Rehearsal status
+
+**PENDING remote CI.** `.github/workflows/integration.yml` builds the prior gateway from the recorded baseline commit, runs the new Linux migration and correlated smoke, then starts the prior image with outbound traffic blocked and checks its health route. Fake Discord credentials are used. This workflow is configured but has not yet been run on the final Task 8 commit. No prior-image rollback rehearsal is claimed as passed.
+
+## Limits
+
+- A prior-image rollback restores the old bot runtime, not the new API, worker or web experience.
+- The old image is compatible only while its schema usage remains compatible with forward-only additions.
+- These checks do not prove a real backup restore, production storage durability or lossless recovery from arbitrary infrastructure failure.
+- Never use `docker compose down --volumes` during ordinary shutdown or rollback. It destroys the named data volumes.

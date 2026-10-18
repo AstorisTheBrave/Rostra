@@ -18,7 +18,7 @@ edit your own card. Ported from the zyn-bot profile cog + card_generator.
 - leveling/economy stats: `modules/profile/stats.ts` (+ `stats.test.ts`)
 - image rendering (canvas): `modules/profile/card.ts` (kept separate so the test never loads the
   native canvas module)
-- model: `Profile` in `prisma/schema.prisma`
+- model: `Profile` in `packages/database/prisma/schema.prisma`
 
 **command** - `/profile view [user]` · `/profile bio <text>` · `/profile background <url>` ·
 `/profile color <hex>` · `/profile reset`. Works in guilds and DMs.

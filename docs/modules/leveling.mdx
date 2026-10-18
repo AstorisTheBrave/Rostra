@@ -17,7 +17,7 @@ also an XP leaderboard.
 - XP-on-message handler: `modules/leveling/events.ts`
 - curve, accounts, rewards, leaderboard: `modules/leveling/service.ts` (+ `service.test.ts`)
 - rank card renderer (`@napi-rs/canvas`): `modules/leveling/card.ts`
-- models: `prisma/schema.prisma` → `LevelConfig`, `LevelUser`, `LevelReward`
+- models: `packages/database/prisma/schema.prisma` → `LevelConfig`, `LevelUser`, `LevelReward`
 
 **command** - `/level`: `rank [user]` (image card), `leaderboard`, `enable`, `disable`, `announcechannel`,
 `set <user> <level>`, group `reward add|remove|list`. Config/set/reward-mutations require Manage Server;

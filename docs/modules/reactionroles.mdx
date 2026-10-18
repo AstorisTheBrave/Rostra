@@ -15,7 +15,7 @@ Self-assignable roles: staff build a panel of roles and post it as buttons (`pos
 **file paths**
 - command + button handler: `modules/reactionroles/index.ts`
 - panel persistence + JSON parsing: `modules/reactionroles/service.ts` (+ `service.test.ts`)
-- model: `prisma/schema.prisma` → `ReactionRolePanel` (roles stored as a JSON array)
+- model: `packages/database/prisma/schema.prisma` → `ReactionRolePanel` (roles stored as a JSON array)
 
 **command** - `/reactionrole` (Manage Roles): `create <title> [mode]`, `addrole <panel> <role> <label>
 [emoji]`, `removerole <panel> <role>`, `post <panel>`, `postmenu <panel>`, `list`, `delete <panel>`.

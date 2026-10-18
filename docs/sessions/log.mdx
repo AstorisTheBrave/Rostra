@@ -58,6 +58,12 @@ stale claim cannot settle after lease takeover. Focused tests cover busy lease r
 recoverable-status publication, continued reconciliation after one publish failure and cleanup after
 one worker close fails.
 
+**fix round 2**: Closed an interleaving race between claim update and claim read. The Prisma repository
+now increments the claim version and reads the claimed row in one PostgreSQL transaction, retaining the
+row lock until the exact fence is captured. A real PostgreSQL barrier test pauses the first claimant
+after its update, proves a takeover remains blocked, then verifies the two claimants receive versions
+one and two respectively. The existing replacement-worker and reconciler service proof remains green.
+
 ### 2026-10-17 (Phase 00: gateway and legacy module compatibility migration)
 
 **changed**: Moved the Discord runtime into `apps/gateway/src/` and all current feature modules into

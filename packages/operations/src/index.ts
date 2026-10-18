@@ -1,6 +1,7 @@
 import type { Prisma } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { type ConnectionOptions, Queue } from "bullmq";
+import { claimOperationRow } from "./claim-transaction.ts";
 
 export type OperationStatus = "pending" | "processing" | "retryable" | "completed" | "failed";
 export type FailureClassification = "retryable" | "permanent";
@@ -215,6 +216,9 @@ function record(row: {
 }
 
 export class PrismaOperationRepository implements OperationRepository {
+	/** Internal interleaving-test hook. Production callers omit it. */
+	constructor(private readonly afterClaimUpdate?: () => Promise<void>) {}
+
 	async create(input: NewOperation): Promise<{ record: OperationRecord; created: boolean }> {
 		const prisma = getPrisma();
 		const inserted = await prisma.operationRecord.createMany({
@@ -243,30 +247,15 @@ export class PrismaOperationRepository implements OperationRepository {
 
 	async claim(id: string, now: Date, leaseMs: number): Promise<OperationClaim> {
 		const prisma = getPrisma();
-		const claimed = await prisma.operationRecord.updateMany({
-			where: {
-				id,
-				OR: [
-					{ status: "pending" },
-					{ status: "retryable" },
-					{ status: "processing", leaseUntil: { lt: now } },
-				],
-			},
-			data: {
-				status: "processing",
-				leaseUntil: new Date(now.getTime() + leaseMs),
-				claimVersion: { increment: 1 },
-			},
-		});
-		if (claimed.count === 0) {
+		const claimed = await claimOperationRow(id, now, leaseMs, this.afterClaimUpdate);
+		if (!claimed) {
 			const existing = await prisma.operationRecord.findUnique({ where: { id } });
 			if (!existing) return { state: "missing" };
 			if (existing.status === "completed" || existing.status === "failed")
 				return { state: "terminal" };
 			return { state: "busy" };
 		}
-		const row = await prisma.operationRecord.findUniqueOrThrow({ where: { id } });
-		return { state: "claimed", record: record(row) };
+		return { state: "claimed", record: record(claimed) };
 	}
 
 	async complete(id: string, claimVersion: number): Promise<boolean> {

@@ -69,7 +69,9 @@ against the pre-move registry. The local `@/` alias is limited to this gateway c
 The API writes operation intent to PostgreSQL before publishing its identifier to Redis. Queue jobs use
 deterministic operation IDs, and the worker republishes pending, retryable and expired leased intent so
 delivery failure and exhausted retries remain recoverable. Claim versions fence late workers from
-settling a newer lease. Duplicate delivery is safe because durable effects have one row per operation.
+settling a newer lease. Each claim returns its incremented version while the same PostgreSQL transaction
+still holds the row lock, so a concurrent takeover cannot replace the first claimant's returned fence.
+Duplicate delivery is safe because durable effects have one row per operation.
 Public live/ready responses contain status only. Internal reads authorize against the stored operation
 scope: guild principals need the matching guild and permission, while host principals can read only
 host-scoped records. The current compatibility registry declares zero module jobs, so moving consumer

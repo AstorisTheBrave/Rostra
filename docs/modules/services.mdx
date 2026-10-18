@@ -51,10 +51,11 @@ rows, so they survive restart; each shard re-arms what it owns on boot (core's `
   and a non-sensitive `lastError` code. Explicit cancellation still deletes the row.
 
 **durable operations** - `packages/operations/` owns operation records, attempts, scoped idempotency
-validation, claim fencing and failure classification. `apps/api/` records intent before queue
-publication. `apps/workers/` owns all BullMQ consumers, recoverable-intent reconciliation and tracked
-drain. Redis delivery is at least once; `OperationEffect.operationId` ensures duplicate delivery cannot
-create a second durable effect.
+validation, claim fencing and failure classification. Claim acquisition increments and reads its fence
+inside one PostgreSQL transaction so a lease takeover cannot replace an earlier claimant's returned
+version. `apps/api/` records intent before queue publication. `apps/workers/` owns all BullMQ consumers,
+recoverable-intent reconciliation and tracked drain. Redis delivery is at least once;
+`OperationEffect.operationId` ensures duplicate delivery cannot create a second durable effect.
 
 **depends on**
 - `@rostra/config` for log level, `DATABASE_URL`, `REDIS_URL`, env mode

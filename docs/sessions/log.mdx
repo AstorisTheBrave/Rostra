@@ -2276,3 +2276,10 @@ suite, build and `git diff --check` passed after reconciliation. Lint retains th
 first unit invocation omitted the documented CI placeholder environment and stopped in config loading; rerunning
 with the workflow placeholders passed. Browser, service, image, rollback and security matrices remain assigned to
 GitHub CI, and the Phase 00 decision remains PENDING until they pass.
+
+### 2026-10-18 - Phase 00 secret-scan workflow repair
+
+The first pull-request security run reached Gitleaks but stopped before scanning because the pinned action now
+requires the workflow token in its environment for pull-request events. Passed the existing read-only automatic
+`GITHUB_TOKEN` to that one step. No permissions were broadened and checkout credentials remain disabled. Static
+repository boundaries, lint and diff checks passed; the replacement GitHub run owns the actual scan result.

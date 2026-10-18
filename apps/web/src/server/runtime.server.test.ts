@@ -46,9 +46,9 @@ test("guild listing executes the typed client with a different exact-guild princ
 	if (response.status !== "ok") return;
 	assert.deepEqual(
 		response.guilds.map((guild) => guild.name),
-		["Northstar", "Atlas Studio", "Sunday Guild"],
+		["Northstar", "Atlas Studio", "Sunday Guild", "Unconfigured Preview"],
 	);
-	assert.equal(new Set(requests.map((request) => request.token)).size, 3);
+	assert.equal(new Set(requests.map((request) => request.token)).size, 4);
 });
 
 test("exact guild reads reject guessed membership before calling the domain client", async () => {

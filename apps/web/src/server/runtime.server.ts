@@ -22,6 +22,7 @@ export function createWebRuntime(options: {
 				guildId: guild.id,
 				permissions,
 			},
+			"api",
 			options.tokenSecret,
 			now + 60_000,
 		);
@@ -94,11 +95,6 @@ export function getWebRuntime(): ReturnType<typeof createWebRuntime> {
 		(!config.discord.clientId || !config.discord.clientSecret)
 	)
 		throw new Error("Web OAuth requires DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET");
-	const fixtureGuildClient: GuildClient = {
-		async getGuild(guildId) {
-			return { id: guildId, configured: true };
-		},
-	};
 	runtime = createWebRuntime({
 		auth: createAuthController({
 			adapter,
@@ -107,10 +103,7 @@ export function getWebRuntime(): ReturnType<typeof createWebRuntime> {
 			store: new MemorySessionStore(),
 			secure: new URL(config.webApp.publicUrl).protocol === "https:",
 		}),
-		guildClient:
-			config.webApp.authMode === "fixture"
-				? fixtureGuildClient
-				: createHttpGuildClient({ baseUrl: config.api.baseUrl }),
+		guildClient: createHttpGuildClient({ baseUrl: config.api.baseUrl }),
 		tokenSecret: secret,
 	});
 	return runtime;

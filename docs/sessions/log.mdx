@@ -2186,3 +2186,13 @@ muted blue-gray copy and violet actions match; (3) desktop rail, account menu an
 mobile bottom navigation and compact server rows match, with the count above the fixed bar; (5) login and guild
 selector copy match exactly. The login flow uses small code-native outline icons and simple straight lines instead
 of curved decorative connectors. Above-fold copy diff: none. Concept and rendered screenshots are scratch only.
+
+### 2026-10-18 - Phase 00 Task 6 review fixes
+
+Bound signed web principals to a required service audience. The web issues `api` tokens; API, Realtime and Activity
+verifiers each require their own exact audience, with cross-audience rejection coverage. Removed the fixture-only
+web guild client. Browser smoke now starts the real API, applies migrations and seeds a disposable PostgreSQL
+database, then uses fixture OAuth and the typed HTTP client. The fixture includes one OAuth-visible unconfigured
+guild, and the browser test proves only the three persisted guild rows render. In-memory web sessions remain a
+single-process limitation. The database-backed browser proof passed locally against temporary PostgreSQL/Redis
+containers and is configured for the GitHub browser matrix.

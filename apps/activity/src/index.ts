@@ -14,6 +14,7 @@ async function main(): Promise<void> {
 			verifyPrincipalToken(
 				authorization?.startsWith("Bearer ") ? authorization.slice(7) : undefined,
 				tokenSecret,
+				"activity",
 			),
 	});
 	let closing = false;

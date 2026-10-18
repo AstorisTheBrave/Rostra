@@ -7,7 +7,8 @@
 		"build": "tsc --noEmit",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome check src package.json tsconfig.json",
-		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\""
+		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\"",
+		"seed:browser-fixture": "node --import tsx src/browser-fixture.ts"
 	},
 	"dependencies": {
 		"@fastify/rate-limit": "^11.1.0",

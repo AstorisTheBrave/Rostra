@@ -18,6 +18,7 @@ async function main(): Promise<void> {
 			return verifyPrincipalToken(
 				authorization?.startsWith("Bearer ") ? authorization.slice(7) : undefined,
 				config.webApp.sessionSecret,
+				"api",
 			);
 		},
 		guildDirectory: {

@@ -4,6 +4,8 @@ export type Principal =
 	| { kind: "host"; subjectId: string }
 	| { kind: "guild"; subjectId: string; guildId: string; permissions: readonly string[] };
 
+export type PrincipalAudience = "api" | "realtime" | "activity";
+
 export class AuthorizationError extends Error {
 	readonly code = "forbidden";
 }
@@ -52,6 +54,7 @@ export function verifyBearer(header: string | undefined, expected: string | unde
 
 interface PrincipalToken {
 	principal: Principal;
+	audience: PrincipalAudience;
 	expiresAt: number;
 }
 
@@ -86,11 +89,12 @@ function principalFrom(value: unknown): Principal | undefined {
 /** Issue a short-lived bearer for one already-authorized principal. */
 export function issuePrincipalToken(
 	principal: Principal,
+	audience: PrincipalAudience,
 	secret: string,
 	expiresAt = Date.now() + 60_000,
 ): string {
 	const payload = Buffer.from(
-		JSON.stringify({ principal, expiresAt } satisfies PrincipalToken),
+		JSON.stringify({ principal, audience, expiresAt } satisfies PrincipalToken),
 	).toString("base64url");
 	return `${payload}.${signature(payload, secret)}`;
 }
@@ -99,6 +103,7 @@ export function issuePrincipalToken(
 export function verifyPrincipalToken(
 	token: string | undefined,
 	secret: string | undefined,
+	audience: PrincipalAudience,
 	now = Date.now(),
 ): Principal | undefined {
 	if (!token || !secret) return undefined;
@@ -109,7 +114,12 @@ export function verifyPrincipalToken(
 		const decoded: unknown = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
 		if (!decoded || typeof decoded !== "object") return undefined;
 		const record = decoded as Record<string, unknown>;
-		if (typeof record.expiresAt !== "number" || record.expiresAt < now) return undefined;
+		if (
+			record.audience !== audience ||
+			typeof record.expiresAt !== "number" ||
+			record.expiresAt < now
+		)
+			return undefined;
 		return principalFrom(record.principal);
 	} catch {
 		return undefined;

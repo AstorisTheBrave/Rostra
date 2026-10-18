@@ -275,7 +275,7 @@
 
   Run web unit/accessibility tests locally if lightweight. Run browser/device matrices in GitHub Actions.
 
-- [ ] **Step 6: Commit**
+  - [x] **Step 6: Commit**
 
   Commit: `feat: add the web realtime and activity boundaries`
 

@@ -79,14 +79,16 @@ ownership out of gateway shards does not remove a live handler.
 
 **web and optional runtimes (`apps/web/`, `apps/realtime/`, `apps/activity/`)**
 Web login uses an authorization-code adapter with signed state, PKCE, an opaque server-side session id and an
-HttpOnly SameSite=Lax cookie. Server routes issue short-lived guild principals and call the API's exact-guild summary
-endpoint; UI route guards provide navigation only. The API rechecks session and tenant scope on every request.
-Fixture OAuth and a typed fake guild adapter support isolated browser checks. Sessions currently use an in-memory
-store, so production multi-instance deployments need shared durable session storage. Realtime exposes detail-free
-health and an authenticated exact-guild connection seam. Activity uses its own app/origin boundary and explicit
-guild launch authorization. Both remain disabled by default. These scaffolds do not implement multiplayer or claim
-device verification. `@rostra/web-client` owns typed summary reads, `@rostra/web-ui` owns semantic shell components,
-and `@rostra/game-core` contains pure game contracts.
+HttpOnly SameSite=Lax cookie. Server routes issue short-lived API-audience guild principals and call the API's
+exact-guild summary endpoint; UI route guards provide navigation only. The API rechecks audience, session and tenant
+scope on every request. Browser smoke uses fixture OAuth with the typed HTTP client, a disposable migrated
+PostgreSQL database and persisted guild rows; an OAuth-visible but unconfigured guild proves missing rows are not
+fabricated by a web fixture. Sessions currently use an in-memory store, so production multi-instance deployments
+need shared durable session storage. Principal tokens are audience-bound separately to API, Realtime or Activity.
+Realtime exposes detail-free health and an authenticated exact-guild connection seam. Activity uses its own
+app/origin boundary and explicit guild launch authorization. Both remain disabled by default. These scaffolds do not
+implement multiplayer or claim device verification. `@rostra/web-client` owns typed summary reads, `@rostra/web-ui`
+owns semantic shell components, and `@rostra/game-core` contains pure game contracts.
 
 **sharding / IPC** - `apps/gateway/src/cluster/ipc.ts` defines an `Ipc` interface (`broadcast`, `fetchValues`).
 Today it's `NativeIpc` (discord.js `broadcastEval`). Switching to `discord-hybrid-sharding` later is a

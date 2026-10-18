@@ -131,7 +131,8 @@ evidence and unresolved limitations. Phase 00 passes only after all applications
 checks have executable proof.
 
 Task 6 adds the web login and member shell, API-backed tenant-scoped read-only guild summaries, and buildable
-realtime and Activity authorization seams. OAuth uses state, PKCE and an HttpOnly session cookie. The current
-in-memory session store is single-process scaffolding and must become shared/durable before running multiple web
-instances. Realtime and Activity remain disabled by default; their health/auth tests do not prove multiplayer or
-device compatibility.
+realtime and Activity authorization seams. OAuth uses state, PKCE and an HttpOnly session cookie. Principal tokens
+bind to one exact service audience, and the API repeats audience and tenant checks before reads. Browser smoke uses
+fixture OAuth with the typed API client against disposable PostgreSQL rows. The current in-memory session store is
+single-process scaffolding and must become shared/durable before running multiple web instances. Realtime and
+Activity remain disabled by default; their health/auth tests do not prove multiplayer or device compatibility.

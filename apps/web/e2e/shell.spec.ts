@@ -19,6 +19,8 @@ test("login and member shell are keyboard complete and axe-clean", async ({ page
 	await signIn(page);
 	await expect(page.getByText("Northstar", { exact: true })).toBeVisible();
 	await expect(page.getByText("3 servers available")).toBeVisible();
+	await expect(page.locator(".server-list li")).toHaveCount(3);
+	await expect(page.getByText("Unconfigured Preview", { exact: true })).toHaveCount(0);
 	expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 	await page.getByRole("link", { name: "Open", exact: true }).first().click();
 	await expect(page.getByRole("heading", { name: "Northstar" })).toBeVisible();

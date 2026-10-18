@@ -59,6 +59,7 @@ export function createFixtureOAuthAdapter(): OAuthAdapter {
 					{ id: "northstar", name: "Northstar", access: "administrator" },
 					{ id: "atlas-studio", name: "Atlas Studio", access: "manager" },
 					{ id: "sunday-guild", name: "Sunday Guild", access: "member" },
+					{ id: "unconfigured-preview", name: "Unconfigured Preview", access: "member" },
 				],
 			};
 		},

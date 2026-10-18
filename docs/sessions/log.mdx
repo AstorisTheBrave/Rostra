@@ -2262,3 +2262,17 @@ resource limits are in `docs/phase-reports/phase-00/performance.mdx`. Peak resou
 Phase 00 decision remains PENDING. Independent review, remote CI, prior-image rollback rehearsal, browser matrix,
 six image targets, secret/dependency scans, SBOM, CodeQL and local/remote SHA equality remain unverified until the
 final branch snapshot runs on GitHub.
+
+### 2026-10-18 - Phase 00 upstream dependency reconciliation
+
+Merged `origin/main` at `d325d03` into the revamp branch before its first remote snapshot. Kept the pnpm-only
+control plane and deleted npm lockfile intact while carrying the upstream Fastify and Prisma CLI updates into each
+workspace owner. Moved the upstream transitive security updates into the pnpm workspace overrides: Undici resolved
+to 6.29.1, fast-copy is pinned to 4.1.2, and fast-uri is pinned to 3.1.8. Adopted the upstream pinned Buildx v4.4.1
+and build-push v7.4.0 actions without changing the six-target image matrix.
+
+Frozen install, Prisma generation, repository and package boundaries, typecheck, lint, the full serialized unit
+suite, build and `git diff --check` passed after reconciliation. Lint retains the same six existing warnings. The
+first unit invocation omitted the documented CI placeholder environment and stopped in config loading; rerunning
+with the workflow placeholders passed. Browser, service, image, rollback and security matrices remain assigned to
+GitHub CI, and the Phase 00 decision remains PENDING until they pass.

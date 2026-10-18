@@ -1,5 +1,6 @@
 import type { Prisma } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
+import { type ConnectionOptions, Queue } from "bullmq";
 
 export type OperationStatus = "pending" | "processing" | "retryable" | "completed" | "failed";
 export type FailureClassification = "retryable" | "permanent";
@@ -12,6 +13,7 @@ export interface OperationRecord {
 	payload: unknown;
 	status: OperationStatus;
 	leaseUntil: Date | null;
+	claimVersion: number;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -70,11 +72,16 @@ export interface OperationFailure {
 export interface OperationRepository {
 	create(input: NewOperation): Promise<{ record: OperationRecord; created: boolean }>;
 	get(id: string): Promise<OperationRecord | undefined>;
-	claim(id: string, now: Date, leaseMs: number): Promise<OperationRecord | undefined>;
-	complete(id: string): Promise<void>;
-	fail(id: string, failure: OperationFailure): Promise<void>;
+	claim(id: string, now: Date, leaseMs: number): Promise<OperationClaim>;
+	complete(id: string, claimVersion: number): Promise<boolean>;
+	fail(id: string, claimVersion: number, failure: OperationFailure): Promise<boolean>;
+	listRecoverable(now: Date, limit: number): Promise<OperationRecord[]>;
 	recordEffect(id: string, value: unknown): Promise<boolean>;
 }
+
+export type OperationClaim =
+	| { state: "claimed"; record: OperationRecord }
+	| { state: "busy" | "missing" | "terminal" };
 
 export interface OperationPublisher {
 	publish(payload: OperationQueuePayload): Promise<void>;
@@ -98,6 +105,10 @@ export class RetryableOperationError extends Error {
 	) {
 		super(message);
 	}
+}
+
+export class IdempotencyConflictError extends Error {
+	readonly code = "idempotency_conflict";
 }
 
 export function classifyOperationError(error: unknown): OperationFailure {
@@ -124,30 +135,67 @@ export async function processOperation(
 	handlers: ReadonlyMap<string, OperationHandler>,
 	payload: OperationQueuePayload,
 	options: { now?: Date; leaseMs?: number } = {},
-): Promise<"completed" | "duplicate" | FailureClassification> {
+): Promise<"completed" | "terminal" | "busy" | "stale" | FailureClassification> {
 	if (payload.version !== 1) throw new PermanentOperationError("unsupported_payload_version");
-	const operation = await repository.claim(
+	const claim = await repository.claim(
 		payload.operationId,
 		options.now ?? new Date(),
 		options.leaseMs ?? 30_000,
 	);
-	if (!operation) return "duplicate";
+	if (claim.state === "busy") return "busy";
+	if (claim.state !== "claimed") return "terminal";
+	const operation = claim.record;
 	const handler = handlers.get(operation.kind);
 	if (!handler) {
-		await repository.fail(operation.id, {
+		const current = await repository.fail(operation.id, operation.claimVersion, {
 			classification: "retryable",
 			code: "unknown_handler",
 		});
-		return "retryable";
+		return current ? "retryable" : "stale";
 	}
 	try {
 		await handler(operation);
-		await repository.complete(operation.id);
-		return "completed";
+		return (await repository.complete(operation.id, operation.claimVersion))
+			? "completed"
+			: "stale";
 	} catch (error) {
 		const failure = classifyOperationError(error);
-		await repository.fail(operation.id, failure);
-		return failure.classification;
+		return (await repository.fail(operation.id, operation.claimVersion, failure))
+			? failure.classification
+			: "stale";
+	}
+}
+
+export function operationJobId(operationId: string): string {
+	return `operation-${operationId}`;
+}
+
+export class BullMqOperationPublisher implements OperationPublisher {
+	readonly #queue: Queue<OperationQueuePayload>;
+
+	constructor(connection: ConnectionOptions) {
+		this.#queue = new Queue<OperationQueuePayload>("operations", { connection });
+	}
+
+	async publish(payload: OperationQueuePayload): Promise<void> {
+		const jobId = operationJobId(payload.operationId);
+		const existing = await this.#queue.getJob(jobId);
+		if (existing) {
+			const state = await existing.getState();
+			if (state === "failed" || state === "completed") await existing.retry(state);
+			return;
+		}
+		await this.#queue.add("operation", payload, {
+			jobId,
+			attempts: 5,
+			backoff: { type: "exponential", delay: 1_000 },
+			removeOnComplete: 1_000,
+			removeOnFail: false,
+		});
+	}
+
+	async close(): Promise<void> {
+		await this.#queue.close();
 	}
 }
 
@@ -159,36 +207,33 @@ function record(row: {
 	payload: unknown;
 	status: string;
 	leaseUntil: Date | null;
+	claimVersion: number;
 	createdAt: Date;
 	updatedAt: Date;
 }): OperationRecord {
 	return { ...row, status: row.status as OperationStatus };
 }
 
-function isUniqueConstraint(error: unknown): boolean {
-	return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
-}
-
 export class PrismaOperationRepository implements OperationRepository {
 	async create(input: NewOperation): Promise<{ record: OperationRecord; created: boolean }> {
 		const prisma = getPrisma();
-		try {
-			const created = await prisma.operationRecord.create({
-				data: {
+		const inserted = await prisma.operationRecord.createMany({
+			data: [
+				{
 					guildId: input.guildId ?? null,
 					kind: input.kind,
 					idempotencyKey: input.idempotencyKey,
 					payload: (input.payload ?? {}) as Prisma.InputJsonValue,
 				},
-			});
-			return { record: record(created), created: true };
-		} catch (error) {
-			if (!isUniqueConstraint(error)) throw error;
-			const existing = await prisma.operationRecord.findUniqueOrThrow({
-				where: { idempotencyKey: input.idempotencyKey },
-			});
-			return { record: record(existing), created: false };
-		}
+			],
+			skipDuplicates: true,
+		});
+		const existing = await prisma.operationRecord.findUniqueOrThrow({
+			where: { idempotencyKey: input.idempotencyKey },
+		});
+		if (existing.kind !== input.kind || existing.guildId !== (input.guildId ?? null))
+			throw new IdempotencyConflictError();
+		return { record: record(existing), created: inserted.count === 1 };
 	}
 
 	async get(id: string): Promise<OperationRecord | undefined> {
@@ -196,7 +241,7 @@ export class PrismaOperationRepository implements OperationRepository {
 		return row ? record(row) : undefined;
 	}
 
-	async claim(id: string, now: Date, leaseMs: number): Promise<OperationRecord | undefined> {
+	async claim(id: string, now: Date, leaseMs: number): Promise<OperationClaim> {
 		const prisma = getPrisma();
 		const claimed = await prisma.operationRecord.updateMany({
 			where: {
@@ -207,28 +252,49 @@ export class PrismaOperationRepository implements OperationRepository {
 					{ status: "processing", leaseUntil: { lt: now } },
 				],
 			},
-			data: { status: "processing", leaseUntil: new Date(now.getTime() + leaseMs) },
+			data: {
+				status: "processing",
+				leaseUntil: new Date(now.getTime() + leaseMs),
+				claimVersion: { increment: 1 },
+			},
 		});
-		if (claimed.count === 0) return undefined;
+		if (claimed.count === 0) {
+			const existing = await prisma.operationRecord.findUnique({ where: { id } });
+			if (!existing) return { state: "missing" };
+			if (existing.status === "completed" || existing.status === "failed")
+				return { state: "terminal" };
+			return { state: "busy" };
+		}
 		const row = await prisma.operationRecord.findUniqueOrThrow({ where: { id } });
-		return record(row);
+		return { state: "claimed", record: record(row) };
 	}
 
-	async complete(id: string): Promise<void> {
-		await this.finish(id, "completed", null);
+	async complete(id: string, claimVersion: number): Promise<boolean> {
+		return this.finish(id, claimVersion, "completed", null);
 	}
 
-	async fail(id: string, failure: OperationFailure): Promise<void> {
-		await this.finish(id, failure.classification === "retryable" ? "retryable" : "failed", failure);
+	async fail(id: string, claimVersion: number, failure: OperationFailure): Promise<boolean> {
+		return this.finish(
+			id,
+			claimVersion,
+			failure.classification === "retryable" ? "retryable" : "failed",
+			failure,
+		);
 	}
 
 	private async finish(
 		id: string,
+		claimVersion: number,
 		status: OperationStatus,
 		failure: OperationFailure | null,
-	): Promise<void> {
+	): Promise<boolean> {
 		const prisma = getPrisma();
-		await prisma.$transaction(async (tx) => {
+		return prisma.$transaction(async (tx) => {
+			const settled = await tx.operationRecord.updateMany({
+				where: { id, status: "processing", claimVersion },
+				data: { status, leaseUntil: null },
+			});
+			if (settled.count === 0) return false;
 			const attempt = await tx.operationAttempt.count({ where: { operationId: id } });
 			await tx.operationAttempt.create({
 				data: {
@@ -239,8 +305,23 @@ export class PrismaOperationRepository implements OperationRepository {
 					errorCode: failure?.code ?? null,
 				},
 			});
-			await tx.operationRecord.update({ where: { id }, data: { status, leaseUntil: null } });
+			return true;
 		});
+	}
+
+	async listRecoverable(now: Date, limit: number): Promise<OperationRecord[]> {
+		const rows = await getPrisma().operationRecord.findMany({
+			where: {
+				OR: [
+					{ status: "pending" },
+					{ status: "retryable" },
+					{ status: "processing", leaseUntil: { lt: now } },
+				],
+			},
+			orderBy: { createdAt: "asc" },
+			take: limit,
+		});
+		return rows.map(record);
 	}
 
 	async recordEffect(id: string, value: unknown): Promise<boolean> {

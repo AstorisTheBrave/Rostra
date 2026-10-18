@@ -1,10 +1,12 @@
 import type { JobDefinition } from "@rostra/contracts";
 import type {
 	OperationHandler,
+	OperationPublisher,
 	OperationQueuePayload,
 	OperationRepository,
 } from "@rostra/operations";
 import {
+	BullMqOperationPublisher,
 	PermanentOperationError,
 	parseOperationQueuePayload,
 	processOperation,
@@ -14,6 +16,52 @@ import type Redis from "ioredis";
 
 interface DrainableWorker {
 	close(force?: boolean): Promise<void>;
+}
+
+export class OperationReconciler implements DrainableWorker {
+	readonly #repository: OperationRepository;
+	readonly #publisher: OperationPublisher;
+	readonly #intervalMs: number;
+	#timer: NodeJS.Timeout | undefined;
+	#inFlight: Promise<void> | undefined;
+
+	constructor(repository: OperationRepository, publisher: OperationPublisher, intervalMs = 5_000) {
+		this.#repository = repository;
+		this.#publisher = publisher;
+		this.#intervalMs = intervalMs;
+	}
+
+	async runOnce(now = new Date()): Promise<number> {
+		const records = await this.#repository.listRecoverable(now, 100);
+		const results = await Promise.allSettled(
+			records.map((record) => this.#publisher.publish({ version: 1, operationId: record.id })),
+		);
+		const failures = results
+			.filter((result): result is PromiseRejectedResult => result.status === "rejected")
+			.map((result) => result.reason);
+		if (failures.length)
+			throw new AggregateError(failures, "One or more operations failed to republish");
+		return records.length;
+	}
+
+	start(onError: (error: unknown) => void): void {
+		const trigger = () => {
+			if (this.#inFlight) return;
+			this.#inFlight = this.runOnce()
+				.then(() => undefined)
+				.catch(onError)
+				.finally(() => {
+					this.#inFlight = undefined;
+				});
+		};
+		trigger();
+		this.#timer = setInterval(trigger, this.#intervalMs);
+	}
+
+	async close(): Promise<void> {
+		if (this.#timer) clearInterval(this.#timer);
+		await this.#inFlight;
+	}
 }
 
 export class TrackedWorkers {
@@ -52,16 +100,18 @@ export function createOperationProcessor(
 			throw error;
 		}
 		const outcome = await processOperation(repository, handlers, payload);
-		if (outcome === "retryable") throw new Error("retryable_operation_failure");
+		if (outcome === "retryable" || outcome === "busy")
+			throw new Error(outcome === "busy" ? "operation_busy" : "retryable_operation_failure");
 	};
 }
 
 export class WorkerRuntime {
 	readonly #connection: Redis;
-	readonly #tracked = new TrackedWorkers();
+	readonly #tracked: TrackedWorkers;
 
-	constructor(connection: Redis) {
+	constructor(connection: Redis, tracked = new TrackedWorkers()) {
 		this.#connection = connection;
+		this.#tracked = tracked;
 	}
 
 	get workerCount(): number {
@@ -84,6 +134,27 @@ export class WorkerRuntime {
 		);
 	}
 
+	registerReconciler(
+		repository: OperationRepository,
+		onError: (error: unknown) => void,
+		intervalMs = 5_000,
+	): void {
+		const publisher = new BullMqOperationPublisher(
+			this.#connection as unknown as ConnectionOptions,
+		);
+		const reconciler = new OperationReconciler(repository, publisher, intervalMs);
+		this.#tracked.track({
+			async close() {
+				try {
+					await reconciler.close();
+				} finally {
+					await publisher.close();
+				}
+			},
+		});
+		reconciler.start(onError);
+	}
+
 	registerJobs(definitions: readonly JobDefinition[]): void {
 		for (const definition of definitions) {
 			this.#tracked.track(
@@ -102,4 +173,26 @@ export class WorkerRuntime {
 			this.#connection.disconnect();
 		}
 	}
+}
+
+export async function drainRuntimeAndDatabase(
+	runtime: Pick<WorkerRuntime, "drain">,
+	disconnectDatabase: () => Promise<void>,
+	onError: (error: unknown) => void,
+): Promise<boolean> {
+	let failed = false;
+	try {
+		await runtime.drain();
+	} catch (error) {
+		failed = true;
+		onError(error);
+	} finally {
+		try {
+			await disconnectDatabase();
+		} catch (error) {
+			failed = true;
+			onError(error);
+		}
+	}
+	return failed;
 }

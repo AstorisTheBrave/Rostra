@@ -622,6 +622,9 @@ importers:
       '@rostra/database':
         specifier: workspace:*
         version: link:../database
+      bullmq:
+        specifier: ^5.79.2
+        version: 5.79.2
     devDependencies:
       '@types/node':
         specifier: ^26.1.0

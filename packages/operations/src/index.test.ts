@@ -3,11 +3,13 @@ import { test } from "node:test";
 import {
 	classifyOperationError,
 	createAndPublishOperation,
+	IdempotencyConflictError,
 	type NewOperation,
 	type OperationFailure,
 	type OperationHandler,
 	type OperationRecord,
 	type OperationRepository,
+	operationJobId,
 	PermanentOperationError,
 	parseOperationQueuePayload,
 	processOperation,
@@ -23,8 +25,12 @@ class MemoryRepository implements OperationRepository {
 
 	async create(input: NewOperation) {
 		const existingId = this.keys.get(input.idempotencyKey);
-		if (existingId)
-			return { record: this.records.get(existingId) as OperationRecord, created: false };
+		if (existingId) {
+			const existing = this.records.get(existingId) as OperationRecord;
+			if (existing.kind !== input.kind || existing.guildId !== (input.guildId ?? null))
+				throw new IdempotencyConflictError();
+			return { record: existing, created: false };
+		}
 		const now = new Date();
 		const record: OperationRecord = {
 			id: `operation-${++this.#sequence}`,
@@ -34,6 +40,7 @@ class MemoryRepository implements OperationRepository {
 			payload: input.payload ?? {},
 			status: "pending",
 			leaseUntil: null,
+			claimVersion: 0,
 			createdAt: now,
 			updatedAt: now,
 		};
@@ -46,22 +53,45 @@ class MemoryRepository implements OperationRepository {
 		return this.records.get(id);
 	}
 
-	async claim(id: string) {
+	async claim(id: string, now: Date, leaseMs: number) {
 		const record = this.records.get(id);
-		if (!record || !["pending", "retryable"].includes(record.status)) return undefined;
+		if (!record) return { state: "missing" as const };
+		if (record.status === "completed" || record.status === "failed")
+			return { state: "terminal" as const };
+		if (record.status === "processing" && (!record.leaseUntil || record.leaseUntil >= now))
+			return { state: "busy" as const };
 		record.status = "processing";
-		return record;
+		record.leaseUntil = new Date(now.getTime() + leaseMs);
+		record.claimVersion++;
+		return { state: "claimed" as const, record: { ...record } };
 	}
 
-	async complete(id: string) {
+	async complete(id: string, claimVersion: number) {
 		const record = this.records.get(id);
-		if (record) record.status = "completed";
+		if (record?.status !== "processing" || record.claimVersion !== claimVersion) return false;
+		record.status = "completed";
+		record.leaseUntil = null;
+		return true;
 	}
 
-	async fail(id: string, failure: OperationFailure) {
+	async fail(id: string, claimVersion: number, failure: OperationFailure) {
+		const record = this.records.get(id);
+		if (record?.status !== "processing" || record.claimVersion !== claimVersion) return false;
 		this.failures.push(failure);
-		const record = this.records.get(id);
-		if (record) record.status = failure.classification === "retryable" ? "retryable" : "failed";
+		record.status = failure.classification === "retryable" ? "retryable" : "failed";
+		record.leaseUntil = null;
+		return true;
+	}
+
+	async listRecoverable(now: Date, limit: number) {
+		return [...this.records.values()]
+			.filter(
+				(record) =>
+					record.status === "pending" ||
+					record.status === "retryable" ||
+					(record.status === "processing" && record.leaseUntil !== null && record.leaseUntil < now),
+			)
+			.slice(0, limit);
 	}
 
 	async recordEffect(id: string, _value: unknown) {
@@ -113,8 +143,44 @@ test("duplicate delivery applies one operation effect", async () => {
 	]);
 	const payload = { version: 1 as const, operationId: record.id };
 	assert.equal(await processOperation(repository, handlers, payload), "completed");
-	assert.equal(await processOperation(repository, handlers, payload), "duplicate");
+	assert.equal(await processOperation(repository, handlers, payload), "terminal");
 	assert.equal(effects, 1);
+});
+
+test("idempotency keys reject mismatched operation kind or guild ownership", async () => {
+	const repository = new MemoryRepository();
+	await repository.create({ kind: "smoke", guildId: "guild-1", idempotencyKey: "request-1" });
+	await assert.rejects(
+		repository.create({ kind: "other", guildId: "guild-1", idempotencyKey: "request-1" }),
+		IdempotencyConflictError,
+	);
+	await assert.rejects(
+		repository.create({ kind: "smoke", guildId: "guild-2", idempotencyKey: "request-1" }),
+		IdempotencyConflictError,
+	);
+});
+
+test("claim fencing prevents a stale worker from settling after lease takeover", async () => {
+	const repository = new MemoryRepository();
+	const { record } = await repository.create({ kind: "smoke", idempotencyKey: "request-1" });
+	const first = await repository.claim(record.id, new Date(0), 1);
+	const second = await repository.claim(record.id, new Date(2), 1);
+	assert.equal(first.state, "claimed");
+	assert.equal(second.state, "claimed");
+	if (first.state !== "claimed" || second.state !== "claimed") return;
+	assert.equal(await repository.complete(record.id, second.record.claimVersion), true);
+	assert.equal(
+		await repository.fail(record.id, first.record.claimVersion, {
+			classification: "retryable",
+			code: "late_failure",
+		}),
+		false,
+	);
+	assert.equal(repository.records.get(record.id)?.status, "completed");
+});
+
+test("operation queue job ids are deterministic", () => {
+	assert.equal(operationJobId("operation-1"), "operation-operation-1");
 });
 
 test("unknown handlers stay retryable instead of being discarded", async () => {

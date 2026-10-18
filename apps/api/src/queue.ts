@@ -1,5 +1,6 @@
-import type { OperationPublisher, OperationQueuePayload } from "@rostra/operations";
-import { type ConnectionOptions, Queue } from "bullmq";
+import type { OperationPublisher } from "@rostra/operations";
+import { BullMqOperationPublisher } from "@rostra/operations";
+import type { ConnectionOptions } from "bullmq";
 import Redis from "ioredis";
 
 export interface OperationQueueTransport extends OperationPublisher {
@@ -20,17 +21,10 @@ export function createOperationQueueTransport(url: string | undefined): Operatio
 		};
 	}
 	const connection = new Redis(url, { maxRetriesPerRequest: null });
-	const queue = new Queue<OperationQueuePayload>("operations", {
-		connection: connection as unknown as ConnectionOptions,
-	});
+	const publisher = new BullMqOperationPublisher(connection as unknown as ConnectionOptions);
 	return {
 		async publish(payload) {
-			await queue.add("operation", payload, {
-				attempts: 5,
-				backoff: { type: "exponential", delay: 1_000 },
-				removeOnComplete: 1_000,
-				removeOnFail: false,
-			});
+			await publisher.publish(payload);
 		},
 		async ready() {
 			try {
@@ -41,7 +35,7 @@ export function createOperationQueueTransport(url: string | undefined): Operatio
 		},
 		async close() {
 			try {
-				await queue.close();
+				await publisher.close();
 			} finally {
 				connection.disconnect();
 			}

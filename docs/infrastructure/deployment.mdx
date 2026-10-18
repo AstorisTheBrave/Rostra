@@ -36,12 +36,13 @@ dev/test commands work today.
 - `pnpm prisma:migrate` - apply the existing migrations
 - Production: Postgres + pgBouncer (transaction mode) recommended at scale
 - `pnpm test:integration` - real PostgreSQL/Redis duplicate-delivery and worker-restart proof; CI
-  supplies disposable service containers
+  supplies disposable service containers and the replacement worker recovers the retained failed job
 
 **current HTTP ownership**
 - Gateway `PORT`: compatibility `/health`, shard detail and process metrics.
 - API `API_PORT`: detail-free `/health/live` and `/health/ready`, `/votes/topgg`, and authenticated
-  `/internal/v1/*` smoke routes. `INTERNAL_API_TOKEN` is required to use internal routes.
+  `/internal/v1/*` smoke routes. `INTERNAL_API_TOKEN` authenticates the host principal, which can access
+  only host-scoped operation records; guild records require a matching guild principal and permission.
 - The existing container starts the gateway only. Task 7 owns the multi-process Compose profiles.
 
 ## gotchas

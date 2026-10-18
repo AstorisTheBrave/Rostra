@@ -1,5 +1,11 @@
 import rateLimit from "@fastify/rate-limit";
-import { verifyBearer, verifySecret } from "@rostra/auth";
+import {
+	AuthorizationError,
+	type Principal,
+	requireHost,
+	requireOperationRead,
+	verifySecret,
+} from "@rostra/auth";
 import { getLogger } from "@rostra/logger";
 import type {
 	NewOperation,
@@ -7,19 +13,28 @@ import type {
 	OperationRecord,
 	OperationRepository,
 } from "@rostra/operations";
-import { createAndPublishOperation } from "@rostra/operations";
+import { createAndPublishOperation, IdempotencyConflictError } from "@rostra/operations";
 import Fastify, { type FastifyInstance } from "fastify";
 import { parseVotePayload, type VotePayload } from "./vote.ts";
 
 const log = getLogger("api:http");
 
 export interface ApiDependencies {
-	internalToken?: string;
+	authenticate(
+		authorization: string | undefined,
+	): Promise<Principal | undefined> | Principal | undefined;
 	voteToken?: string;
 	ready(): Promise<boolean>;
 	repository: OperationRepository;
 	publisher: OperationPublisher;
 	recordVote(vote: VotePayload): Promise<void>;
+}
+
+async function principalFor(
+	request: { headers: { authorization?: string } },
+	deps: ApiDependencies,
+) {
+	return deps.authenticate(request.headers.authorization);
 }
 
 function publicOperation(operation: OperationRecord) {
@@ -72,9 +87,17 @@ export async function createApi(deps: ApiDependencies): Promise<FastifyInstance>
 	);
 
 	app.post("/internal/v1/smoke", async (request, reply) => {
-		if (!verifyBearer(request.headers.authorization, deps.internalToken)) {
+		const principal = await principalFor(request, deps);
+		if (!principal) {
 			reply.code(401);
 			return { error: "unauthorized" };
+		}
+		try {
+			requireHost(principal);
+		} catch (error) {
+			if (!(error instanceof AuthorizationError)) throw error;
+			reply.code(403);
+			return { error: "forbidden" };
 		}
 		const key = idempotencyKey(request.headers["idempotency-key"]);
 		if (!key) {
@@ -90,6 +113,10 @@ export async function createApi(deps: ApiDependencies): Promise<FastifyInstance>
 		try {
 			operation = await createAndPublishOperation(deps.repository, deps.publisher, input);
 		} catch (error) {
+			if (error instanceof IdempotencyConflictError) {
+				reply.code(409);
+				return { error: error.code };
+			}
 			log.error({ err: error }, "durable operation delivery failed");
 			reply.code(503);
 			return { error: "delivery_unavailable" };
@@ -99,12 +126,20 @@ export async function createApi(deps: ApiDependencies): Promise<FastifyInstance>
 	});
 
 	app.get<{ Params: { id: string } }>("/internal/v1/operations/:id", async (request, reply) => {
-		if (!verifyBearer(request.headers.authorization, deps.internalToken)) {
+		const principal = await principalFor(request, deps);
+		if (!principal) {
 			reply.code(401);
 			return { error: "unauthorized" };
 		}
 		const operation = await deps.repository.get(request.params.id);
 		if (!operation) {
+			reply.code(404);
+			return { error: "not_found" };
+		}
+		try {
+			requireOperationRead(principal, operation.guildId);
+		} catch (error) {
+			if (!(error instanceof AuthorizationError)) throw error;
 			reply.code(404);
 			return { error: "not_found" };
 		}

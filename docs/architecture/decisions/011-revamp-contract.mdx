@@ -115,11 +115,12 @@ compatibility seam until Phase 01 replaces discovery.
 
 Task 5 added independently bootable API and worker applications plus `@rostra/auth` and
 `@rostra/operations`. PostgreSQL operation rows precede Redis delivery, duplicate effects are
-constrained by operation ID, and retryable or unknown work remains recoverable. Gateway shards no
-longer construct BullMQ workers. Scheduled Discord tasks delete only after a successful handler;
-failed and unknown tasks retain a failure code. Public health responses contain status only, while
-versioned internal smoke routes require the configured host token. CI owns the real PostgreSQL/Redis
-worker-restart proof.
+constrained by operation ID, and deterministic queue jobs are reconciled from pending, retryable or
+expired leased records. Claim versions fence stale settlement. Reused idempotency keys must match both
+operation kind and guild ownership. Gateway shards no longer construct BullMQ workers. Scheduled
+Discord tasks delete only after a successful handler; failed and unknown tasks retain a failure code.
+Public health responses contain status only. Internal operation reads enforce their stored host or guild
+scope. CI owns the real PostgreSQL/Redis worker-restart proof.
 
 Later slices have one ownership and security contract, with temporary compatibility imports only where
 needed for parity. Public documentation must distinguish target ownership from verified implementation.

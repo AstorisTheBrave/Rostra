@@ -4,6 +4,7 @@ import {
 	AuthorizationError,
 	requireGuildPermission,
 	requireHost,
+	requireOperationRead,
 	verifyBearer,
 	verifySecret,
 } from "./index.ts";
@@ -35,6 +36,17 @@ test("guild authorization rejects host access and swapped tenant ids", () => {
 test("host authorization never accepts a guild principal", () => {
 	assert.throws(() => requireHost(guild), AuthorizationError);
 	assert.equal(requireHost({ kind: "host", subjectId: "operator" }).subjectId, "operator");
+});
+
+test("operation reads keep host and guild scopes separate", () => {
+	const reader = { ...guild, permissions: ["operations:read"] };
+	assert.equal(requireOperationRead(reader, "guild-1"), reader);
+	assert.throws(() => requireOperationRead(reader, "guild-2"), AuthorizationError);
+	assert.throws(
+		() => requireOperationRead({ kind: "host", subjectId: "operator" }, "guild-1"),
+		AuthorizationError,
+	);
+	assert.equal(requireOperationRead({ kind: "host", subjectId: "operator" }, null).kind, "host");
 });
 
 test("secret checks reject missing, malformed and unequal values", () => {

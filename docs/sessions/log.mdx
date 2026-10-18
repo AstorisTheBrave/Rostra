@@ -41,6 +41,23 @@ No Discord process, command publication, deployment or push occurred.
 the forward migration, workspace/Docker/CI callers, relevant architecture/operations/deployment docs
 and this log.
 
+**fix round 1**: Separated terminal duplicate delivery from an active lease so a busy delivery retries
+instead of disappearing. Added claim-version fencing, deterministic BullMQ job IDs and a worker-owned
+reconciler for pending, retryable and expired processing records. The reconciler retries retained failed
+or completed jobs, closing both publish-failure and retry-exhaustion gaps. Idempotency-key reuse now
+rejects a different operation kind or guild. Internal operation reads authorize against the stored
+scope: guild principals need the matching guild and permission, and host principals can read only
+host-scoped records. Worker shutdown disconnects Redis in all cases, attempts Prisma cleanup after an
+aggregate drain failure, logs that failure and sets a failing exit code. A second forward-only migration
+adds the claim version; the first Task 5 migration remains unchanged.
+
+The disposable PostgreSQL 16 and Redis 7 proof now retains the original failed BullMQ job, drains the
+first runtime, starts a replacement runtime and lets the automatic reconciler retry that same job. No
+manual second enqueue is used. It also exercises the real Prisma idempotency conflict and proves that a
+stale claim cannot settle after lease takeover. Focused tests cover busy lease retry, scope denial,
+recoverable-status publication, continued reconciliation after one publish failure and cleanup after
+one worker close fails.
+
 ### 2026-10-17 (Phase 00: gateway and legacy module compatibility migration)
 
 **changed**: Moved the Discord runtime into `apps/gateway/src/` and all current feature modules into

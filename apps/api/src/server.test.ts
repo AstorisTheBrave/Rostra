@@ -1,18 +1,25 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import type { Principal } from "@rostra/auth";
 import type { OperationRecord, OperationRepository } from "@rostra/operations";
+import { IdempotencyConflictError } from "@rostra/operations";
 import { createApi } from "./server.ts";
 
-function record(status: OperationRecord["status"] = "pending"): OperationRecord {
+function record(
+	status: OperationRecord["status"] = "pending",
+	guildId: string | null = null,
+	id = "operation-1",
+): OperationRecord {
 	const now = new Date("2026-10-17T00:00:00.000Z");
 	return {
-		id: "operation-1",
-		guildId: null,
+		id,
+		guildId,
 		kind: "phase00.smoke",
 		idempotencyKey: "request-1",
 		payload: {},
 		status,
 		leaseUntil: null,
+		claimVersion: 0,
 		createdAt: now,
 		updatedAt: now,
 	};
@@ -27,18 +34,47 @@ function repository(): OperationRepository {
 			return id === "operation-1" ? record("completed") : undefined;
 		},
 		async claim() {
-			return undefined;
+			return { state: "missing" as const };
 		},
-		async complete() {},
-		async fail() {},
+		async complete() {
+			return false;
+		},
+		async fail() {
+			return false;
+		},
+		async listRecoverable() {
+			return [];
+		},
 		async recordEffect() {
 			return true;
 		},
 	};
 }
 
+function authenticate(authorization: string | undefined): Principal | undefined {
+	if (authorization === "Bearer internal-secret") return { kind: "host", subjectId: "operator" };
+	if (authorization === "Bearer guild-1")
+		return {
+			kind: "guild",
+			subjectId: "user-1",
+			guildId: "guild-1",
+			permissions: ["operations:read"],
+		};
+	if (authorization === "Bearer guild-2")
+		return {
+			kind: "guild",
+			subjectId: "user-2",
+			guildId: "guild-2",
+			permissions: ["operations:read"],
+		};
+	if (authorization === "Bearer no-scope")
+		return { kind: "guild", subjectId: "user-1", guildId: "guild-1", permissions: [] };
+	return undefined;
+}
+
 test("public health routes expose only status", async (t) => {
 	const app = await createApi({
+		authenticate,
 		ready: async () => false,
 		repository: repository(),
 		publisher: { async publish() {} },
@@ -56,7 +92,7 @@ test("public health routes expose only status", async (t) => {
 test("versioned internal routes require host bearer auth", async (t) => {
 	let publishes = 0;
 	const app = await createApi({
-		internalToken: "internal-secret",
+		authenticate,
 		ready: async () => true,
 		repository: repository(),
 		publisher: {
@@ -73,6 +109,12 @@ test("versioned internal routes require host bearer auth", async (t) => {
 		headers: { authorization: "Bearer wrong", "idempotency-key": "request-1" },
 	});
 	assert.equal(denied.statusCode, 401);
+	const guildDenied = await app.inject({
+		method: "POST",
+		url: "/internal/v1/smoke",
+		headers: { authorization: "Bearer guild-1", "idempotency-key": "request-1" },
+	});
+	assert.equal(guildDenied.statusCode, 403);
 	const accepted = await app.inject({
 		method: "POST",
 		url: "/internal/v1/smoke",
@@ -84,11 +126,45 @@ test("versioned internal routes require host bearer auth", async (t) => {
 	assert.equal(publishes, 1);
 });
 
+test("operation reads enforce the stored host or guild scope", async (t) => {
+	const repo = repository();
+	const app = await createApi({
+		authenticate,
+		ready: async () => true,
+		repository: {
+			...repo,
+			async get(id) {
+				if (id === "host-operation") return record("completed", null, id);
+				if (id === "guild-operation") return record("completed", "guild-1", id);
+				return undefined;
+			},
+		},
+		publisher: { async publish() {} },
+		async recordVote() {},
+	});
+	t.after(() => app.close());
+	const request = (id: string, authorization?: string) =>
+		app.inject({
+			method: "GET",
+			url: `/internal/v1/operations/${id}`,
+			headers: authorization ? { authorization } : undefined,
+		});
+	assert.equal((await request("guild-operation")).statusCode, 401);
+	assert.equal((await request("guild-operation", "Bearer wrong")).statusCode, 401);
+	assert.equal((await request("guild-operation", "Bearer internal-secret")).statusCode, 404);
+	assert.equal((await request("guild-operation", "Bearer no-scope")).statusCode, 404);
+	assert.equal((await request("guild-operation", "Bearer guild-2")).statusCode, 404);
+	assert.equal((await request("guessed-operation", "Bearer guild-2")).statusCode, 404);
+	assert.equal((await request("guild-operation", "Bearer guild-1")).statusCode, 200);
+	assert.equal((await request("host-operation", "Bearer guild-1")).statusCode, 404);
+	assert.equal((await request("host-operation", "Bearer internal-secret")).statusCode, 200);
+});
+
 test("delivery failures return a generic unavailable response after durable creation", async (t) => {
 	let created = false;
 	const repo = repository();
 	const app = await createApi({
-		internalToken: "internal-secret",
+		authenticate,
 		ready: async () => false,
 		repository: {
 			...repo,
@@ -115,9 +191,34 @@ test("delivery failures return a generic unavailable response after durable crea
 	assert.deepEqual(response.json(), { error: "delivery_unavailable" });
 });
 
+test("mismatched idempotency ownership returns a conflict", async (t) => {
+	const repo = repository();
+	const app = await createApi({
+		authenticate,
+		ready: async () => true,
+		repository: {
+			...repo,
+			async create() {
+				throw new IdempotencyConflictError();
+			},
+		},
+		publisher: { async publish() {} },
+		async recordVote() {},
+	});
+	t.after(() => app.close());
+	const response = await app.inject({
+		method: "POST",
+		url: "/internal/v1/smoke",
+		headers: { authorization: "Bearer internal-secret", "idempotency-key": "request-1" },
+	});
+	assert.equal(response.statusCode, 409);
+	assert.deepEqual(response.json(), { error: "idempotency_conflict" });
+});
+
 test("vote route preserves external authentication and validation", async (t) => {
 	let votes = 0;
 	const app = await createApi({
+		authenticate,
 		voteToken: "vote-secret",
 		ready: async () => true,
 		repository: repository(),

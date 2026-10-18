@@ -75,7 +75,8 @@ not use the alias. Never import another package's private files, including throu
    Use fake credentials, blocked external adapters and disposable services. Preserve command JSON,
    module inventory, events and behavior unless a tested security fix requires a change.
 10. PostgreSQL owns durable intent; Redis delivery is at least once. Consumers must be idempotent,
-    preserve retry/failure state and drain on shutdown. Do not report an effect before it is durable.
+    fence settlement by claim version, reconcile recoverable intent and drain on shutdown. Do not
+    report an effect before it is durable.
 11. Stable dependencies only. No alpha, beta, RC or development releases unless that is the package's
     only published stable channel. Verify support and deployment requirements before selecting tooling.
 12. Every change updates `docs/sessions/log.mdx` and relevant module or architecture documentation.

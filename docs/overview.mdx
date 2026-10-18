@@ -31,11 +31,11 @@ realtime and Activity applications remain later Phase 00 tasks.
 - `packages/contracts/` - shared job registration type
 - `packages/module-sdk/` - validated manifests, lifecycle contracts and the legacy adapter
 - `packages/auth/` - explicit host and tenant-scoped guild authorization checks
-- `packages/operations/` - durable operation records, attempts, idempotency and failure classification
+- `packages/operations/` - durable operation records, fenced claims, idempotency and queue delivery
 - `packages/testing/` - isolated fixture directory lifecycle
 - `apps/gateway/src/` - sharding, client, routing, runtime services and maintenance scripts
-- `apps/api/src/` - health, vote webhook and host-authorized operation routes
-- `apps/workers/src/` - tracked queue consumers and graceful drain
+- `apps/api/src/` - health, vote webhook and scope-authorized operation routes
+- `apps/workers/src/` - tracked queue consumers, intent reconciliation and graceful drain
 - `modules/<name>/` - one behavior-preserved feature module and its tests
 - `apps/gateway/src/services/` - tenant, localization preferences and runtime services pending extraction
 - `apps/gateway/src/utils/cardFont.ts` - asset-backed rendering helper pending its owning feature move

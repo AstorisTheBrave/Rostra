@@ -29,6 +29,15 @@ export function requireHost(
 	return principal;
 }
 
+export function requireOperationRead(
+	principal: Principal | undefined,
+	guildId: string | null,
+): Principal {
+	return guildId === null
+		? requireHost(principal)
+		: requireGuildPermission(principal, guildId, "operations:read");
+}
+
 export function verifySecret(candidate: string | undefined, expected: string | undefined): boolean {
 	if (!candidate || !expected) return false;
 	const left = Buffer.from(candidate);

@@ -3,7 +3,7 @@ import { disconnectPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 import { type OperationHandler, PrismaOperationRepository } from "@rostra/operations";
 import Redis from "ioredis";
-import { WorkerRuntime } from "./runtime.ts";
+import { drainRuntimeAndDatabase, WorkerRuntime } from "./runtime.ts";
 
 const log = getLogger("workers");
 
@@ -24,6 +24,9 @@ async function main(): Promise<void> {
 	]);
 	const runtime = new WorkerRuntime(connection);
 	runtime.registerOperations(repository, handlers);
+	runtime.registerReconciler(repository, (error) =>
+		log.error({ err: error }, "operation reconciliation failed"),
+	);
 	// The current compatibility registry declares no module jobs. Future worker
 	// manifests register through this tracked runtime, never from a gateway shard.
 	runtime.registerJobs([]);
@@ -32,8 +35,10 @@ async function main(): Promise<void> {
 		if (closing) return;
 		closing = true;
 		log.info({ signal, workers: runtime.workerCount }, "worker drain started");
-		await runtime.drain();
-		await disconnectPrisma();
+		const failed = await drainRuntimeAndDatabase(runtime, disconnectPrisma, (error) =>
+			log.error({ err: error }, "worker shutdown cleanup failed"),
+		);
+		if (failed) process.exitCode = 1;
 		log.info("worker drain complete");
 	};
 	process.on("SIGINT", () => void close("SIGINT"));

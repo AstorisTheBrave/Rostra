@@ -956,6 +956,7 @@ model OperationRecord {
   payload        Json               @default("{}")
   status         String             @default("pending")
   leaseUntil     DateTime?
+  claimVersion   Int                @default(0)
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   attempts       OperationAttempt[]

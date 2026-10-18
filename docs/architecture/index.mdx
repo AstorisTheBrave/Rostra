@@ -38,8 +38,20 @@ Prisma schema and historical migrations live in `packages/database/prisma/`. Roo
 retains migration URL and dotenv behavior; the separate generation config stays credential-free.
 The database package declares the existing Prisma CLI so its client resolves beside the schema.
 The Docker install layer includes every package manifest before frozen installation. History has
-byte-level SHA-256 tests and disables checkout line-ending conversion. Service migration, image and
-rollback execution remain unverified here and belong to the deployment slice.
+byte-level SHA-256 tests and disables checkout line-ending conversion. Task 7 adds bounded Compose
+profiles under `infra/compose/`, a shared multi-target image and a fail-closed entrypoint that applies
+the preserved migrations over a direct PostgreSQL connection before executing an app. The default
+profile runs PostgreSQL, Redis, gateway, API, workers and web; realtime and Activity stay opt-in. The
+development overlay binds local ports to loopback, and the VPS overlay requires an immutable image
+tag and strong database credentials. Redis uses AOF persistence and `noeviction`.
+
+The Task 7 Linux Compose smoke applies all 11 existing migrations inside the API image over the
+internal `postgres` hostname, then proves API intent, Redis delivery, one worker effect and typed web
+client scope with one correlation ID. Its network is internal and the smoke uses placeholder Discord
+credentials without a gateway login or command publication. Migration-failure unit coverage confirms
+startup stops before the app command. The previous-image rollback rehearsal is defined in the
+integration workflow and recovery runbook; it still requires a passing GitHub workflow run before it
+can be reported as remotely verified.
 
 **existing process topology (`apps/gateway/`)**
 ```

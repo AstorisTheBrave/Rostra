@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-10-18
 owner: AstorisTheBrave
 status: stable
 ---
@@ -10,6 +10,40 @@ The running history of structural changes to Rostra, one entry per working sessi
 to see where things stand and what was decided.
 
 ## log
+
+### 2026-10-18 (Phase 00: deployment, CI, and correlated service smoke)
+
+**changed**: Added a bounded default Compose topology for PostgreSQL, Redis, gateway, API, workers
+and web, with loopback-only development ports, an immutable-tag VPS overlay, and explicit disabled
+profiles for realtime and Activity. Redis persists queue state with AOF and `noeviction`. Replaced
+the root startup wrapper and Compose file with `infra/start-app.sh` and bounded `infra/migrate.sh`;
+every app image applies the unchanged migration history over a direct database connection before
+starting, and a terminal migration error prevents app launch. A shared Dockerfile exposes targets for
+all six apps. CI now includes build, service and browser gates; CodeQL, secret scan, dependency review,
+SBOM retention and image coverage use immutable action pins. New runbooks describe deployment,
+backup, rollback and recovery without controlling external ingress.
+
+Added startup tests for three failed migration attempts and successful handoff. The cross-service
+smoke uses a fake gateway seam, the API and worker runtimes, PostgreSQL, Redis and the typed web
+client. It checks duplicate API idempotency, at-least-once queue delivery, exactly one persisted
+effect, correlation propagation through the API response and worker effect, and denial of a swapped
+guild token. All external Discord access is blocked by the internal-only Compose test network; only
+fake credentials are used and command publication is disabled.
+
+**evidence**: Frozen install, boundaries, typecheck, lint, full unit suite and all workspace builds
+passed with placeholder configuration. Compose configuration validated. A disposable Linux API image
+applied all 11 preserved migrations against the internal Compose hostname; the correlated smoke passed
+with one effect and a swapped-guild denial, then migration status reported no pending migrations.
+The migration-failure test passed with three attempts and confirmed the app marker was never created.
+All disposable containers, networks and volumes were removed. GitHub workflow definitions include
+the prior-image rollback rehearsal, but that workflow and the six-target remote image matrix have not
+yet run; no remote rollback verification, push or release is claimed. The Windows-host Prisma schema
+engine returned an empty error with a host-mapped database, so service migrations and smoke were
+verified from the Linux app image instead.
+
+**files touched**: `infra/`, root `Dockerfile` and Compose replacements, `tooling/smoke/`, CI/security/
+image workflows, the root workspace dependency map, deployment/recovery/architecture docs and this
+log.
 
 ### 2026-10-18 (Phase 00: API and durable worker application seams)
 

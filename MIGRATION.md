@@ -12,7 +12,7 @@ this guide maps each old bot to its Rostra replacement and gives a safe cutover 
 4. `pnpm prisma:migrate` - creates every table (moderation, security, automod, logging, welcome,
    tickets, economy, leveling, giveaways, joinToCreate, reactionroles, birthday, extras, trivia, plus core).
 5. `pnpm deploy:commands` - registers the slash commands globally.
-6. `pnpm start` (or `docker compose up --build`).
+6. `pnpm start` or follow the [container deployment runbook](docs/runbooks/deployment.mdx).
 
 The Phase 00 control plane replaces the old npm install workflow with pinned pnpm and one
 `pnpm-lock.yaml`. Remove an old local npm dependency tree before reinstalling if pnpm requests it.

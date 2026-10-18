@@ -115,7 +115,7 @@
 
   Run: `corepack enable`, `pnpm install --frozen-lockfile`, focused verifier test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   Commit: `build: add the rostra workspace control plane`
 
@@ -301,15 +301,15 @@
 - Consumes: all Phase 0 apps and packages.
 - Produces: isolated dev and VPS profiles, direct migration connection, immutable app images, `gateway -> API -> web -> worker -> PostgreSQL -> Redis` smoke proof, stable GitHub job names, artifacted logs/traces/reports.
 
-- [ ] **Step 1: Write migration-failure and cross-service smoke tests**
+- [x] **Step 1: Write migration-failure and cross-service smoke tests**
 
   A failed migration exits nonzero and no app starts. The success flow writes one durable smoke operation, delivers it at least once, applies exactly one effect, reads it through the API/web seam, and records correlation IDs across services.
 
-- [ ] **Step 2: Implement Compose profiles with bounded defaults**
+- [x] **Step 2: Implement Compose profiles with bounded defaults**
 
   Redis queue persistence uses `noeviction` and append-only persistence. Database migrations use a direct connection. Lavalink and resource-intensive optional services stay outside the default profile.
 
-- [ ] **Step 3: Expand GitHub Actions**
+- [x] **Step 3: Expand GitHub Actions**
 
   Required jobs cover frozen install, generate, typecheck, lint, unit, real PostgreSQL/Redis integration, migration dry-run, every app build, Compose smoke, browser login, command/module diff, package boundary/cycle check, secret scan, dependency review, SBOM, container build, and CodeQL. Use path filters and caches without skipping contract-impacting changes.
 

@@ -265,6 +265,9 @@ importers:
       '@rostra/testing':
         specifier: workspace:*
         version: link:packages/testing
+      '@rostra/web-client':
+        specifier: workspace:*
+        version: link:packages/web-client
       '@types/node':
         specifier: ^26.1.0
         version: 26.1.0

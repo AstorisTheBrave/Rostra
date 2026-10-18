@@ -125,20 +125,16 @@ an in-memory fallback is used for cache and queues.
 ## Docker
 
 ```bash
-# set DISCORD_TOKEN and DISCORD_CLIENT_ID in a .env file first
-docker compose up -d --build
+# Configure the required credentials in .env, then validate and start the dev profile.
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.dev.yml config --quiet
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.dev.yml up -d --build
 ```
 
-Brings up the bot, PostgreSQL, pgBouncer (transaction pooling), and Redis. The container applies database
-migrations on start and the bot auto-registers its slash commands, so this is turnkey. Not a developer? The
-beginner friendly walkthrough is in the wiki: [Self-Hosting](https://github.com/AstorisTheBrave/Rostra/wiki/Self-Hosting).
-
-A prebuilt image is published to the GitHub Container Registry on every push to `main` (tagged `latest`,
-`main`, and the commit sha) and, on a release, the version tags:
-
-```bash
-docker pull ghcr.io/astoristhebrave/rostra:latest
-```
+This starts bounded PostgreSQL, Redis and application services. Startup applies migrations before the
+application command; failed migrations stop the container. Configure `INTERNAL_API_TOKEN`, a random
+`WEB_SESSION_SECRET`, and the Discord credentials required by gateway and web. See the
+[deployment runbook](docs/runbooks/deployment.mdx) for the immutable VPS image profile and the
+[recovery runbook](docs/runbooks/recovery.mdx) before upgrading a live database.
 
 ## Configuration
 

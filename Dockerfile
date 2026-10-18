@@ -1,55 +1,37 @@
-# Rostra - all-in-one Discord bot
-FROM node:22-alpine
-
+FROM node:22-alpine AS runtime
 WORKDIR /app
-
-# Fonts for @napi-rs/canvas text rendering (profile cards). Alpine ships no fonts
-# by default, so canvas would draw blank text without these.
-RUN apk add --no-cache fontconfig font-dejavu
-
-# Install dependencies (tsx is a runtime dependency - the bot runs TypeScript directly)
-RUN npm install --global corepack@0.35.0 && corepack enable
+RUN apk add --no-cache fontconfig font-dejavu \
+	&& npm install --global corepack@0.35.0 \
+	&& corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tooling/biome/package.json ./tooling/biome/package.json
-COPY packages/config/package.json ./packages/config/package.json
-COPY packages/contracts/package.json ./packages/contracts/package.json
-COPY packages/database/package.json ./packages/database/package.json
-COPY packages/cache/package.json ./packages/cache/package.json
-COPY packages/logger/package.json ./packages/logger/package.json
-COPY packages/i18n/package.json ./packages/i18n/package.json
-COPY packages/discord-ui/package.json ./packages/discord-ui/package.json
-COPY packages/testing/package.json ./packages/testing/package.json
-COPY packages/module-sdk/package.json ./packages/module-sdk/package.json
-COPY packages/auth/package.json ./packages/auth/package.json
-COPY packages/operations/package.json ./packages/operations/package.json
-COPY packages/web-client/package.json ./packages/web-client/package.json
-COPY packages/web-ui/package.json ./packages/web-ui/package.json
-COPY apps/gateway/package.json ./apps/gateway/package.json
-COPY apps/api/package.json ./apps/api/package.json
-COPY apps/workers/package.json ./apps/workers/package.json
-COPY apps/web/package.json ./apps/web/package.json
-COPY apps/realtime/package.json ./apps/realtime/package.json
-COPY apps/activity/package.json ./apps/activity/package.json
-COPY games/core/package.json ./games/core/package.json
+COPY packages ./packages
+COPY apps ./apps
+COPY modules ./modules
+COPY games ./games
+COPY tooling ./tooling
+COPY infra ./infra
+COPY prisma.config.ts turbo.json tsconfig.json biome.json ./
+RUN chmod +x /app/infra/*.sh
 RUN pnpm install --frozen-lockfile
-
-# Generate offline without loading deployment credentials. Migrations still use
-# prisma.config.ts and the runtime DATABASE_URL.
-COPY packages/database/prisma ./packages/database/prisma
-COPY prisma.config.ts ./
-COPY tooling/prisma-generate.config.ts ./tooling/prisma-generate.config.ts
 RUN pnpm prisma:generate
-
-# App source
-COPY . .
-
-# Startup script: run migrations, then start. Makes `docker compose up` turnkey.
-RUN chmod +x docker-entrypoint.sh
-
 ENV NODE_ENV=production
+ENTRYPOINT ["/app/infra/start-app.sh"]
 
-# Health endpoint port
-EXPOSE 3000
+FROM runtime AS gateway
+CMD ["pnpm", "start"]
 
-# Apply migrations, then the manager process spawns shards.
-ENTRYPOINT ["./docker-entrypoint.sh"]
+FROM runtime AS api
+CMD ["pnpm", "start:api"]
+
+FROM runtime AS workers
+CMD ["pnpm", "start:workers"]
+
+FROM runtime AS web
+CMD ["pnpm", "start:web"]
+
+FROM runtime AS realtime
+CMD ["pnpm", "start:realtime"]
+
+FROM runtime AS activity
+CMD ["pnpm", "start:activity"]

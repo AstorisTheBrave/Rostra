@@ -58,7 +58,11 @@ function idempotencyKey(value: string | string[] | undefined): string | undefine
 }
 
 export async function createApi(deps: ApiDependencies): Promise<FastifyInstance> {
-	const app = Fastify({ logger: false });
+	const app = Fastify({ logger: false, requestIdHeader: "x-correlation-id" });
+	app.addHook("onSend", async (request, reply, payload) => {
+		reply.header("x-correlation-id", request.id);
+		return payload;
+	});
 	app.setErrorHandler((error, _request, reply) => {
 		log.error({ err: error }, "api request failed");
 		return reply.code(500).send({ error: "internal_error" });
@@ -150,6 +154,7 @@ export async function createApi(deps: ApiDependencies): Promise<FastifyInstance>
 			reply.code(503);
 			return { error: "delivery_unavailable" };
 		}
+		log.info({ correlationId: request.id, operationId: operation.id }, "smoke operation accepted");
 		reply.code(202);
 		return publicOperation(operation);
 	});

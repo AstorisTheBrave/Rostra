@@ -23,9 +23,13 @@ jobs:
       DISCORD_CLIENT_ID: "0"
       DATABASE_URL: postgresql://user:pass@localhost:5432/rostra
       NODE_ENV: test
+      INTERNAL_API_TOKEN: ci-placeholder-internal-token
+      WEB_SESSION_SECRET: ci-placeholder-web-session-secret-32-chars
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           # Node 22+: the built-in test runner expands workspace test globs.
           node-version: 22
@@ -36,6 +40,8 @@ jobs:
         run: pnpm check:boundaries
       - name: Typecheck
         run: pnpm typecheck
+      - name: Build all applications
+        run: pnpm build
       - name: Lint
         run: pnpm lint
       - name: Test
@@ -89,14 +95,18 @@ jobs:
       REDIS_URL: redis://localhost:6379
       NODE_ENV: test
       LOG_LEVEL: fatal
+      INTERNAL_API_TOKEN: ci-placeholder-internal-token
+      WEB_SESSION_SECRET: ci-placeholder-web-session-secret-32-chars
     strategy:
       fail-fast: false
       max-parallel: 2
       matrix:
         browser: [chromium, firefox, webkit]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
       - run: npm install --global corepack@0.35.0
@@ -111,6 +121,16 @@ jobs:
         run: pnpm --filter @rostra/web exec playwright install --with-deps ${{ matrix.browser }}
       - name: Run fixture OAuth and database-backed browser smoke
         run: pnpm --filter @rostra/web test:browser --project=${{ matrix.browser }}
+      - name: Preserve browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: browser-${{ matrix.browser }}-${{ github.run_id }}
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
 
   service-integration:
     runs-on: ubuntu-latest
@@ -142,9 +162,13 @@ jobs:
       REDIS_URL: redis://localhost:6379
       NODE_ENV: test
       LOG_LEVEL: fatal
+      INTERNAL_API_TOKEN: ci-placeholder-internal-token
+      WEB_SESSION_SECRET: ci-placeholder-web-session-secret-32-chars
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
       - run: npm install --global corepack@0.35.0
@@ -154,4 +178,4 @@ jobs:
       - name: Apply forward migrations
         run: pnpm prisma:migrate
       - name: Durable operation restart and duplicate-delivery proof
-        run: pnpm test:integration
+        run: pnpm --filter @rostra/workers test:integration

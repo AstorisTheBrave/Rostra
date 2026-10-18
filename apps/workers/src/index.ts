@@ -15,8 +15,14 @@ async function main(): Promise<void> {
 		[
 			"phase00.smoke",
 			async (operation) => {
+				const payload = operation.payload;
+				const correlationId =
+					typeof payload === "object" && payload !== null && "correlationId" in payload
+						? payload.correlationId
+						: undefined;
 				await repository.recordEffect(operation.id, {
 					operationId: operation.id,
+					correlationId,
 					completedAt: new Date().toISOString(),
 				});
 			},

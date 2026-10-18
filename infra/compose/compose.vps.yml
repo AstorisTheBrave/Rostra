@@ -1,0 +1,18 @@
+services:
+  gateway:
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/AstorisTheBrave/rostra}-gateway:${ROSTRA_IMAGE_TAG:?set immutable ROSTRA_IMAGE_TAG}
+  api:
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/AstorisTheBrave/rostra}-api:${ROSTRA_IMAGE_TAG:?set immutable ROSTRA_IMAGE_TAG}
+  workers:
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/AstorisTheBrave/rostra}-workers:${ROSTRA_IMAGE_TAG:?set immutable ROSTRA_IMAGE_TAG}
+  web:
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/AstorisTheBrave/rostra}-web:${ROSTRA_IMAGE_TAG:?set immutable ROSTRA_IMAGE_TAG}
+  realtime:
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/AstorisTheBrave/rostra}-realtime:${ROSTRA_IMAGE_TAG:?set immutable ROSTRA_IMAGE_TAG}
+  activity:
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/AstorisTheBrave/rostra}-activity:${ROSTRA_IMAGE_TAG:?set immutable ROSTRA_IMAGE_TAG}
+  postgres:
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set a dedicated database user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong database password}
+      POSTGRES_DB: ${POSTGRES_DB:?set a database name}

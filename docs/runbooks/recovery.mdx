@@ -1,0 +1,84 @@
+---
+last-updated: 2026-10-18
+owner: AstorisTheBrave
+status: in-flux
+---
+
+# Backup and rollback
+
+PostgreSQL is the durable source of operation intent. Redis is an at-least-once delivery queue with
+append-only persistence; the worker reconciler republishes pending and retryable database intent if
+Redis loses a queued job. A Redis restore may therefore redeliver work, and handlers must remain
+idempotent. PostgreSQL loss beyond the last verified backup can lose durable intent and application
+data. Redis AOF `everysec` can lose roughly the last second of queue writes, but PostgreSQL intent is
+reconcilable.
+
+## Before deployment
+
+1. Confirm the latest PostgreSQL backup can be restored to a disposable database. Keep the backup
+   outside the Compose volumes and restrict access to it.
+2. Record the current image tags or digests and the PostgreSQL migration status.
+3. Confirm free disk space for the database backup, PostgreSQL WAL and Redis AOF rewrite.
+4. Keep the previous immutable gateway image available. A rollback needs the legacy monolithic image
+   reference in `ROSTRA_PREVIOUS_IMAGE`, preferably by registry digest.
+
+For a host-local encrypted backup destination, stream a custom-format dump without writing the dump
+inside a container:
+
+```sh
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.vps.yml \
+  exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom > /secure-backups/rostra-$(date -u +%Y%m%dT%H%M%SZ).dump
+```
+
+The destination and encryption are operator-owned. This command does not back up Redis AOF or prove a
+restore; test restores separately.
+
+## Roll back the application image
+
+Stop all new applications first, keep PostgreSQL/Redis and their volumes, and start the prior gateway
+against the forward-migrated database. The rollback Compose entrypoint runs the prior gateway source
+directly and does not ask it to apply an older migration set.
+
+```sh
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.vps.yml \
+  stop web gateway workers realtime activity api
+docker compose --env-file .env \
+  -f infra/compose/compose.yml \
+  -f infra/compose/compose.vps.yml \
+  -f infra/compose/compose.rollback.yml \
+  up -d legacy-gateway
+docker compose --env-file .env \
+  -f infra/compose/compose.yml \
+  -f infra/compose/compose.vps.yml \
+  -f infra/compose/compose.rollback.yml \
+  logs -f legacy-gateway
+```
+
+Set `ROSTRA_PREVIOUS_IMAGE` to the preserved monolithic image digest before running those commands.
+The former bot's health service remains on loopback port 3000. Point the passive reverse proxy at that
+port while rolled back. The separate API, worker and web surfaces remain stopped; this rollback
+restores the pre-revamp bot runtime, not the new web experience.
+
+All Phase 00 schema changes are forward-only and additive. Never run a destructive down migration to
+roll back code. The prior image rehearsal builds the recorded pre-revamp Git commit, starts it only
+after the current smoke has drained and closed its API/worker processes, then checks its health route
+against the database with the unchanged migration history. Its test network blocks outbound traffic
+and uses fake Discord credentials, so it cannot publish commands or contact Discord.
+
+## Restore data
+
+Restore only after stopping every app process. Do not restore a backup over a live Postgres volume.
+Restoring PostgreSQL rolls durable application state back to the backup timestamp and can lose every
+later user change, operation intent and audit row. Restore Redis only when needed for queue recovery;
+database reconciliation can republish retained intent after Redis starts. Never run `docker compose
+down --volumes` as a recovery step. Keep the failed database volume until the restored deployment has
+passed health and data checks.
+
+## Limits
+
+- The current Compose migration path uses direct PostgreSQL connections; pooled migration URLs are
+  unsupported.
+- Web sessions are in-memory. Multiple web replicas do not share sessions and are not supported yet.
+- A rollback can use the prior bot image only while its schema usage remains compatible with the
+  additive forward migrations. Preserve and test the prior image before deployment.
+- These runbooks do not provision storage, backups, TLS, DNS, reverse proxies or tunnels.

@@ -1,7 +1,3 @@
----
-title: Community engagement
----
-
 # Engagement
 
 Features that make a server fun and sticky. Turn on what fits your community.

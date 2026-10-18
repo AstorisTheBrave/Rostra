@@ -1,7 +1,3 @@
----
-title: Setup guide
----
-
 # Setup Guide
 
 New to Rostra? This gets your server running in a few minutes. It assumes the bot is already in your server

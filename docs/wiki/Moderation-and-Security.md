@@ -1,7 +1,3 @@
----
-title: Moderation and security
----
-
 # Moderation and Security
 
 Rostra has a full safety stack. Here is a sensible order to set it up.

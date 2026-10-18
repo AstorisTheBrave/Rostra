@@ -1,7 +1,3 @@
----
-title: Using Rostra
----
-
 # Using Rostra
 
 This is the track for people who run a Discord server and want to use the bot. No code, no servers to manage.

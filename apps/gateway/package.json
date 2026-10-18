@@ -25,7 +25,7 @@
 		"bad-words": "^4.0.0",
 		"discord-hybrid-sharding": "^3.0.1",
 		"discord.js": "^14.16.3",
-		"fastify": "^5.12.1",
+		"fastify": "^5.12.5",
 		"keyv": "^5.2.1",
 		"lavalink-client": "^2.10.3",
 		"pino": "^10.3.1",

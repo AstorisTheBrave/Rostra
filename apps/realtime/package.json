@@ -17,7 +17,7 @@
 		"@rostra/auth": "workspace:*",
 		"@rostra/config": "workspace:*",
 		"@rostra/logger": "workspace:*",
-		"fastify": "^5.12.1"
+		"fastify": "^5.12.5"
 	},
 	"devDependencies": {
 		"@types/node": "^26.1.0",

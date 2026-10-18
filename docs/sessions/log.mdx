@@ -11,6 +11,36 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-18 (Phase 00: API and durable worker application seams)
+
+**changed**: Added independently bootable `@rostra/api` and `@rostra/workers` applications plus the
+public `@rostra/auth` and `@rostra/operations` packages. The API exposes detail-free live/ready probes,
+preserves the authenticated vote webhook and provides bearer-protected versioned smoke routes. Durable
+operation intent is written to PostgreSQL before Redis publication. Workers own all BullMQ consumers,
+track every handle and wait for drain. Retryable, permanent and unknown-handler outcomes remain in the
+operation record; duplicate deliveries use one durable effect per operation. API and workers can load
+without Discord credentials, while every Discord caller now fails explicitly if gateway credentials
+are absent.
+
+Removed BullMQ worker creation from gateway shards. Scheduled Discord tasks now delete only after a
+successful handler and retain failed or unknown work with a non-sensitive failure code. Added a
+forward-only migration for operation intent, attempts, effects and scheduled-task failure state.
+Logger redaction now explicitly covers authorization headers. CI gained bounded PostgreSQL 16 and
+Redis 7 service-container proof for retry, worker drain, restart and exactly-once durable effect.
+
+**evidence**: Frozen install, repository boundaries, strict typecheck, lint, build, full unit tests and
+`git diff --check` passed. The workspace test graph completed 25 of 25 tasks, including 204 gateway,
+4 API, 4 worker and 6 operation tests; all 37 repository tooling tests also passed. Offline parity
+remains 47 commands, 42 modules and 48 events with zero network attempts, and migration integrity
+confirms that every earlier migration path and byte is unchanged. A local disposable PostgreSQL 16
+and Redis 7 run applied all ten migrations and passed the real worker-restart integration test with one
+operation effect and two recorded attempts. The two task-scoped containers were removed afterward.
+No Discord process, command publication, deployment or push occurred.
+
+**files touched**: `apps/{api,workers,gateway}/`, `packages/{auth,operations,config,database,logger}/`,
+the forward migration, workspace/Docker/CI callers, relevant architecture/operations/deployment docs
+and this log.
+
 ### 2026-10-17 (Phase 00: gateway and legacy module compatibility migration)
 
 **changed**: Moved the Discord runtime into `apps/gateway/src/` and all current feature modules into

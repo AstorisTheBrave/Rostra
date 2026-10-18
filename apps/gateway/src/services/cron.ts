@@ -4,7 +4,7 @@ import { getLogger } from "@rostra/logger";
  * Centralized recurring-job registry. Jobs run in the manager process, so each
  * fires once for the whole cluster (not per shard). Jobs that need guild data
  * can `broadcastEval` from their handler; DB/cleanup jobs need nothing extra.
- * BullMQ (`apps/gateway/src/jobs/queue.ts`) remains available for distributed queue work.
+ * Durable distributed queue work runs in `apps/workers`.
  */
 
 const log = getLogger("cron");

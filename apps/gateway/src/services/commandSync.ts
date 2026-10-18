@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { config } from "@rostra/config";
+import { requireDiscordConfig } from "@rostra/config";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 import { REST, type RESTPostAPIApplicationCommandsJSONBody, Routes } from "discord.js";
@@ -41,6 +41,7 @@ async function storeHash(hash: string): Promise<void> {
  * Pass `force` to always re-register (used by `pnpm deploy:commands`).
  */
 export async function syncCommands(force = false): Promise<{ registered: boolean; count: number }> {
+	const discord = requireDiscordConfig();
 	const client = new BotClient();
 	const modules = await loadModules();
 	registerCommands(client, modules);
@@ -58,8 +59,8 @@ export async function syncCommands(force = false): Promise<{ registered: boolean
 		}
 	}
 
-	const rest = new REST().setToken(config.discord.token);
-	await rest.put(Routes.applicationCommands(config.discord.clientId), { body });
+	const rest = new REST().setToken(discord.token);
+	await rest.put(Routes.applicationCommands(discord.clientId), { body });
 	await storeHash(hash).catch((err) => log.warn({ err }, "failed to persist command hash"));
 	log.info({ count: body.length, forced: force }, "registered global application commands");
 	return { registered: true, count: body.length };

@@ -19,8 +19,8 @@ const lavalinkNode = z.object({
 type LavalinkNode = z.infer<typeof lavalinkNode>;
 
 const schema = z.object({
-	DISCORD_TOKEN: z.string().min(1),
-	DISCORD_CLIENT_ID: z.string().min(1),
+	DISCORD_TOKEN: z.string().min(1).optional(),
+	DISCORD_CLIENT_ID: z.string().min(1).optional(),
 	OWNER_IDS: z.string().optional(),
 	DEV_GUILD_ID: z.string().optional(),
 	NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -29,6 +29,8 @@ const schema = z.object({
 	REDIS_URL: z.string().optional(),
 	PORT: z.coerce.number().int().default(3000),
 	HOST: z.string().default("0.0.0.0"),
+	API_PORT: z.coerce.number().int().default(3001),
+	INTERNAL_API_TOKEN: z.string().optional(),
 	// Named TOTAL_SHARDS (not SHARD_COUNT) to avoid colliding with discord.js's reserved
 	// SHARD_COUNT env var that the ShardingManager sets on spawned shard processes.
 	TOTAL_SHARDS: z.coerce.number().int().positive().optional(),
@@ -55,11 +57,12 @@ const schema = z.object({
 
 export type Config = {
 	env: "development" | "production" | "test";
-	discord: { token: string; clientId: string; ownerIds: string[]; devGuildId?: string };
+	discord: { token?: string; clientId?: string; ownerIds: string[]; devGuildId?: string };
 	logLevel: string;
 	database: { url: string };
 	redis: { url?: string };
 	web: { port: number; host: string };
+	api: { port: number; host: string; internalToken?: string };
 	sharding: { count?: number; mode: "native" | "hybrid"; shardsPerCluster?: number };
 	ai: { apiKey?: string; baseUrl?: string; model?: string };
 	translate: { apiKey?: string; baseUrl?: string; model?: string };
@@ -96,6 +99,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 		database: { url: e.DATABASE_URL },
 		redis: { url: e.REDIS_URL },
 		web: { port: e.PORT, host: e.HOST },
+		api: { port: e.API_PORT, host: e.HOST, internalToken: e.INTERNAL_API_TOKEN },
 		sharding: {
 			count: e.TOTAL_SHARDS,
 			mode: e.SHARDING_MODE,
@@ -116,6 +120,14 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 		topgg: { token: e.TOPGG_TOKEN, webhookAuth: e.TOPGG_WEBHOOK_AUTH, botId: e.TOPGG_BOT_ID },
 		twitch: { clientId: e.TWITCH_CLIENT_ID, clientSecret: e.TWITCH_CLIENT_SECRET },
 	});
+}
+
+export function requireDiscordConfig(
+	value: Config["discord"] = config.discord,
+): Config["discord"] & { token: string; clientId: string } {
+	if (!value.token || !value.clientId)
+		throw new Error("Discord runtime requires DISCORD_TOKEN and DISCORD_CLIENT_ID");
+	return { ...value, token: value.token, clientId: value.clientId };
 }
 
 /** Cached, validated, frozen config (computed once at import). The ONLY place env is read. */

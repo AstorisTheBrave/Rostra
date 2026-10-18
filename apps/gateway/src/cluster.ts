@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { config } from "@rostra/config";
+import { config, requireDiscordConfig } from "@rostra/config";
 import { getLogger } from "@rostra/logger";
 import { ShardingManager } from "discord.js";
 import { registerBuiltinCron } from "@/jobs/builtins.ts";
@@ -12,9 +12,10 @@ import { type ShardStat, startWebServer } from "@/web/server.ts";
 const log = getLogger("cluster");
 
 const botPath = fileURLToPath(new URL("./bot.ts", import.meta.url));
+const discord = requireDiscordConfig();
 
 const manager = new ShardingManager(botPath, {
-	token: config.discord.token,
+	token: discord.token,
 	totalShards: config.sharding.count ?? "auto",
 	respawn: true,
 	mode: "process",

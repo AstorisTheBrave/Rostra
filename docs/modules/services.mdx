@@ -47,8 +47,13 @@ rows, so they survive restart; each shard re-arms what it owns on boot (core's `
 - `recoverScheduled(client)` - boot recovery; `shouldArm(task, shardId, ownsGuild)` decides ownership
   (guild tasks on the owning shard, global `guildId:null` tasks only on shard 0). `clampDelay` caps the
   setTimeout and re-arms for long waits. On fire the payload is dispatched to the handler and the row
-  deleted. Consumers (reminders, giveaways, tempban/mute/role lifts) register a handler and call
-  `schedule(...)`.
+  is deleted only after success. Unknown or failed handlers retain the row with `status`, `attempts`
+  and a non-sensitive `lastError` code. Explicit cancellation still deletes the row.
+
+**durable operations** - `packages/operations/` owns operation records, attempts, idempotency and
+failure classification. `apps/api/` records intent before queue publication. `apps/workers/` owns all
+BullMQ consumers and tracked drain. Redis delivery is at least once; `OperationEffect.operationId`
+ensures duplicate delivery cannot create a second durable effect.
 
 **depends on**
 - `@rostra/config` for log level, `DATABASE_URL`, `REDIS_URL`, env mode
@@ -72,6 +77,7 @@ rows, so they survive restart; each shard re-arms what it owns on boot (core's `
 - Prisma 7: the client needs the `@prisma/adapter-pg` adapter (`new PrismaPg({ connectionString })`),
   fed from `config.database.url`. Never read `process.env` here. The CLI side (migrations) reads the URL
   from `prisma.config.ts`, which loads `.env` via `dotenv` locally and uses real env vars in CI/Docker.
-- Logger redacts token/password/auth fields and must never log provider names.
+- Logger redacts token/password/auth fields, including authorization headers, and must never log
+  implementation provider names.
 - Without `REDIS_URL` the cache is per-process memory (not shared across shards) - fine for dev, not prod.
 - `getPrisma()` does not connect on construction; first query connects.

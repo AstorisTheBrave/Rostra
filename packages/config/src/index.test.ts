@@ -13,6 +13,7 @@ test("loadConfig parses required vars and applies defaults", async () => {
 	assert.equal(cfg.discord.token, "t");
 	assert.deepEqual(cfg.discord.ownerIds, ["1", "2", "3"]);
 	assert.equal(cfg.web.port, 3000);
+	assert.equal(cfg.api.port, 3001);
 	assert.equal(cfg.sharding.mode, "native");
 	assert.equal(cfg.redis.url, undefined);
 	assert.deepEqual(cfg.lavalink.nodes, []);
@@ -20,7 +21,14 @@ test("loadConfig parses required vars and applies defaults", async () => {
 
 test("loadConfig throws aggregated error on missing required vars", async () => {
 	const { loadConfig } = await import("@rostra/config");
-	assert.throws(() => loadConfig({}), /DISCORD_TOKEN/);
+	assert.throws(() => loadConfig({}), /DATABASE_URL/);
+});
+
+test("non-gateway apps load without Discord credentials", async () => {
+	const { loadConfig, requireDiscordConfig } = await import("@rostra/config");
+	const cfg = loadConfig({ DATABASE_URL: "postgresql://localhost/db" });
+	assert.equal(cfg.discord.token, undefined);
+	assert.throws(() => requireDiscordConfig(cfg.discord), /Discord runtime requires/);
 });
 
 test("loadConfig parses LAVALINK_NODES json array", async () => {

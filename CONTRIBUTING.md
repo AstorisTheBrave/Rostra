@@ -39,7 +39,8 @@ const myModule: BotModule = {
 export default myModule;
 ```
 
-Modules are auto-discovered at boot - drop a folder in and it loads. Use `modules/core` (simple) and
+Gateway commands, events and components are auto-discovered at boot. Durable queue consumers run in
+`apps/workers/`; do not create a BullMQ worker from a module or gateway shard. Use `modules/core` (simple) and
 `modules/moderation` / `modules/tickets` (richer) as references.
 
 Shared code (import these; don't reinvent them):
@@ -48,6 +49,8 @@ Shared code (import these; don't reinvent them):
 - `getCache()` / `getRedis()` - cache & leaderboards (`packages/cache/src/index.ts`)
 - `getLogger(scope)` - logging (`packages/logger/src/index.ts`)
 - `@rostra/discord-ui` - all UI building blocks (buttons, selects, modals, layout, patterns)
+- `@rostra/auth` - explicit host and tenant-scoped guild authorization
+- `@rostra/operations` - durable operation and idempotent queue contracts
 - `t(key, vars)` - i18n (`packages/i18n/src`)
 
 ## Non-negotiable conventions (the CI enforces these)

@@ -1,4 +1,4 @@
-import { config } from "@rostra/config";
+import { config, requireDiscordConfig } from "@rostra/config";
 import type { FeedSubscription } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
@@ -273,7 +273,7 @@ function mentionText(mention: string | null): string {
 
 let rest: REST | undefined;
 function getRest(): REST {
-	if (!rest) rest = new REST().setToken(config.discord.token);
+	if (!rest) rest = new REST().setToken(requireDiscordConfig().token);
 	return rest;
 }
 

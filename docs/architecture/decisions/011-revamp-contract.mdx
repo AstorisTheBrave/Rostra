@@ -113,6 +113,14 @@ cancellation without rewriting feature behavior. Command and module fixtures run
 block network access and preserve the pre-move registry. The local gateway alias remains a temporary
 compatibility seam until Phase 01 replaces discovery.
 
+Task 5 added independently bootable API and worker applications plus `@rostra/auth` and
+`@rostra/operations`. PostgreSQL operation rows precede Redis delivery, duplicate effects are
+constrained by operation ID, and retryable or unknown work remains recoverable. Gateway shards no
+longer construct BullMQ workers. Scheduled Discord tasks delete only after a successful handler;
+failed and unknown tasks retain a failure code. Public health responses contain status only, while
+versioned internal smoke routes require the configured host token. CI owns the real PostgreSQL/Redis
+worker-restart proof.
+
 Later slices have one ownership and security contract, with temporary compatibility imports only where
 needed for parity. Public documentation must distinguish target ownership from verified implementation.
 Each slice updates the session log and relevant module/architecture docs, and records tests, recovery

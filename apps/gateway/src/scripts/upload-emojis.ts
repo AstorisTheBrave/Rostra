@@ -9,7 +9,7 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { config } from "@rostra/config";
+import { requireDiscordConfig } from "@rostra/config";
 
 const API = "https://discord.com/api/v10";
 const here = dirname(fileURLToPath(import.meta.url));
@@ -17,8 +17,9 @@ const root = join(here, "..", "..", "..", "..");
 const emojiDir = join(root, "assets", "emojis");
 const idsFile = join(root, "packages", "discord-ui", "src", "emoji-ids.json");
 
-const appId = config.discord.clientId;
-const authHeaders = { Authorization: `Bot ${config.discord.token}` };
+const discord = requireDiscordConfig();
+const appId = discord.clientId;
+const authHeaders = { Authorization: `Bot ${discord.token}` };
 
 async function listExisting(): Promise<Record<string, string>> {
 	const res = await fetch(`${API}/applications/${appId}/emojis`, { headers: authHeaders });

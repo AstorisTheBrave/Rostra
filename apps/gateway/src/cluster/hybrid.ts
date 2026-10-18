@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { config } from "@rostra/config";
+import { config, requireDiscordConfig } from "@rostra/config";
 import { getLogger } from "@rostra/logger";
 import { ClusterManager } from "discord-hybrid-sharding";
 import { registerBuiltinCron } from "@/jobs/builtins.ts";
@@ -23,8 +23,9 @@ const log = getLogger("cluster:hybrid");
 const botPath = fileURLToPath(new URL("../bot.ts", import.meta.url));
 
 export async function runHybridManager(): Promise<void> {
+	const discord = requireDiscordConfig();
 	const manager = new ClusterManager(botPath, {
-		token: config.discord.token,
+		token: discord.token,
 		totalShards: config.sharding.count ?? "auto",
 		...(config.sharding.shardsPerCluster
 			? { shardsPerClusters: config.sharding.shardsPerCluster }

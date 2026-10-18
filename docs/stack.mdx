@@ -31,7 +31,8 @@ new dependency fits or why an existing one is there.
 **cross-cutting**
 - `pino` + `pino-pretty` - structured logging (JSON in prod, pretty in dev)
 - `zod` ^3 - environment + all input validation
-- `fastify` ^5 - health/metrics endpoint and the top.gg vote webhook (no dashboard)
+- `fastify` ^5 - gateway metrics plus API health, vote webhook and internal operation routes
+- `bullmq` ^5 - at-least-once Redis delivery; consumers run only in `apps/workers/`
 
 **integrations**
 - `@top-gg/sdk` + `topgg-autoposter` (added in runtime plan) - bot-list stats + vote webhooks

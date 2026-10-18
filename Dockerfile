@@ -20,7 +20,11 @@ COPY packages/i18n/package.json ./packages/i18n/package.json
 COPY packages/discord-ui/package.json ./packages/discord-ui/package.json
 COPY packages/testing/package.json ./packages/testing/package.json
 COPY packages/module-sdk/package.json ./packages/module-sdk/package.json
+COPY packages/auth/package.json ./packages/auth/package.json
+COPY packages/operations/package.json ./packages/operations/package.json
 COPY apps/gateway/package.json ./apps/gateway/package.json
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/workers/package.json ./apps/workers/package.json
 RUN pnpm install --frozen-lockfile
 
 # Generate offline without loading deployment credentials. Migrations still use

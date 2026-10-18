@@ -937,8 +937,51 @@ model ScheduledTask {
   runAt     DateTime
   guildId   String?
   payload   Json     @default("{}")
+  status    String   @default("pending")
+  attempts  Int      @default(0)
+  lastError String?
   createdAt DateTime @default(now())
 
   @@index([runAt])
   @@index([guildId])
+}
+
+// Durable operation intent. Redis delivers only the operation id; PostgreSQL
+// retains the request, attempts and idempotent effect across worker restarts.
+model OperationRecord {
+  id             String             @id @default(cuid())
+  guildId        String?
+  kind           String
+  idempotencyKey String             @unique
+  payload        Json               @default("{}")
+  status         String             @default("pending")
+  leaseUntil     DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  attempts       OperationAttempt[]
+  effect         OperationEffect?
+
+  @@index([guildId])
+  @@index([status, leaseUntil])
+}
+
+model OperationAttempt {
+  id             String          @id @default(cuid())
+  operationId    String
+  attempt        Int
+  outcome        String
+  classification String?
+  errorCode      String?
+  createdAt      DateTime        @default(now())
+  operation      OperationRecord @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@unique([operationId, attempt])
+  @@index([operationId])
+}
+
+model OperationEffect {
+  operationId String          @id
+  value       Json            @default("{}")
+  createdAt   DateTime        @default(now())
+  operation   OperationRecord @relation(fields: [operationId], references: [id], onDelete: Cascade)
 }

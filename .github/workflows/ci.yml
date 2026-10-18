@@ -58,3 +58,47 @@ jobs:
             echo "::error::Module hand-rolls a component builder - use @rostra/discord-ui instead."
             exit 1
           fi
+
+  service-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: rostra
+          POSTGRES_PASSWORD: rostra
+          POSTGRES_DB: rostra
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rostra"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://rostra:rostra@localhost:5432/rostra
+      REDIS_URL: redis://localhost:6379
+      NODE_ENV: test
+      LOG_LEVEL: fatal
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm install --global corepack@0.35.0
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma:generate
+      - name: Apply forward migrations
+        run: pnpm prisma:migrate
+      - name: Durable operation restart and duplicate-delivery proof
+        run: pnpm test:integration

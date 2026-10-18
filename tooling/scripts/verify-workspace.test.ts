@@ -14,6 +14,8 @@ const controls = [
 	"pnpm-lock.yaml",
 	"turbo.json",
 	"apps/gateway/package.json",
+	"apps/api/package.json",
+	"apps/workers/package.json",
 ];
 
 test("active installation guides never bypass the frozen workspace lock with npm", () => {

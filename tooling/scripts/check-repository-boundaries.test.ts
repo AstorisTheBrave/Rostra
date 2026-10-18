@@ -72,6 +72,15 @@ test("checker accepts a clean checkout containing an ignored archive", (t) => {
 	assert.equal(result.status, 0, result.stderr);
 });
 
+test("checker accepts tracked source deleted by the current change", (t) => {
+	const directory = fixture(t);
+	writeFileSync(join(directory, "removed.ts"), "export {};\n");
+	execFileSync("git", ["add", "removed.ts"], { cwd: directory });
+	rmSync(join(directory, "removed.ts"));
+	const result = check(directory);
+	assert.equal(result.status, 0, result.stderr);
+});
+
 test("checker rejects force-tracked archive content", (t) => {
 	const directory = fixture(t);
 	mkdirSync(join(directory, "archive"));

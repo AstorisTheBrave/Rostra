@@ -42,7 +42,8 @@ Within the structure priority, prefer one source of truth, isolated modules and 
 
 Shared authorities are `@rostra/config`, `@rostra/database`, `@rostra/cache`, `@rostra/logger`,
 `@rostra/i18n`, `@rostra/contracts`, `@rostra/module-sdk` and `@rostra/discord-ui`. Web clients/UI and
-auth/operations have separate packages. The shared owners now export source through explicit package
+auth/operations have separate packages. Use `@rostra/auth` for explicit host or tenant-scoped guild
+authorization and `@rostra/operations` for durable operation intent and idempotency. The shared owners now export source through explicit package
 maps. Use `@rostra/config`, `@rostra/database`, `@rostra/cache`, `@rostra/logger`, `@rostra/i18n` and
 `@rostra/discord-ui`; tests may use `@rostra/testing`. The `@/` alias is a temporary gateway and legacy
 module compatibility seam scoped to `apps/gateway/src/` plus `modules/`. Gateway-specific types stay in
@@ -129,8 +130,8 @@ uncached and runs before build/typecheck/test consumers without loading deployme
 `pnpm test` uses placeholder environment values supplied by CI or the caller; `pnpm test:env` loads
 the local environment. Both cap test-file concurrency at two; root tests serialize workspace tasks so
 the cap holds across packages too. Shared-package builds currently typecheck without emitting files.
-The integration task has no service
-tests until the owning slices add them. Keep local checks lightweight;
+The worker integration task runs the real PostgreSQL/Redis restart and duplicate-delivery proof; CI
+provides its disposable services. Keep local checks lightweight;
 use CI for service/browser/security/image matrices where practical. New logic needs a focused test.
 Moving code also needs public-export, unchanged migration and normalized command/module parity proof.
 Record measured evidence and unresolved limitations before claiming a phase passes.

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const directories = [
 	"archive",
@@ -76,6 +76,7 @@ try {
 	const forbidden = new RegExp(`${identifiers.join("|")}|\\b(${wholeWords.join("|")})\\b`, "i");
 	for (const path of [...new Set([...tracked, ...visible])].sort()) {
 		if (privatePath(path)) continue;
+		if (!existsSync(path)) continue;
 		if (!/\.(?:[cm]?[jt]sx?|json|sh)$/.test(path)) continue;
 		if (forbidden.test(read(path))) errors.push(`Forbidden implementation identifier: ${path}`);
 	}

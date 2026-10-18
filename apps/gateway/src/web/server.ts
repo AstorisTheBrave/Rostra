@@ -2,7 +2,6 @@ import rateLimit from "@fastify/rate-limit";
 import { config } from "@rostra/config";
 import { getLogger } from "@rostra/logger";
 import Fastify, { type FastifyInstance } from "fastify";
-import { recordVote, type VotePayload, verifyVoteAuth } from "@/services/topgg.ts";
 
 const log = getLogger("web");
 
@@ -17,8 +16,8 @@ export interface WebDeps {
 	shardStats: () => Promise<ShardStat[]>;
 }
 
-/** Start the Fastify server: health/metrics endpoints + the top.gg vote webhook. */
-export async function startWebServer(deps: WebDeps): Promise<FastifyInstance> {
+/** Build gateway-only health and shard metrics. Domain webhooks belong to the API. */
+export async function createWebServer(deps: WebDeps): Promise<FastifyInstance> {
 	const app = Fastify({ logger: false });
 
 	// Per-IP rate limiting. The generous global ceiling leaves room for health
@@ -40,25 +39,11 @@ export async function startWebServer(deps: WebDeps): Promise<FastifyInstance> {
 		uptime: process.uptime(),
 		memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
 	}));
+	return app;
+}
 
-	app.post(
-		"/votes/topgg",
-		{ config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
-		async (request, reply) => {
-			if (!verifyVoteAuth(request.headers.authorization)) {
-				reply.code(401);
-				return { error: "unauthorized" };
-			}
-			const vote = request.body as VotePayload | undefined;
-			if (!vote?.user) {
-				reply.code(400);
-				return { error: "bad request" };
-			}
-			await recordVote(vote);
-			return { ok: true };
-		},
-	);
-
+export async function startWebServer(deps: WebDeps): Promise<FastifyInstance> {
+	const app = await createWebServer(deps);
 	await app.listen({ port: config.web.port, host: config.web.host });
 	log.info({ port: config.web.port, host: config.web.host }, "web server listening");
 	return app;

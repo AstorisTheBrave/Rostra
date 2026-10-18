@@ -1,4 +1,4 @@
-import { config } from "@rostra/config";
+import { requireDiscordConfig } from "@rostra/config";
 import type { StatsChannel } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
@@ -68,7 +68,7 @@ async function allStats(): Promise<StatsChannel[]> {
 
 let rest: REST | undefined;
 function getRest(): REST {
-	if (!rest) rest = new REST().setToken(config.discord.token);
+	if (!rest) rest = new REST().setToken(requireDiscordConfig().token);
 	return rest;
 }
 

@@ -17,7 +17,11 @@
 		"@rostra/discord-ui#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"@rostra/testing#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"@rostra/module-sdk#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/auth#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/operations#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"@rostra/gateway#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/api#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/workers#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
 		"build": {
 			"dependsOn": ["^build", "//#prisma:generate"],
 			"inputs": [
@@ -53,6 +57,7 @@
 		"test:integration": {
 			"dependsOn": ["^build", "//#prisma:generate"],
 			"cache": false,
+			"passThroughEnv": ["DATABASE_URL", "REDIS_URL", "NODE_ENV", "LOG_LEVEL"],
 			"outputs": []
 		},
 		"clean": { "cache": false, "outputs": [] },

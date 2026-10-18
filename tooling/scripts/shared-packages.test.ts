@@ -13,6 +13,8 @@ const names = [
 	"i18n",
 	"discord-ui",
 	"testing",
+	"auth",
+	"operations",
 ];
 
 for (const name of names) {

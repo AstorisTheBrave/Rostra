@@ -1,6 +1,5 @@
 import { cacheGet, cacheSet } from "@rostra/cache";
 import { config } from "@rostra/config";
-import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 import { Api } from "@top-gg/sdk";
 
@@ -14,14 +13,6 @@ export function getTopggApi(): Api | undefined {
 	if (!api) api = new Api(config.topgg.token);
 	return api;
 }
-
-export interface VotePayload {
-	user: string;
-	bot?: string;
-	type?: string;
-	isWeekend?: boolean;
-}
-
 /** Whether a user has voted recently (cached briefly). False if top.gg is not configured. */
 export async function hasVoted(userId: string): Promise<boolean> {
 	const client = getTopggApi();
@@ -37,28 +28,4 @@ export async function hasVoted(userId: string): Promise<boolean> {
 		log.error({ err }, "hasVoted failed");
 		return false;
 	}
-}
-
-/** Persist a vote and emit it for perk handlers. */
-export async function recordVote(vote: VotePayload): Promise<void> {
-	const prisma = getPrisma();
-	try {
-		await prisma.user.upsert({ where: { id: vote.user }, create: { id: vote.user }, update: {} });
-		await prisma.userVote.create({
-			data: { userId: vote.user, isWeekend: vote.isWeekend ?? false, source: "topgg" },
-		});
-		await cacheSet(`vote:${vote.user}`, true, 60_000);
-		log.info({ user: vote.user, weekend: vote.isWeekend ?? false }, "vote recorded");
-	} catch (err) {
-		log.error({ err }, "recordVote failed");
-	}
-}
-
-/** Constant-time-ish check that a webhook request carries the configured auth secret. */
-export function verifyVoteAuth(
-	header: string | undefined,
-	secret = config.topgg.webhookAuth,
-): boolean {
-	if (!secret) return false;
-	return header === secret;
 }

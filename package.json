@@ -12,6 +12,8 @@
 		"dev": "tsx watch apps/gateway/src/cluster.ts",
 		"build": "turbo run build",
 		"start": "tsx apps/gateway/src/cluster.ts",
+		"start:api": "tsx apps/api/src/index.ts",
+		"start:workers": "tsx apps/workers/src/index.ts",
 		"start:panel": "node panel-start.mjs",
 		"typecheck": "turbo run typecheck",
 		"check:boundaries": "node tooling/scripts/check-repository-boundaries.mjs && node tooling/scripts/verify-workspace.mjs && node tooling/scripts/check-package-boundaries.mjs",
@@ -62,6 +64,8 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
+		"@rostra/auth": "workspace:*",
+		"@rostra/operations": "workspace:*",
 		"@rostra/testing": "workspace:*",
 		"@biomejs/biome": "^2.5.2",
 		"@resvg/resvg-js": "^2.6.2",

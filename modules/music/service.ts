@@ -1,4 +1,4 @@
-import { config } from "@rostra/config";
+import { config, requireDiscordConfig } from "@rostra/config";
 import { Accent, container, text } from "@rostra/discord-ui";
 import { getLogger } from "@rostra/logger";
 import { type Client, MessageFlags } from "discord.js";
@@ -27,7 +27,7 @@ export function getManager(client: Client): LavalinkManager | undefined {
 				retryAmount: config.lavalink.reconnectTries,
 			})),
 			sendToShard: (guildId, payload) => client.guilds.cache.get(guildId)?.shard?.send(payload),
-			client: { id: client.user?.id ?? config.discord.clientId, username: "Rostra" },
+			client: { id: client.user?.id ?? requireDiscordConfig().clientId, username: "Rostra" },
 			autoSkip: true,
 			playerOptions: {
 				defaultSearchPlatform: "ytsearch",

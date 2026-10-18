@@ -35,6 +35,16 @@ test("every current module id is represented once in the compatibility snapshot"
 	assert.equal(new Set(snapshot.modules.map((module) => module.name)).size, 42);
 });
 
+test("the current compatibility registry has no live module queue handlers to strand in gateway", () => {
+	const snapshot = JSON.parse(
+		readFileSync(join(root, "tooling/fixtures/gateway-modules.json"), "utf8"),
+	) as { modules: Array<{ name: string; jobs: string[] }> };
+	assert.deepEqual(
+		snapshot.modules.flatMap((module) => module.jobs.map((job) => `${module.name}:${job}`)),
+		[],
+	);
+});
+
 test("modules cannot import package-private source", () => {
 	const packages = new Map([
 		[

@@ -12,7 +12,7 @@ lives in `docs/superpowers/specs/2026-06-05-unified-bot-core-platform-design.md`
 
 ## technical map
 
-**Phase 00 extraction status (2026-10-17):** the runtime is an `@rostra/gateway` workspace application
+**Phase 00 extraction status (2026-10-18):** the Discord runtime is an `@rostra/gateway` workspace application
 under `apps/gateway/`, and all existing feature folders are under `modules/`.
 Shared owners are `@rostra/config`, `@rostra/logger`, `@rostra/database`, `@rostra/cache`,
 `@rostra/i18n`, `@rostra/discord-ui`, `@rostra/contracts`, `@rostra/module-sdk` and `@rostra/testing`. Their explicit export
@@ -45,17 +45,32 @@ rollback execution remain unverified here and belong to the deployment slice.
 ```
 cluster.ts (manager)
   ├─ ShardingManager (auto shards, respawn)
-  ├─ Fastify: /health, /health/shards, /metrics, /votes/topgg
+  ├─ Fastify: /health, /health/shards, /metrics
   ├─ top.gg autoposter (aggregates guild count across shards via IPC, then posts)
   └─ N × bot.ts (one BotClient per shard)
         ├─ loaders: commands, events, interactions, jobs (auto-discover modules/*)
         ├─ services: getPrisma(), getCache(), getLogger(), createIpc(client)
-        └─ BullMQ workers (in-process; splittable later)
+        └─ no BullMQ consumers
+
+api.ts (independent process)
+  ├─ /health/live and /health/ready
+  ├─ /votes/topgg
+  └─ /internal/v1/smoke and operation status
+
+workers.ts (independent process)
+  └─ tracked BullMQ consumers with graceful drain
 ```
 
 The loader discovers the repository-level `modules/` tree, passes every module through the compatibility
 adapter, then registers the unchanged command/event/component/job objects. Stable fixtures prove parity
 against the pre-move registry. The local `@/` alias is limited to this gateway compatibility window.
+
+The API writes operation intent to PostgreSQL before publishing its identifier to Redis. The worker
+classifies retryable and permanent failures, retains unknown handlers and waits for every tracked
+BullMQ handle to drain on shutdown. Duplicate delivery is safe because durable effects have one row
+per operation. Public live/ready responses contain status only; versioned internal routes require a
+host bearer token. The current compatibility registry declares zero module jobs, so moving consumer
+ownership out of gateway shards does not remove a live handler.
 
 **sharding / IPC** - `apps/gateway/src/cluster/ipc.ts` defines an `Ipc` interface (`broadcast`, `fetchValues`).
 Today it's `NativeIpc` (discord.js `broadcastEval`). Switching to `discord-hybrid-sharding` later is a

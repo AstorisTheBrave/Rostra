@@ -25,7 +25,6 @@ test("fake-token registry boot loads every module without login or REST writes",
 	const { registerCommands } = await import("./loaders/commands.ts");
 	const { registerEvents } = await import("./loaders/events.ts");
 	const { registerInteractions } = await import("./loaders/interactions.ts");
-	const { registerJobs } = await import("./loaders/jobs.ts");
 	const client = new BotClient();
 	let externalAttempts = 0;
 	const blocked = async () => {
@@ -39,7 +38,6 @@ test("fake-token registry boot loads every module without login or REST writes",
 		registerCommands(client, modules);
 		registerEvents(client, modules);
 		registerInteractions(client, modules);
-		await registerJobs(modules);
 		assert.equal(modules.length, 42);
 		assert.equal(client.commands.size, 47);
 		assert.equal(externalAttempts, 0);

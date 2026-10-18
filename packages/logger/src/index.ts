@@ -8,6 +8,8 @@ const redactPaths = [
 	"*.password",
 	"auth",
 	"*.auth",
+	"headers.authorization",
+	"*.headers.authorization",
 	"DISCORD_TOKEN",
 ];
 

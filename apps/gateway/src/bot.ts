@@ -1,10 +1,9 @@
 import { disconnectCache } from "@rostra/cache";
 import { closeBus } from "@rostra/cache/bus";
-import { config } from "@rostra/config";
+import { config, requireDiscordConfig } from "@rostra/config";
 import { disconnectPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 import { BotClient } from "@/client/BotClient.ts";
-import { disconnectJobs } from "@/jobs/queue.ts";
 import { installShutdownHandlers, registerShutdown } from "@/lifecycle/shutdown.ts";
 import { acquireIdentifySlot, releaseIdentifySlot } from "@/services/identify.ts";
 
@@ -18,7 +17,6 @@ async function main(): Promise<void> {
 	await client.init();
 
 	registerShutdown(() => client.destroy());
-	registerShutdown(disconnectJobs);
 	registerShutdown(closeBus);
 	registerShutdown(disconnectCache);
 	registerShutdown(disconnectPrisma);
@@ -31,7 +29,7 @@ async function main(): Promise<void> {
 		client.once("ready", () => void releaseIdentifySlot());
 	}
 
-	await client.login(config.discord.token);
+	await client.login(requireDiscordConfig().token);
 	log.info("shard logged in");
 }
 

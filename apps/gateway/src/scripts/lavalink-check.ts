@@ -1,4 +1,4 @@
-import { config } from "@rostra/config";
+import { config, requireDiscordConfig } from "@rostra/config";
 import { LavalinkManager } from "lavalink-client";
 
 /** Connectivity diagnostic: tries every configured Lavalink node and reports which connect. */
@@ -20,13 +20,13 @@ async function main(): Promise<void> {
 			retryAmount: 1,
 		})),
 		sendToShard: () => {},
-		client: { id: config.discord.clientId, username: "Rostra" },
+		client: { id: requireDiscordConfig().clientId, username: "Rostra" },
 	});
 
 	manager.nodeManager.on("connect", (node) => connected.add(node.id));
 	manager.nodeManager.on("error", (node, error) => failed.set(node.id, error?.message ?? "error"));
 
-	await manager.init({ id: config.discord.clientId, username: "Rostra" });
+	await manager.init({ id: requireDiscordConfig().clientId, username: "Rostra" });
 	await new Promise((r) => setTimeout(r, 15000));
 
 	console.log(`\nLavalink: ${connected.size}/${config.lavalink.nodes.length} nodes connected\n`);

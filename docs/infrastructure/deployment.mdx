@@ -20,6 +20,8 @@ dev/test commands work today.
 
 **develop**
 - `pnpm dev` - runs `apps/gateway/src/cluster.ts` via tsx watch
+- `pnpm start:api` - runs the API on `API_PORT` without requiring Discord credentials
+- `pnpm start:workers` - runs durable consumers; requires PostgreSQL and `REDIS_URL`
 - `pnpm typecheck` - generate the client, then `tsc --noEmit`
 - `pnpm lint` / `pnpm lint:fix` - Biome
 - `pnpm test` - tests using caller-supplied placeholders; `pnpm test:env` loads local `.env`
@@ -27,15 +29,20 @@ dev/test commands work today.
 **build & run**
 - `pnpm build` - generate the client and check TypeScript without emitting a bundle
 - `pnpm start` - run `apps/gateway/src/cluster.ts` through tsx
+- `pnpm start:api` / `pnpm start:workers` - run the separated API and worker processes
 - `pnpm deploy:commands` - register slash commands with Discord
 
 **database**
 - `pnpm prisma:migrate` - apply the existing migrations
 - Production: Postgres + pgBouncer (transaction mode) recommended at scale
+- `pnpm test:integration` - real PostgreSQL/Redis duplicate-delivery and worker-restart proof; CI
+  supplies disposable service containers
 
-**planned ops (runtime plan)**
-- `Dockerfile` (multi-stage, node:20-alpine), `docker-compose.yml` (bot, postgres, pgbouncer, redis,
-  optional lavalink), graceful shutdown on SIGTERM/SIGINT, Fastify `/health` for orchestration probes.
+**current HTTP ownership**
+- Gateway `PORT`: compatibility `/health`, shard detail and process metrics.
+- API `API_PORT`: detail-free `/health/live` and `/health/ready`, `/votes/topgg`, and authenticated
+  `/internal/v1/*` smoke routes. `INTERNAL_API_TOKEN` is required to use internal routes.
+- The existing container starts the gateway only. Task 7 owns the multi-process Compose profiles.
 
 ## gotchas
 

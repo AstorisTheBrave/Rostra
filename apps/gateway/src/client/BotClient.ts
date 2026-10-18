@@ -68,14 +68,13 @@ export class BotClient extends Client {
 		return this.#ipc;
 	}
 
-	/** Discover modules and register their commands, events, components, and jobs. */
+	/** Discover modules and register their gateway-owned commands, events, and components. */
 	async init(): Promise<void> {
 		this.#ipc = createIpc(this);
 		const { loadModules } = await import("@/client/loaders/modules.ts");
 		const { registerCommands } = await import("@/client/loaders/commands.ts");
 		const { registerEvents } = await import("@/client/loaders/events.ts");
 		const { registerInteractions } = await import("@/client/loaders/interactions.ts");
-		const { registerJobs } = await import("@/client/loaders/jobs.ts");
 
 		const { interactionRouter } = await import("@/interactions/router.ts");
 
@@ -83,7 +82,6 @@ export class BotClient extends Client {
 		registerCommands(this, modules);
 		registerEvents(this, modules, [interactionRouter]);
 		registerInteractions(this, modules);
-		await registerJobs(modules);
 
 		// Overlay live (DB) translations on the bundled baseline and subscribe to
 		// fleet-wide reloads so language changes apply with no restart.

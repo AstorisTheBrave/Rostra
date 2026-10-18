@@ -1,3 +1,7 @@
+---
+title: Frequently asked questions
+---
+
 # FAQ and Troubleshooting
 
 ## The bot does not respond to commands

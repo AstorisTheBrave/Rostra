@@ -1,0 +1,94 @@
+{
+	"$schema": "https://mintlify.com/docs.json",
+	"theme": "maple",
+	"name": "Rostra",
+	"description": "Product, setup, architecture, operations, and evidence for the Rostra open-source Discord app.",
+	"colors": {
+		"primary": "#8B5CF6",
+		"light": "#7C3AED",
+		"dark": "#A78BFA"
+	},
+	"appearance": {
+		"default": "dark"
+	},
+	"navigation": {
+		"global": {
+			"anchors": [
+				{
+					"anchor": "GitHub",
+					"href": "https://github.com/AstorisTheBrave/Rostra"
+				}
+			]
+		},
+		"tabs": [
+			{
+				"tab": "Start",
+				"groups": [
+					{
+						"group": "Rostra",
+						"pages": ["overview", "product/capability-status", "product/roadmap"]
+					}
+				]
+			},
+			{
+				"tab": "Guides",
+				"groups": [
+					{
+						"group": "Community guides",
+						"pages": [
+							"wiki/Home",
+							"wiki/Using-Rostra",
+							"wiki/Setup-Guide",
+							"wiki/Commands",
+							"wiki/Moderation-and-Security",
+							"wiki/Tickets-and-Modmail",
+							"wiki/Engagement",
+							"wiki/FAQ"
+						]
+					}
+				]
+			},
+			{
+				"tab": "Operations",
+				"groups": [
+					{
+						"group": "Runbooks and configuration",
+						"pages": ["runbooks/deployment", "runbooks/recovery", "infrastructure/env"]
+					}
+				]
+			},
+			{
+				"tab": "Reference",
+				"groups": [
+					{
+						"group": "Architecture and modules",
+						"pages": [
+							"architecture/index",
+							"modules/moderation",
+							"modules/automod",
+							"modules/tickets",
+							"modules/services",
+							"modules/setup",
+							"modules/ipc"
+						]
+					}
+				]
+			},
+			{
+				"tab": "Phase 00 evidence",
+				"groups": [
+					{
+						"group": "Implementation evidence",
+						"pages": [
+							"phase-reports/phase-00/index",
+							"phase-reports/phase-00/baseline",
+							"phase-reports/phase-00/security-review",
+							"phase-reports/phase-00/performance",
+							"phase-reports/phase-00/rollback"
+						]
+					}
+				]
+			}
+		]
+	}
+}

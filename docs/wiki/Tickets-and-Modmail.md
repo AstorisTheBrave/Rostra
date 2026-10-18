@@ -1,3 +1,7 @@
+---
+title: Tickets and modmail
+---
+
 # Tickets and Modmail
 
 Two ways for members to reach your staff: ticket channels for in server support, and modmail for private DM

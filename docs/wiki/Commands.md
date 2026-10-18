@@ -1,3 +1,7 @@
+---
+title: Commands
+---
+
 # Commands
 
 Rostra is slash command only. Top level commands, grouped by area:

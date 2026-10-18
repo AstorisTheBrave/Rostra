@@ -1,4 +1,5 @@
 ---
+title: Phase 00 evidence
 last-updated: 2026-10-18
 owner: AstorisTheBrave
 status: pending
@@ -32,7 +33,7 @@ Phase 00 moves the current Discord gateway into `apps/gateway/`, preserves the m
 | PostgreSQL/Redis worker restart and duplicate delivery | Locally tested in Task 5 report |
 | Fixture OAuth with persisted database rows in Chromium | Locally tested in Task 6 report |
 | Linux Compose migration and correlated service smoke | Passed for this snapshot; see the [performance record](performance.mdx) |
-| Local Task 8 frozen install, generation, boundaries, typecheck, lint, unit tests, build and Chromium gate | Passed; Windows root integration aggregation failed at a PostgreSQL lock test, while both service tests passed separately on Linux; see [performance evidence](performance.mdx) |
+| Local Task 8 frozen install, generation, boundaries, typecheck, lint, unit tests, build and Chromium gate | Passed; Windows root integration aggregation failed during Prisma row creation in the claim-fencing test. The claim-fencing and worker-restart service tests passed separately on Linux; see [performance evidence](performance.mdx) |
 | Prior-image rollback rehearsal | Configured; pending GitHub workflow |
 | Firefox and WebKit browser jobs | Configured; pending GitHub workflow |
 | Six image targets | Configured; pending GitHub workflow |

@@ -1,3 +1,7 @@
+---
+title: Community guides
+---
+
 # Rostra
 
 Rostra is a personal open-source Discord app for communities. The bot is the established product; this

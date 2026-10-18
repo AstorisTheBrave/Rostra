@@ -2,7 +2,7 @@
 
 Rostra is my open-source Discord bot for communities that would rather manage one capable bot than a stack of smaller ones. It brings moderation, server safety, tickets, member engagement, games, music and everyday utilities together behind slash commands.
 
-I am building Rostra in public. The Discord bot is the established product; the web, API and worker applications are newer foundations whose current capabilities and limits are listed in the [capability status](docs/product/capability-status.mdx).
+I am building Rostra in public. The Discord bot is the established product. The workspace also contains API routes, a web login with read-only guild summaries, and durable workers; their tested boundaries and limits are listed in the [capability status](docs/product/capability-status.mdx).
 
 ## What Rostra can do
 

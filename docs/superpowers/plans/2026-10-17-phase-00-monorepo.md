@@ -317,7 +317,7 @@
 
   Document and test how to run the pre-revamp image against the unchanged migration history after stopping new processes. No destructive down migration is required.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   Commit: `ci: prove the phase zero service boundaries`
 

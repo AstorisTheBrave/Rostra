@@ -1,6 +1,6 @@
 import { getPrisma } from "@rostra/database";
 
-export interface ClaimedOperationRow {
+interface ClaimedOperationRow {
 	id: string;
 	guildId: string | null;
 	kind: string;
@@ -13,19 +13,23 @@ export interface ClaimedOperationRow {
 	updatedAt: Date;
 }
 
-export async function claimOperationRow(
+interface ClaimTransactionTestHooks {
+	beforeUpdate?(backendPid: number): Promise<void>;
+	afterUpdate?(): Promise<void>;
+}
+
+async function runClaimOperationRow(
 	id: string,
 	now: Date,
 	leaseMs: number,
-	beforeUpdate?: (backendPid: number) => Promise<void>,
-	afterUpdate?: () => Promise<void>,
+	testHooks?: ClaimTransactionTestHooks,
 ): Promise<ClaimedOperationRow | undefined> {
 	return getPrisma().$transaction(async (tx) => {
-		if (beforeUpdate) {
+		if (testHooks?.beforeUpdate) {
 			const [backend] = await tx.$queryRaw<[{ backendPid: number }]>`
 				SELECT pg_backend_pid()::integer AS "backendPid"
 			`;
-			await beforeUpdate(backend.backendPid);
+			await testHooks.beforeUpdate(backend.backendPid);
 		}
 		const claimed = await tx.operationRecord.updateMany({
 			where: {
@@ -43,7 +47,24 @@ export async function claimOperationRow(
 			},
 		});
 		if (claimed.count === 0) return undefined;
-		await afterUpdate?.();
+		await testHooks?.afterUpdate?.();
 		return tx.operationRecord.findUniqueOrThrow({ where: { id } });
 	});
+}
+
+export async function claimOperationRow(
+	id: string,
+	now: Date,
+	leaseMs: number,
+): Promise<ClaimedOperationRow | undefined> {
+	return runClaimOperationRow(id, now, leaseMs);
+}
+
+export async function claimOperationRowForTest(
+	id: string,
+	now: Date,
+	leaseMs: number,
+	testHooks: ClaimTransactionTestHooks,
+): Promise<ClaimedOperationRow | undefined> {
+	return runClaimOperationRow(id, now, leaseMs, testHooks);
 }

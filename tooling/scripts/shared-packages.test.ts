@@ -31,5 +31,10 @@ for (const name of names) {
 		await assert.rejects(import(`@rostra/${name}/src/index.ts`), {
 			code: "ERR_PACKAGE_PATH_NOT_EXPORTED",
 		});
+		if (name === "operations") {
+			await assert.rejects(import("@rostra/operations/src/claim-transaction.ts"), {
+				code: "ERR_PACKAGE_PATH_NOT_EXPORTED",
+			});
+		}
 	});
 }

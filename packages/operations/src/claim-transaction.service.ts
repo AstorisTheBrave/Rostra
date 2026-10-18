@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { disconnectPrisma, getPrisma } from "@rostra/database";
+import { claimOperationRowForTest } from "./claim-transaction.ts";
 import { PrismaOperationRepository } from "./index.ts";
 
 function signal() {
@@ -54,34 +55,33 @@ test("a concurrent lease takeover cannot replace the first claimant's returned f
 	const secondStarted = signal();
 	let firstBackendPid: number | undefined;
 	let secondBackendPid: number | undefined;
-	const firstRepository = new PrismaOperationRepository({
-		beforeUpdate: async (backendPid) => {
-			firstBackendPid = backendPid;
-		},
-		afterUpdate: async () => {
-			firstUpdated.resolve();
-			await releaseFirst.promise;
-		},
-	});
-	const secondRepository = new PrismaOperationRepository({
-		beforeUpdate: async (backendPid) => {
-			secondBackendPid = backendPid;
-			secondStarted.resolve();
-		},
-	});
+	const repository = new PrismaOperationRepository();
 	let operationId: string | undefined;
-	let firstClaim: ReturnType<PrismaOperationRepository["claim"]> | undefined;
-	let secondClaim: ReturnType<PrismaOperationRepository["claim"]> | undefined;
+	let firstClaim: ReturnType<typeof claimOperationRowForTest> | undefined;
+	let secondClaim: ReturnType<typeof claimOperationRowForTest> | undefined;
 	try {
-		const created = await firstRepository.create({
+		const created = await repository.create({
 			kind: "phase00.concurrent-fencing",
 			idempotencyKey: `concurrent-fencing-${Date.now()}`,
 		});
 		operationId = created.record.id;
-		firstClaim = firstRepository.claim(operationId, new Date(0), 1);
+		firstClaim = claimOperationRowForTest(operationId, new Date(0), 1, {
+			beforeUpdate: async (backendPid) => {
+				firstBackendPid = backendPid;
+			},
+			afterUpdate: async () => {
+				firstUpdated.resolve();
+				await releaseFirst.promise;
+			},
+		});
 		await waitForSignal(firstUpdated.promise);
 
-		secondClaim = secondRepository.claim(operationId, new Date(2), 1);
+		secondClaim = claimOperationRowForTest(operationId, new Date(2), 1, {
+			beforeUpdate: async (backendPid) => {
+				secondBackendPid = backendPid;
+				secondStarted.resolve();
+			},
+		});
 		await waitForSignal(secondStarted.promise);
 		if (firstBackendPid === undefined) throw new Error("First claimant backend was not captured");
 		if (secondBackendPid === undefined) throw new Error("Second claimant backend was not captured");
@@ -89,13 +89,11 @@ test("a concurrent lease takeover cannot replace the first claimant's returned f
 
 		releaseFirst.resolve();
 		const [first, second] = await Promise.all([firstClaim, secondClaim]);
-		assert.equal(first.state, "claimed");
-		assert.equal(second.state, "claimed");
-		if (first.state === "claimed" && second.state === "claimed") {
-			assert.equal(first.record.claimVersion, 1);
-			assert.equal(second.record.claimVersion, 2);
-			assert.notEqual(second.record.claimVersion, first.record.claimVersion);
-		}
+		assert.ok(first);
+		assert.ok(second);
+		assert.equal(first.claimVersion, 1);
+		assert.equal(second.claimVersion, 2);
+		assert.notEqual(second.claimVersion, first.claimVersion);
 	} finally {
 		releaseFirst.resolve();
 		await Promise.allSettled([firstClaim, secondClaim].filter((claim) => claim !== undefined));

@@ -70,6 +70,11 @@ B's PostgreSQL backend PID from its public repository claim transaction and boun
 claimant A, whose backend PID is confirmed through `pg_blocking_pids`. Only that database evidence
 releases A; elapsed time is no longer the proof condition.
 
+**fix round 4**: Removed the interleaving hook from the exported Prisma repository constructor. The
+production repository again has a no-argument constructor and calls the atomic claim path without test
+instrumentation. Same-package service tests use a package-private wrapper around that exact transaction;
+the explicit package export regression proves consumers cannot import the private claim module.
+
 ### 2026-10-17 (Phase 00: gateway and legacy module compatibility migration)
 
 **changed**: Moved the Discord runtime into `apps/gateway/src/` and all current feature modules into

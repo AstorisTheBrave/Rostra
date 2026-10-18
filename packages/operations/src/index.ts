@@ -215,15 +215,7 @@ function record(row: {
 	return { ...row, status: row.status as OperationStatus };
 }
 
-interface ClaimTestHooks {
-	beforeUpdate?(backendPid: number): Promise<void>;
-	afterUpdate?(): Promise<void>;
-}
-
 export class PrismaOperationRepository implements OperationRepository {
-	/** Internal interleaving-test hook. Production callers omit it. */
-	constructor(private readonly claimTestHooks?: ClaimTestHooks) {}
-
 	async create(input: NewOperation): Promise<{ record: OperationRecord; created: boolean }> {
 		const prisma = getPrisma();
 		const inserted = await prisma.operationRecord.createMany({
@@ -252,13 +244,7 @@ export class PrismaOperationRepository implements OperationRepository {
 
 	async claim(id: string, now: Date, leaseMs: number): Promise<OperationClaim> {
 		const prisma = getPrisma();
-		const claimed = await claimOperationRow(
-			id,
-			now,
-			leaseMs,
-			this.claimTestHooks?.beforeUpdate,
-			this.claimTestHooks?.afterUpdate,
-		);
+		const claimed = await claimOperationRow(id, now, leaseMs);
 		if (!claimed) {
 			const existing = await prisma.operationRecord.findUnique({ where: { id } });
 			if (!existing) return { state: "missing" };

@@ -64,6 +64,12 @@ row lock until the exact fence is captured. A real PostgreSQL barrier test pause
 after its update, proves a takeover remains blocked, then verifies the two claimants receive versions
 one and two respectively. The existing replacement-worker and reconciler service proof remains green.
 
+**fix round 3**: Made the concurrent fencing proof deterministic. The service test captures claimant
+B's PostgreSQL backend PID from its public repository claim transaction and bounded-polls
+`pg_stat_activity` plus `pg_locks` until that exact backend is waiting on a non-granted lock held by
+claimant A, whose backend PID is confirmed through `pg_blocking_pids`. Only that database evidence
+releases A; elapsed time is no longer the proof condition.
+
 ### 2026-10-17 (Phase 00: gateway and legacy module compatibility migration)
 
 **changed**: Moved the Discord runtime into `apps/gateway/src/` and all current feature modules into

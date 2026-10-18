@@ -17,9 +17,16 @@ export async function claimOperationRow(
 	id: string,
 	now: Date,
 	leaseMs: number,
+	beforeUpdate?: (backendPid: number) => Promise<void>,
 	afterUpdate?: () => Promise<void>,
 ): Promise<ClaimedOperationRow | undefined> {
 	return getPrisma().$transaction(async (tx) => {
+		if (beforeUpdate) {
+			const [backend] = await tx.$queryRaw<[{ backendPid: number }]>`
+				SELECT pg_backend_pid()::integer AS "backendPid"
+			`;
+			await beforeUpdate(backend.backendPid);
+		}
 		const claimed = await tx.operationRecord.updateMany({
 			where: {
 				id,

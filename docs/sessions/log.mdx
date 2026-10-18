@@ -2281,5 +2281,7 @@ GitHub CI, and the Phase 00 decision remains PENDING until they pass.
 
 The first pull-request security run reached Gitleaks but stopped before scanning because the pinned action now
 requires the workflow token in its environment for pull-request events. Passed the existing read-only automatic
-`GITHUB_TOKEN` to that one step. No permissions were broadened and checkout credentials remain disabled. Static
+`GITHUB_TOKEN` to that one step. Fresh review also found that the pinned v2 action used the Node 20 runtime removed
+from GitHub-hosted runners in September 2026, so the action moved to immutable v3.0.0, whose upstream release changes
+only the action runtime to Node 24. No permissions were broadened and checkout credentials remain disabled. Static
 repository boundaries, lint and diff checks passed; the replacement GitHub run owns the actual scan result.

@@ -10,6 +10,7 @@ import { type ConnectionOptions, Queue } from "bullmq";
 import Redis from "ioredis";
 import { createOperationQueueTransport } from "../../apps/api/src/queue.ts";
 import { createApi } from "../../apps/api/src/server.ts";
+import { createGatewayApiClient } from "../../apps/gateway/src/services/apiFanout.ts";
 import { WorkerRuntime } from "../../apps/workers/src/runtime.ts";
 
 async function waitFor(check: () => Promise<boolean>, timeoutMs = 15_000): Promise<void> {
@@ -20,7 +21,7 @@ async function waitFor(check: () => Promise<boolean>, timeoutMs = 15_000): Promi
 	}
 }
 
-test("gateway seam, API, worker, Redis, PostgreSQL and typed web read share one correlation id", async () => {
+test("gateway API adapter, API, worker, Redis, PostgreSQL and typed web read share one correlation id", async () => {
 	assert.ok(config.redis.url, "REDIS_URL is required for cross-service smoke");
 	const prisma = getPrisma();
 	const repository = new PrismaOperationRepository();
@@ -76,26 +77,23 @@ test("gateway seam, API, worker, Redis, PostgreSQL and typed web read share one 
 		const address = await app.listen({ host: "127.0.0.1", port: 0 });
 		serverUrl = address;
 		const hostToken = `Bearer ${config.api.internalToken ?? "phase00-test-internal-token"}`;
-		const requestHeaders = {
+		const gatewayApi = createGatewayApiClient({ baseUrl: serverUrl });
+		const request = {
+			path: "/internal/v1/smoke",
+			method: "POST" as const,
 			authorization: hostToken,
-			"idempotency-key": idempotencyKey,
-			"x-correlation-id": correlationId,
+			idempotencyKey,
+			correlationId,
+			body: { correlationId },
 		};
-		const response = await fetch(new URL("/internal/v1/smoke", serverUrl), {
-			method: "POST",
-			headers: { ...requestHeaders, "content-type": "application/json" },
-			body: JSON.stringify({ correlationId }),
-		});
+		const response = await gatewayApi.forward(request);
 		assert.equal(response.status, 202);
 		assert.equal(response.headers.get("x-correlation-id"), correlationId);
 		const accepted = (await response.json()) as { id: string };
 		operationIds.push(accepted.id);
-		const duplicateRequest = await fetch(new URL("/internal/v1/smoke", serverUrl), {
-			method: "POST",
-			headers: { ...requestHeaders, "content-type": "application/json" },
-			body: JSON.stringify({ correlationId }),
-		});
+		const duplicateRequest = await gatewayApi.forward(request);
 		assert.equal(duplicateRequest.status, 202);
+		assert.equal(duplicateRequest.headers.get("x-correlation-id"), correlationId);
 		assert.equal(((await duplicateRequest.json()) as { id: string }).id, accepted.id);
 
 		await waitFor(async () => (await repository.get(accepted.id))?.status === "completed");
@@ -172,7 +170,13 @@ test("gateway seam, API, worker, Redis, PostgreSQL and typed web read share one 
 			JSON.stringify({
 				correlationId,
 				operationId: accepted.id,
-				boundaries: ["gateway-seam", "api", "postgresql", "redis-worker", "typed-web-client"],
+				boundaries: [
+					"gateway-api-adapter",
+					"api",
+					"postgresql",
+					"redis-worker",
+					"typed-web-client",
+				],
 				effectCount: 1,
 				duplicateDelivery: "completed without a second effect",
 				guessedGuildDenied: true,

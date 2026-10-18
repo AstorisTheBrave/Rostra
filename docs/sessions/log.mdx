@@ -24,18 +24,26 @@ SBOM retention and image coverage use immutable action pins. New runbooks descri
 backup, rollback and recovery without controlling external ingress.
 
 Added startup tests for three failed migration attempts and successful handoff. The cross-service
-smoke uses a fake gateway seam, the API and worker runtimes, PostgreSQL, Redis and the typed web
-client. It checks duplicate API idempotency, at-least-once queue delivery, exactly one persisted
-effect, correlation propagation through the API response and worker effect, and denial of a swapped
-guild token. All external Discord access is blocked by the internal-only Compose test network; only
-fake credentials are used and command publication is disabled.
+smoke invokes the gateway-owned internal API fanout adapter, the API and worker runtimes, PostgreSQL,
+Redis and the typed web client. It checks duplicate API idempotency, at-least-once queue delivery,
+exactly one persisted effect, correlation propagation across the gateway adapter into the API and
+worker effect, and denial of a swapped guild token. All external Discord access is blocked by the
+internal-only Compose test network; only fake credentials are used and command publication is disabled.
 
 **evidence**: Frozen install, boundaries, typecheck, lint, full unit suite and all workspace builds
 passed with placeholder configuration. Compose configuration validated. A disposable Linux API image
 applied all 11 preserved migrations against the internal Compose hostname; the correlated smoke passed
 with one effect and a swapped-guild denial, then migration status reported no pending migrations.
 The migration-failure test passed with three attempts and confirmed the app marker was never created.
-All disposable containers, networks and volumes were removed. GitHub workflow definitions include
+All disposable containers, networks and volumes were removed.
+Review follow-up added a gateway-owned internal API fanout adapter and a focused request-forwarding test.
+The Linux API-image smoke now submits the correlated operation through that adapter and verifies the
+same id in API acceptance, response headers and the durable worker effect. The VPS overlay now defaults
+to the lowercase GHCR owner. A fresh disposable image run applied all 11 migrations, passed the
+adapter-to-API/worker/web flow and reported no pending migrations; its containers, volumes and network
+were removed.
+
+GitHub workflow definitions include
 the prior-image rollback rehearsal, but that workflow and the six-target remote image matrix have not
 yet run; no remote rollback verification, push or release is claimed. The Windows-host Prisma schema
 engine returned an empty error with a host-mapped database, so service migrations and smoke were

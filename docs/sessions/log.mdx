@@ -2286,3 +2286,27 @@ from GitHub-hosted runners in September 2026, so the action moved to immutable v
 inputs, outputs and behavior unchanged while moving to Node 24 and refreshing the runtime dependency and build.
 No permissions were broadened and checkout credentials remain disabled. Static
 repository boundaries, lint and diff checks passed; the replacement GitHub run owns the actual scan result.
+
+### 2026-10-19 - Phase 00 browser-smoke runtime correction
+
+The pull-request browser matrix passed Chromium and Firefox but exposed a WebKit-only race in the mobile case.
+Trace evidence showed the test clicking the server-rendered OAuth link while the Vite development server was still
+delivering its hydration module graph. Late hydration of the original `/` document then replaced the in-flight
+fixture callback navigation. Browser smoke now builds and serves the production web artifact, which is the runtime
+the matrix is intended to validate and avoids development-only HMR and module-waterfall behavior. The existing
+mobile OAuth test remains the regression proof; the replacement WebKit run owns the cross-browser result.
+
+### 2026-10-19 - Phase 00 security review and resilience planning
+
+The first GitHub Advanced Security review left four inline threads. Added route-specific Fastify limits to the
+Activity session and Realtime connection authorization endpoints while leaving their health routes unthrottled.
+Replaced the locale registry's prototype-bearing object writes with nested maps after a regression proved that a
+`__proto__` locale could write into `Object.prototype`. The OAuth finding is under false-positive triage because
+the reported operation is HMAC-SHA256 cookie authentication with a server signing key, not password hashing.
+
+Added a binding phase-completion rule requiring every PR review, unresolved thread and security finding to be
+triaged again after each corrective push. Heavy independent work now uses fast, high-reasoning subagents when
+available, with primary-task review before a snapshot. Added a dedicated Phase R plan for Rostra-wide admission,
+tenant fairness, bounded concurrency, retry classification, jittered backoff and durable retry scheduling. Fastify
+inbound limits and upstream SDK bucket handling remain separate owners. The plan explicitly classifies work that
+should not be retried rather than applying retries indiscriminately.

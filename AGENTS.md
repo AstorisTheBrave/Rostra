@@ -83,6 +83,13 @@ not use the alias. Never import another package's private files, including throu
 12. Every change updates `docs/sessions/log.mdx` and relevant module or architecture documentation.
     Keep this file current when introducing a pattern or constraint contributors need.
 13. No em dashes in source, docs, user text, commits, issues or PR comments. Use a normal hyphen or reword.
+14. Before a phase can pass, inspect every pull-request review, conversation comment, unresolved inline thread and
+    GitHub security finding, including automated Advanced Security reviews. Resolve every actionable item, document
+    false positives with concrete evidence, rerun the owned gate, push the correction and re-fetch review state.
+    Never call a phase complete while an actionable thread remains unresolved.
+15. For heavy work that separates cleanly into independent scopes, delegate to fast subagents at high reasoning.
+    Keep small, sequential or tightly coupled work in the primary task, and review every delegated result before it
+    enters a phase snapshot.
 
 ## Discord entrypoints and boundaries
 

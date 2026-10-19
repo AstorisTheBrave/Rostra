@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-last-updated: 2026-10-18
+last-updated: 2026-10-19
 owner: AstorisTheBrave
 status: in-flux
 ---
@@ -16,6 +16,20 @@ The current slice moves the existing Discord runtime into a workspace, adds API,
 ## Next: replace temporary module discovery
 
 The gateway currently loads the existing modules through a compatibility adapter. A later phase is expected to move toward explicit module manifests and lifecycle ownership, while preserving the command and behavior contracts covered by the current fixtures.
+
+## Phase R: Rostra-wide rate limits, retries and backpressure
+
+After explicit module manifests are in place, a dedicated cross-cutting phase will classify every interaction,
+internal client, external adapter, scheduled task, bulk action and durable job. Rostra will own distributed
+admission, tenant fairness, bounded concurrency and retry policy around that work. Fastify remains responsible for
+inbound HTTP throttling, and upstream SDKs such as Discord's REST manager retain their protocol-specific bucket
+handling.
+
+The phase uses PostgreSQL for durable retry intent and Redis for short-lived budgets and leases. It honors upstream
+reset hints, uses capped full-jitter backoff, never retries permanent failures, and requires idempotency or outcome
+reconciliation before retrying a mutation. CI will reject new unclassified server-side network callers and prove
+`429`, timeout, Redis-restart, duplicate-delivery, tenant-fairness and shutdown behavior against disposable services.
+The executable plan is [Rostra-wide resilience phase](../superpowers/plans/2026-10-19-rostra-resilience-phase.md).
 
 ## Deeper product work
 

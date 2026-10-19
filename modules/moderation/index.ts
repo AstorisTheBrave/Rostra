@@ -13,10 +13,10 @@ import {
 } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { isOptedOut, resolveLocale } from "@/services/localization.ts";
-import { isBotOwner } from "@/services/permissions.ts";
 import { registerTaskHandler } from "@/services/scheduler.ts";
 import type { BotModule, SlashCommand } from "@/types/module.ts";
 import { formatDuration, MAX_TIMEOUT_MS, parseDuration } from "./duration.ts";
+import { hasModerationPermission } from "./permissions.ts";
 import {
 	addNote,
 	applyTempBan,
@@ -203,8 +203,7 @@ function buildData(): SlashCommandBuilder {
 }
 
 function hasPerm(interaction: ChatInputCommandInteraction, perm: PermissionResolvable): boolean {
-	if (isBotOwner(interaction.user.id)) return true;
-	return interaction.memberPermissions?.has(perm) ?? false;
+	return hasModerationPermission(interaction.memberPermissions, perm);
 }
 
 async function denyNoPerm(interaction: ChatInputCommandInteraction): Promise<void> {

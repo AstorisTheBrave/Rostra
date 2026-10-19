@@ -1,6 +1,6 @@
 ---
 title: Ticket module
-last-updated: 2026-06-05
+last-updated: 2026-10-19
 owner: AstorisTheBrave
 status: stable
 ---
@@ -37,6 +37,8 @@ module that uses interactive **buttons**.
 - One open ticket per user per guild is enforced (`Ticket` query before create).
 - Ticket channels get explicit permission overwrites: deny `@everyone`, allow opener + support roles +
   the bot. The bot needs Manage Channels.
+- Ticket staff checks require the current member to have Manage Server or a configured support role.
+  Configured bot owner IDs do not grant ticket support access. The ticket opener may still close their own ticket.
 - Close logs to the configured channel then deletes the channel after a 5s delay. No HTML transcript yet
   (future enhancement; `discord-html-transcripts` was used by the legacy bots).
 - Requires `prisma migrate` for `TicketConfig`, `Ticket`, `GuildTicketCounter`.

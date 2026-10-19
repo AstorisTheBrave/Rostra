@@ -84,6 +84,11 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 					return guild ? { id: guild.id, configured: true } : undefined;
 				},
 			},
+			guildCapabilities: {
+				async memberCapabilities() {
+					return undefined;
+				},
+			},
 			repository,
 			publisher,
 			async recordVote() {},

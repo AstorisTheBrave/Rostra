@@ -13,14 +13,12 @@ export function createWebRuntime(options: {
 	tokenSecret: string;
 }) {
 	function scopedToken(session: WebSession, guild: GuildMembership, now: number): string {
-		const permissions = ["guilds:read"];
-		if (guild.access !== "member") permissions.push("guilds:admin");
 		return issuePrincipalToken(
 			{
 				kind: "guild",
 				subjectId: session.profile.id,
 				guildId: guild.id,
-				permissions,
+				permissions: ["guilds:read"],
 			},
 			"api",
 			options.tokenSecret,

@@ -1,10 +1,13 @@
 import rateLimit from "@fastify/rate-limit";
 import {
 	AuthorizationError,
+	type GuildCapability,
+	type GuildCapabilityStore,
 	type Principal,
 	requireGuildPermission,
 	requireHost,
 	requireOperationRead,
+	resolveGuildCapabilities,
 	verifySecret,
 } from "@rostra/auth";
 import { getLogger } from "@rostra/logger";
@@ -30,6 +33,7 @@ export interface ApiDependencies {
 	guildDirectory: {
 		get(guildId: string): Promise<GuildSummary | undefined>;
 	};
+	guildCapabilities: GuildCapabilityStore;
 	repository: OperationRepository;
 	publisher: OperationPublisher;
 	recordVote(vote: VotePayload): Promise<void>;
@@ -171,7 +175,9 @@ export async function createApi(deps: ApiDependencies): Promise<FastifyInstance>
 			return { error: "not_found" };
 		}
 		try {
-			requireOperationRead(principal, operation.guildId);
+			if (operation.guildId === null) requireOperationRead(principal, null);
+			else
+				await requireCurrentGuildCapability(principal, operation.guildId, "operations:read", deps);
 		} catch (error) {
 			if (!(error instanceof AuthorizationError)) throw error;
 			reply.code(404);
@@ -181,4 +187,19 @@ export async function createApi(deps: ApiDependencies): Promise<FastifyInstance>
 	});
 
 	return app;
+}
+
+async function requireCurrentGuildCapability(
+	principal: Principal,
+	guildId: string,
+	capability: GuildCapability,
+	deps: ApiDependencies,
+): Promise<void> {
+	const guildPrincipal = requireGuildPermission(principal, guildId, capability);
+	const current = await resolveGuildCapabilities(
+		deps.guildCapabilities,
+		guildPrincipal.subjectId,
+		guildId,
+	);
+	if (!current.includes(capability)) throw new AuthorizationError("Guild authorization required");
 }

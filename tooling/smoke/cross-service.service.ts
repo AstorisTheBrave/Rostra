@@ -70,6 +70,11 @@ test("gateway API adapter, API, worker, Redis, PostgreSQL and typed web read sha
 					return guild ? { id: guild.id, configured: true } : undefined;
 				},
 			},
+			guildCapabilities: {
+				async memberCapabilities() {
+					return undefined;
+				},
+			},
 			repository,
 			publisher: transport,
 			recordVote: async () => {},

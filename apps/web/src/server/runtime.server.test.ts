@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { verifyPrincipalToken } from "@rostra/auth";
 import type { GuildClient } from "@rostra/web-client";
 import { createAuthController, MemorySessionStore } from "./auth.server.ts";
 import { createFixtureOAuthAdapter } from "./oauth-adapters.server.ts";
@@ -73,4 +74,26 @@ test("session and domain failures map to unauthorized and degraded states", asyn
 	});
 	assert.deepEqual(await runtime.guilds(undefined, 1_200), { status: "unauthorized" });
 	assert.deepEqual(await runtime.guilds(cookie, 1_200), { status: "degraded" });
+});
+
+test("OAuth administrator and manager snapshots request read only", async () => {
+	const grants: string[][] = [];
+	const { runtime, cookie } = await authenticatedCookie({
+		async getGuild(_guildId, token) {
+			const principal = verifyPrincipalToken(
+				token,
+				"test-session-secret-with-enough-entropy",
+				"api",
+				1_200,
+			);
+			assert.equal(principal?.kind, "guild");
+			if (principal?.kind === "guild") grants.push([...principal.permissions]);
+			return { id: _guildId, configured: true };
+		},
+	});
+	await runtime.guilds(cookie, 1_200);
+	assert.deepEqual(
+		grants,
+		Array.from({ length: 4 }, () => ["guilds:read"]),
+	);
 });

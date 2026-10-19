@@ -1,8 +1,38 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+export const guildCapabilities = [
+	"guilds:read",
+	"guilds:admin",
+	"operations:read",
+	"operations:write",
+	"realtime:connect",
+	"activity:launch",
+] as const;
+
+export type GuildCapability = (typeof guildCapabilities)[number];
+
+export function isGuildCapability(value: unknown): value is GuildCapability {
+	return typeof value === "string" && (guildCapabilities as readonly string[]).includes(value);
+}
+
+export interface GuildCapabilityStore {
+	memberCapabilities(subjectId: string, guildId: string): Promise<readonly string[] | undefined>;
+}
+
+export async function resolveGuildCapabilities(
+	store: GuildCapabilityStore,
+	subjectId: string,
+	guildId: string,
+): Promise<GuildCapability[]> {
+	const grants = await store.memberCapabilities(subjectId, guildId);
+	return grants === undefined
+		? []
+		: [...new Set<GuildCapability>(["guilds:read", ...grants.filter(isGuildCapability)])];
+}
+
 export type Principal =
 	| { kind: "host"; subjectId: string }
-	| { kind: "guild"; subjectId: string; guildId: string; permissions: readonly string[] };
+	| { kind: "guild"; subjectId: string; guildId: string; permissions: readonly GuildCapability[] };
 
 export type PrincipalAudience = "api" | "realtime" | "activity";
 
@@ -13,7 +43,7 @@ export class AuthorizationError extends Error {
 export function requireGuildPermission(
 	principal: Principal | undefined,
 	guildId: string,
-	permission: string,
+	permission: GuildCapability,
 ): Extract<Principal, { kind: "guild" }> {
 	if (
 		principal?.kind !== "guild" ||
@@ -62,8 +92,8 @@ function signature(value: string, secret: string): string {
 	return createHmac("sha256", secret).update(value).digest("base64url");
 }
 
-function isStringArray(value: unknown): value is string[] {
-	return Array.isArray(value) && value.every((item) => typeof item === "string");
+function isCapabilityArray(value: unknown): value is GuildCapability[] {
+	return Array.isArray(value) && value.every(isGuildCapability);
 }
 
 function principalFrom(value: unknown): Principal | undefined {
@@ -75,7 +105,7 @@ function principalFrom(value: unknown): Principal | undefined {
 		candidate.kind === "guild" &&
 		typeof candidate.subjectId === "string" &&
 		typeof candidate.guildId === "string" &&
-		isStringArray(candidate.permissions)
+		isCapabilityArray(candidate.permissions)
 	)
 		return {
 			kind: "guild",

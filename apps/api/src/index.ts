@@ -30,6 +30,17 @@ async function main(): Promise<void> {
 				return guild ? { id: guild.id, configured: true } : undefined;
 			},
 		},
+		guildCapabilities: {
+			async memberCapabilities(subjectId, guildId) {
+				const member = await getPrisma().guildMember.findUnique({
+					where: { guildId_userId: { guildId, userId: subjectId } },
+					select: {
+						roles: { select: { role: { select: { grants: { select: { capability: true } } } } } },
+					},
+				});
+				return member?.roles.flatMap(({ role }) => role.grants.map(({ capability }) => capability));
+			},
+		},
 		voteToken: config.topgg.webhookAuth,
 		repository: new PrismaOperationRepository(),
 		publisher: transport,

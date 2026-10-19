@@ -1,6 +1,6 @@
 ---
 title: Moderation module
-last-updated: 2026-06-05
+last-updated: 2026-10-19
 owner: AstorisTheBrave
 status: stable
 ---
@@ -22,7 +22,8 @@ It's the first full feature module and the reference example for how modules are
 **command** - one top-level `/mod` with subcommands: `ban`, `unban`, `kick`, `timeout`, `untimeout`,
 `warn`, `warnings`, `removewarn`, `cases`, `note`, `purge`, `slowmode`, `lock`, `unlock`, `nick`.
 Default member permission is `ModerateMembers`; each subcommand additionally checks the specific
-permission it needs (e.g. `BanMembers` for ban).
+Discord guild permission it needs (e.g. `BanMembers` for ban). Configured bot owner IDs do not
+bypass these checks. An owner with no required guild permission receives the existing missing-permissions reply.
 
 **exports (service.ts)**
 - `banUser/unbanUser/kickUser/timeoutUser/removeTimeout/warnUser/addNote(opts): ModResult`

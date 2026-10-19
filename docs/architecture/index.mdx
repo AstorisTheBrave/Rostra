@@ -1,6 +1,6 @@
 ---
 title: Architecture map
-last-updated: 2026-10-18
+last-updated: 2026-10-19
 owner: AstorisTheBrave
 status: in-flux
 ---
@@ -27,7 +27,7 @@ Web browser -> apps/web/ -> @rostra/web-client -> apps/api/
 Optional: apps/realtime/ and apps/activity/ (authenticated, disabled by default)
 ```
 
-The web server does not connect to PostgreSQL. It issues a short-lived principal for an exact service audience and guild scope; the API validates that scope again. PostgreSQL is the durable source of operation intent. Redis delivery is at least once, so operation handlers are idempotent and claims fence stale workers.
+The web server does not connect to PostgreSQL. It issues a short-lived read request for an exact service audience and guild scope. The API checks private operation capabilities against current persisted membership and tenant role grants for that subject and guild. The read-only configured-status summary keeps the signed exact-guild read check. PostgreSQL is the durable source of operation intent. Redis delivery is at least once, so operation handlers are idempotent and claims fence stale workers.
 
 ## Workspace ownership
 
@@ -84,7 +84,11 @@ The current module inventory has no active `JobDefinition` handlers. Future modu
 
 The web login uses OAuth authorization code flow with signed state, PKCE, an opaque server-side session identifier and an HttpOnly SameSite=Lax cookie. The browser uses a typed API client for persisted, read-only guild summaries. Route guards provide navigation, while the API remains the authorization boundary.
 
-Browser smoke uses fixture OAuth with the real web/API path and disposable PostgreSQL rows. It verifies that an OAuth-visible guild with no persisted configuration is not fabricated in the result. Sessions are currently stored in memory and expired entries are pruned when a new session is stored, so multiple web instances are not supported.
+Browser smoke uses fixture OAuth with the real web/API path and disposable PostgreSQL guild rows. It verifies that an OAuth-visible guild with no persisted configuration is not fabricated in the result. OAuth guild permissions are navigation hints only; they do not mint admin capabilities. Sessions are currently stored in memory and expired entries are pruned when a new session is stored, so multiple web instances are not supported.
+
+## Guild authorization
+
+`@rostra/auth` defines the closed guild capability set: `guilds:read`, `guilds:admin`, `operations:read`, `operations:write`, `realtime:connect` and `activity:launch`. Signed principals reject other strings. The current-state resolver grants `guilds:read` for a persisted `GuildMember` row; stronger capabilities require a current `GuildMemberRole` assignment to a `GuildRole` with a matching `GuildCapabilityGrant`. The database ties assignments and grants to the same guild through composite foreign keys. Missing membership or grants deny private operation and admin capabilities. The existing configured-status summary is limited to a signed exact-guild `guilds:read` claim and a persisted guild row so existing web reads remain available without a membership synchronizer. API guild failures return the same 404 as missing records, including for host principals and swapped guild IDs. Realtime and Activity retain their separate audience and exact-guild checks.
 
 Realtime and Activity verify signed principals scoped to their own audience and exact guild permission. They are disabled in the default profile. Their health and auth tests do not establish multiplayer or device compatibility.
 

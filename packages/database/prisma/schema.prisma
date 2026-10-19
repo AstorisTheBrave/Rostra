@@ -14,6 +14,40 @@ model Guild {
   updatedAt DateTime @updatedAt
   modules   GuildModuleConfig[]
   members   GuildMember[]
+  roles     GuildRole[]
+}
+
+model GuildRole {
+  id           String                @id @default(cuid())
+  guildId      String
+  name         String
+  guild        Guild                 @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  grants       GuildCapabilityGrant[]
+  assignments  GuildMemberRole[]
+
+  @@unique([guildId, id])
+  @@unique([guildId, name])
+  @@index([guildId])
+}
+
+model GuildCapabilityGrant {
+  guildId    String
+  roleId     String
+  capability String
+  role       GuildRole @relation(fields: [guildId, roleId], references: [guildId, id], onDelete: Cascade)
+
+  @@id([guildId, roleId, capability])
+}
+
+model GuildMemberRole {
+  guildId  String
+  memberId String
+  roleId   String
+  member   GuildMember @relation(fields: [guildId, memberId], references: [guildId, id], onDelete: Cascade)
+  role     GuildRole   @relation(fields: [guildId, roleId], references: [guildId, id], onDelete: Cascade)
+
+  @@id([guildId, memberId, roleId])
+  @@index([guildId, roleId])
 }
 
 model GuildModuleConfig {
@@ -41,7 +75,9 @@ model GuildMember {
   userId  String
   guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roles   GuildMemberRole[]
 
+  @@unique([guildId, id])
   @@unique([guildId, userId])
   @@index([guildId])
   @@index([userId])

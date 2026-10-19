@@ -2398,3 +2398,15 @@ uploaded and revalidated a 20-iteration Linux runner artifact: authorization GET
 query per request, event-loop delay p95 11.214847 ms, tenant cold/warm cache means 3.036164/0.170972 ms and queue-lag
 p95 1 ms. Delegation guidance now assigns deep design, security, concurrency and multi-file coding to a capable
 workhorse at high reasoning, while lightweight mechanical work uses a fast model at high reasoning.
+
+### 2026-10-19 - Phase 01 Task 2 tenant authorization
+
+Added a closed guild capability contract and tenant-scoped role, grant and member assignment tables.
+Current persisted membership and role grants supply private and admin capabilities. The API intersects
+private operation requests with persisted capabilities for the exact subject and guild. The read-only
+configured-status summary retains its signed exact-guild `guilds:read` check because no production
+`GuildMember` synchronizer exists yet; missing rows must not take down the existing web read path.
+The web requests read only regardless of OAuth administrator or manager snapshots. Removed configured
+bot-owner bypasses from moderation, ticket support and the shared Discord member permission helper.
+Focused negative tests cover revoked membership and grants, host and swapped-guild denial, unknown
+capabilities and configured-owner denial. The migration is additive and preserves historical bytes.

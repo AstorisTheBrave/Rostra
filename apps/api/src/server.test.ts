@@ -57,6 +57,15 @@ const guildDirectory = {
 	},
 };
 
+const guildCapabilities = {
+	async memberCapabilities(
+		subjectId: string,
+		guildId: string,
+	): Promise<readonly string[] | undefined> {
+		return subjectId === "user-1" && guildId === "guild-1" ? ["operations:read"] : undefined;
+	},
+};
+
 function authenticate(authorization: string | undefined): Principal | undefined {
 	if (authorization === "Bearer internal-secret") return { kind: "host", subjectId: "operator" };
 	if (authorization === "Bearer guild-1")
@@ -82,6 +91,7 @@ test("public health routes expose only status", async (t) => {
 	const app = await createApi({
 		authenticate,
 		guildDirectory,
+		guildCapabilities,
 		ready: async () => false,
 		repository: repository(),
 		publisher: { async publish() {} },
@@ -101,6 +111,7 @@ test("versioned internal routes require host bearer auth", async (t) => {
 	const app = await createApi({
 		authenticate,
 		guildDirectory,
+		guildCapabilities,
 		ready: async () => true,
 		repository: repository(),
 		publisher: {
@@ -139,6 +150,7 @@ test("operation reads enforce the stored host or guild scope", async (t) => {
 	const app = await createApi({
 		authenticate,
 		guildDirectory,
+		guildCapabilities,
 		ready: async () => true,
 		repository: {
 			...repo,
@@ -175,6 +187,7 @@ test("delivery failures return a generic unavailable response after durable crea
 	const app = await createApi({
 		authenticate,
 		guildDirectory,
+		guildCapabilities,
 		ready: async () => false,
 		repository: {
 			...repo,
@@ -206,6 +219,7 @@ test("mismatched idempotency ownership returns a conflict", async (t) => {
 	const app = await createApi({
 		authenticate,
 		guildDirectory,
+		guildCapabilities,
 		ready: async () => true,
 		repository: {
 			...repo,
@@ -231,6 +245,7 @@ test("vote route preserves external authentication and validation", async (t) =>
 	const app = await createApi({
 		authenticate,
 		guildDirectory,
+		guildCapabilities,
 		voteToken: "vote-secret",
 		ready: async () => true,
 		repository: repository(),
@@ -273,6 +288,7 @@ test("guild summaries authorize the exact stored tenant at the data endpoint", a
 	const app = await createApi({
 		authenticate,
 		guildDirectory,
+		guildCapabilities,
 		ready: async () => true,
 		repository: repository(),
 		publisher: { async publish() {} },
@@ -294,4 +310,41 @@ test("guild summaries authorize the exact stored tenant at the data endpoint", a
 		id: "guild-1",
 		configured: true,
 	});
+});
+
+test("private guild reads recheck membership and grants after a token is issued", async (t) => {
+	let current: readonly string[] | undefined = ["operations:read"];
+	const app = await createApi({
+		authenticate,
+		guildDirectory,
+		guildCapabilities: {
+			async memberCapabilities(subjectId, guildId) {
+				return subjectId === "user-1" && guildId === "guild-1" ? current : undefined;
+			},
+		},
+		ready: async () => true,
+		repository: {
+			...repository(),
+			async get(id) {
+				return id === "guild-operation" ? record("completed", "guild-1", id) : undefined;
+			},
+		},
+		publisher: { async publish() {} },
+		async recordVote() {},
+	});
+	t.after(() => app.close());
+	const request = (url: string, authorization = "Bearer guild-1") =>
+		app.inject({ method: "GET", url, headers: { authorization } });
+	const summary = "/internal/v1/guilds/guild-1/summary";
+	const operation = "/internal/v1/operations/guild-operation";
+	assert.equal((await request(summary)).statusCode, 200);
+	assert.equal((await request(operation)).statusCode, 200);
+	current = [];
+	assert.equal((await request(summary)).statusCode, 200);
+	assert.equal((await request(operation)).statusCode, 404);
+	current = undefined;
+	assert.equal((await request(summary)).statusCode, 200);
+	assert.equal((await request(operation)).statusCode, 404);
+	assert.equal((await request(summary, "Bearer internal-secret")).statusCode, 404);
+	assert.equal((await request("/internal/v1/guilds/guild-2/summary")).statusCode, 404);
 });

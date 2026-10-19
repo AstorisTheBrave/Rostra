@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { issuePrincipalToken, verifyPrincipalToken } from "./index.ts";
+import { issuePrincipalToken, type Principal, verifyPrincipalToken } from "./index.ts";
 
 const principal = {
 	kind: "guild" as const,
 	subjectId: "user-1",
 	guildId: "guild-1",
 	permissions: ["guilds:read"],
-};
+} satisfies Principal;
 
 test("principal tokens preserve an exact tenant scope until expiry", () => {
 	const token = issuePrincipalToken(principal, "api", "a-secret-with-enough-entropy", 2_000);
@@ -46,4 +46,14 @@ test("principal tokens are rejected by every other service audience", () => {
 			);
 		}
 	}
+});
+
+test("signed principal with an unknown capability is rejected", () => {
+	const token = issuePrincipalToken(
+		{ ...principal, permissions: ["unknown:grant"] } as unknown as Principal,
+		"api",
+		"secret",
+		2_000,
+	);
+	assert.equal(verifyPrincipalToken(token, "secret", "api", 1_000), undefined);
 });

@@ -2347,3 +2347,10 @@ available, with primary-task review before a snapshot. Added a dedicated Phase R
 tenant fairness, bounded concurrency, retry classification, jittered backoff and durable retry scheduling. Fastify
 inbound limits and upstream SDK bucket handling remain separate owners. The plan explicitly classifies work that
 should not be retried rather than applying retries indiscriminately.
+
+### 2026-10-19 - Phase 00 reduced-motion browser determinism
+
+The production web server made the loading state short enough for the reduced-motion browser check to race the
+unauthorized redirect. The check now holds only its guild request, waits for the real loading skeleton and releases
+the request after reading the computed animation duration. This keeps the accessibility assertion on the production
+artifact without adding timing retries or changing application behavior.

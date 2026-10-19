@@ -55,11 +55,22 @@ test("callback failures are announced and the shell remains useful at 200 percen
 
 test("reduced motion disables the loading shimmer", async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: "reduce" });
+	let releaseRequest = () => {};
+	const heldRequest = new Promise<void>((resolve) => {
+		releaseRequest = resolve;
+	});
+	await page.route("**/api/guilds", async (route) => {
+		await heldRequest;
+		await route.abort();
+	});
 	await page.goto("/servers");
-	const duration = await page
-		.locator(".skeleton")
-		.first()
-		.evaluate((element) => getComputedStyle(element).animationDuration);
+	const skeleton = page.locator(".skeleton").first();
+	await expect(skeleton).toBeVisible();
+	const duration = await skeleton.evaluate(
+		(element) => getComputedStyle(element).animationDuration,
+	);
+	releaseRequest();
+	await page.unrouteAll({ behavior: "wait" });
 	expect(Number.parseFloat(duration) * (duration.endsWith("ms") ? 1 : 1_000)).toBeLessThanOrEqual(
 		0.01,
 	);

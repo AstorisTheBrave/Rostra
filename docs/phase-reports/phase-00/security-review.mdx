@@ -1,13 +1,15 @@
 ---
 title: Security review
-last-updated: 2026-10-18
+last-updated: 2026-10-19
 owner: AstorisTheBrave
-status: pending
+status: pass
 ---
 
 # Phase 00 security review
 
-This page summarizes the security boundaries and automated evidence present in the Phase 00 implementation. It is not an external penetration test, production audit or security certification. Independent review and the remote security workflow remain pending for the final commit.
+This page summarizes the security boundaries and automated evidence present in the Phase 00 implementation. It is
+not an external penetration test, production audit or security certification. Pull-request review and the remote
+security workflow passed for source snapshot `fa2b3472432869e0402e941de190fdd45eccff42`.
 
 ## Tenant and authentication boundaries
 
@@ -16,6 +18,8 @@ This page summarizes the security boundaries and automated evidence present in t
 - Web-issued signed principals bind to an exact audience (`api`, `realtime` or `activity`). The receiving app verifies its own audience and exact guild permission.
 - Web OAuth uses signed state, PKCE, an opaque server-side session identifier and an HttpOnly SameSite=Lax cookie. The API repeats authorization at the data boundary; route guards are navigation only.
 - Fixture OAuth is test-only and rejected in production mode. The browser proof seeds disposable rows and checks that missing guild configuration is not fabricated.
+- Activity session creation and Realtime connection authorization have route-specific limits. Their detail-free
+  health routes remain unthrottled.
 
 Task 5 and Task 6 reports record the corresponding negative tests. These prove tested contracts in the current implementation, not the absence of every authorization defect.
 
@@ -31,8 +35,23 @@ Task 5 and Task 6 reports record the corresponding negative tests. These prove t
 ## Findings and limits
 
 1. **Web session storage is process-local.** Multiple web replicas do not share sessions and are unsupported until a shared durable store is added.
-2. **Remote security evidence is pending.** Secret scanning, dependency review, SBOM and CodeQL workflows are configured but have not been run on this final commit.
-3. **No external security audit or load test is claimed.** Automated checks cover specific code contracts and repository inputs only.
-4. **Rollback has not been remotely rehearsed.** The integration workflow builds the prior image and starts it after forward migration, but this remains pending a successful GitHub run.
+2. **No external security audit or load test is claimed.** Automated checks cover specific code contracts and repository inputs only.
+3. **The cookie-MAC alert was a false positive.** HMAC-SHA256 authenticates a short-lived OAuth cookie with a
+   server-held secret and timing-safe comparison. It is not password storage and does not require a password KDF.
 
-The current local results and exact final commit are listed in the [evidence index](index.mdx) and [performance record](performance.mdx). Do not interpret this review summary as a PASS until independent review and remote jobs complete.
+## Review and automated evidence
+
+GitHub review created eight threads. Fixes added Activity and Realtime admission limits, removed a prototype-bearing
+locale registry, built the web artifact inside its image, forwarded only owner-scoped Compose configuration, exposed
+the vote webhook on loopback with a documented passive ingress path, and evicted expired abandoned sessions during
+new session writes. The cookie-MAC finding was documented as the false positive above. Every thread has a reply and
+is resolved.
+
+Security and software inventory run
+[39288879807](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879807) passed dependency review, secret
+scan and SBOM generation. CodeQL run
+[39288879859](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879859) passed JavaScript and TypeScript
+analysis. The final thread sweep found no unresolved review thread.
+
+The current local results and exact source snapshot are listed in the [evidence index](index.mdx) and
+[performance record](performance.mdx).

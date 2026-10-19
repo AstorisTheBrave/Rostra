@@ -1,17 +1,22 @@
 ---
 title: Phase 00 evidence
-last-updated: 2026-10-18
+last-updated: 2026-10-19
 owner: AstorisTheBrave
-status: pending
+status: pass
 ---
 
 # Phase 00 evidence
 
-## Decision: PENDING
+## Decision: PASS
 
-Phase 00 is not complete. The implementation began at `d8d1076d3155c4b19a47018dc095470e2c0ce8cb` on `sd/revamp`. Local implementation evidence exists, including migration integrity, command/module parity, database-backed browser smoke and Linux Compose correlation smoke. The final Task 8 local gate and independent review are being recorded for this snapshot. GitHub CI, remote rollback, browser matrix, image targets and security/inventory jobs have not been verified on a pushed pull request, and the local/remote hashes cannot yet be compared.
+Phase 00 passed on source snapshot `fa2b3472432869e0402e941de190fdd45eccff42` on `sd/revamp`.
+The local and remote branch hashes matched before this evidence-only update. Local implementation evidence covers
+migration integrity, command/module parity, database-backed browser smoke and Linux Compose correlation smoke.
+Pull-request review produced eight findings; each was fixed or documented as a false positive, replied to and
+resolved before the decision. The exact source snapshot passed all required GitHub jobs.
 
-The decision becomes PASS only after the final commit passes the complete local gate, receives independent review, required GitHub jobs pass, and the remote branch hash matches the recorded local hash. A configured workflow is not evidence that it ran.
+The evidence commit that records this decision changes documentation only. It still requires the same GitHub and
+review gate before Phase 01 begins.
 
 ## Evidence pages
 
@@ -28,17 +33,27 @@ Phase 00 moves the current Discord gateway into `apps/gateway/`, preserves the m
 
 | Evidence | State |
 | --- | --- |
-| Historical migration path and checksum preservation | Locally tested |
-| Command/module/event parity | Locally tested with network blocked |
-| PostgreSQL/Redis worker restart and duplicate delivery | Locally tested in Task 5 report |
-| Fixture OAuth with persisted database rows in Chromium | Locally tested in Task 6 report |
-| Linux Compose migration and correlated service smoke | Passed for this snapshot; see the [performance record](performance.mdx) |
-| Local Task 8 frozen install, generation, boundaries, typecheck, lint, unit tests, build and Chromium gate | Passed; Windows root integration aggregation failed during Prisma row creation in the claim-fencing test. The claim-fencing and worker-restart service tests passed separately on Linux; see [performance evidence](performance.mdx) |
-| Prior-image rollback rehearsal | Configured; pending GitHub workflow |
-| Firefox and WebKit browser jobs | Configured; pending GitHub workflow |
-| Six image targets | Configured; pending GitHub workflow |
-| Dependency review, secret scan, SBOM and CodeQL | Configured; pending GitHub workflow |
-| Independent review and local/remote SHA equality | Pending review and remote run |
+| Historical migration path and checksum preservation | Passed locally and in Linux migration/rollback jobs |
+| Command/module/event parity | Passed with network blocked: 47 commands, 42 modules and 48 events |
+| PostgreSQL/Redis worker restart and duplicate delivery | Passed locally and in GitHub service integration |
+| Fixture OAuth with persisted database rows | Passed in Chromium, Firefox and WebKit on GitHub |
+| Linux Compose migration and correlated service smoke | Passed locally and in GitHub Compose smoke |
+| Frozen install, generation, boundaries, typecheck, lint, unit tests and build | Passed locally; exact-source GitHub `check` job passed |
+| Prior-image rollback rehearsal | Passed in GitHub Compose smoke without a down migration |
+| Six image targets | Passed for gateway, API, workers, web, realtime and Activity |
+| Dependency review, secret scan, SBOM and CodeQL | Passed on the exact source snapshot |
+| Independent review and local/remote SHA equality | Eight threads resolved; source snapshot hashes matched |
+
+## GitHub evidence
+
+- [CI run 39288879824](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879824): main check,
+  PostgreSQL/Redis service integration and Chromium, Firefox and WebKit browser smoke passed.
+- [Service and image integration run 39288879890](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879890):
+  Compose migration, correlated smoke, prior-image rollback and all six image targets passed.
+- [Security and software inventory run 39288879807](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879807):
+  dependency review, secret scan and SBOM passed.
+- [CodeQL run 39288879859](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879859):
+  JavaScript and TypeScript analysis passed.
 
 ## References
 

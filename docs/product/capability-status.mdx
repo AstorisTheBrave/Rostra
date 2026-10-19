@@ -1,6 +1,6 @@
 ---
 title: Capability status
-last-updated: 2026-10-18
+last-updated: 2026-10-19
 owner: AstorisTheBrave
 status: in-flux
 ---
@@ -11,14 +11,14 @@ This page separates current product behavior from test evidence and future work.
 
 | Area | Status | What the evidence supports |
 | --- | --- | --- |
-| Discord gateway and feature modules | Implemented; locally tested | 42 modules load through the compatibility adapter. Registry fixtures preserve 47 command definitions and 48 events without a Discord login or REST write. |
-| Shared packages and workspace boundaries | Implemented; locally tested | Public exports, strict typechecks and repository/package boundary checks are part of the local gate. |
-| API and durable workers | Implemented; locally tested with PostgreSQL and Redis | Durable intent is recorded before queue delivery. Duplicate and replacement-worker tests verify one effect and claim fencing. |
-| Web login and guild summaries | Implemented; locally tested in Chromium with disposable PostgreSQL | Fixture OAuth exercises the real API and typed client; only persisted guild rows appear. This is not a production OAuth deployment. |
+| Discord gateway and feature modules | Implemented; Phase 00 tested | 42 modules load through the compatibility adapter. Registry fixtures preserve 47 command definitions and 48 events without a Discord login or REST write. |
+| Shared packages and workspace boundaries | Implemented; Phase 00 tested | Public exports, strict typechecks and repository/package boundary checks passed locally and in GitHub CI. |
+| API and durable workers | Implemented; Phase 00 tested with PostgreSQL and Redis | Durable intent is recorded before queue delivery. Duplicate and replacement-worker tests verify one effect and claim fencing locally and in GitHub service integration. |
+| Web login and guild summaries | Implemented; Phase 00 browser matrix passed | Fixture OAuth exercises the real API and typed client with disposable PostgreSQL rows in Chromium, Firefox and WebKit. This is not a production OAuth deployment. |
 | Realtime and Activity | Implemented as authenticated scaffolds; locally tested | Apps build and check their authorization seams. They remain disabled by default and do not provide multiplayer or device verification. |
-| Compose deployment and cross-service smoke | Implemented; Linux smoke passed locally; remote CI pending | Smoke applies preserved migrations and traces one correlation ID through API, Redis, worker effect and typed client. Remote rollback rehearsal and image matrix have not been verified. |
+| Compose deployment and cross-service smoke | Implemented; Phase 00 passed | Local and GitHub smoke apply preserved migrations and trace one correlation ID through API, Redis, worker effect and typed client. Prior-image rollback and all six image targets passed remotely. |
 | Multi-instance web sessions | Platform-limited | Sessions are process-local. Multiple web replicas are unsupported until session storage is shared and durable. |
-| Automated GitHub validation for Phase 00 | Configured; pending remote run | Linux CI, service/browser jobs, rollback, image targets, dependency review, secret scan, SBOM and CodeQL require a passing remote run on the final commit. |
+| Automated GitHub validation for Phase 00 | Passed on source snapshot `fa2b347` | Linux CI, service/browser jobs, rollback, six image targets, dependency review, secret scan, SBOM and CodeQL passed. |
 | Ingress and hosting resources | Out of scope | Compose supports a passive reverse proxy or tunnel. Rostra does not provision DNS, TLS, storage or ingress-provider resources. |
 | Third-party hosting walkthroughs | Unverified | The legacy Ori Host wiki page has not been validated against its current panel. Use the supported Compose runbook; provider-specific pricing and recipes are not endorsed. |
 | Later module and web work | Planned | See the [roadmap](roadmap.mdx). Planned work is not part of the current product. |
@@ -31,10 +31,9 @@ The current move preserves the recorded command and module inventory. Tests use 
 
 ## What remains unproven
 
-- The Phase 00 pull request has not run on GitHub. Remote required jobs, independent review and equality between local and remote commit hashes are outstanding.
-- The prior-image rollback workflow is configured but has not been run remotely. Local documentation and a workflow definition are not a rollback rehearsal.
-- The six-target image matrix, Firefox/WebKit browser jobs, dependency review, secret scan, SBOM and CodeQL are configured but not remotely verified for this phase.
 - No load test, production-scale capacity result, production OAuth deployment or external security audit is claimed here.
-- Optional realtime and Activity tests prove scaffold authentication behavior only.
+- Optional realtime and Activity tests prove scaffold authentication and image viability only.
+- Multi-instance web sessions remain unsupported because sessions are process-local.
+- Phase 00 does not establish the later module redesign, multiplayer, device verification or a managed ingress control plane.
 
 See the [Phase 00 evidence index](../phase-reports/phase-00/index.mdx) for commands, counts, dates, measured timings and the current phase decision.

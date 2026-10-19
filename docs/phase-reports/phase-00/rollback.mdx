@@ -1,8 +1,8 @@
 ---
 title: Failure and rollback
-last-updated: 2026-10-18
+last-updated: 2026-10-19
 owner: AstorisTheBrave
-status: pending
+status: pass
 ---
 
 # Failure and rollback evidence
@@ -23,7 +23,11 @@ The previous image must be retained and schema compatibility verified before dep
 
 ## Rehearsal status
 
-**PENDING remote CI.** `.github/workflows/integration.yml` builds the prior gateway from the recorded baseline commit, runs the new Linux migration and correlated smoke, then starts the prior image with outbound traffic blocked and checks its health route. Fake Discord credentials are used. This workflow is configured but has not yet been run on the final Task 8 commit. No prior-image rollback rehearsal is claimed as passed.
+**PASS.** Service and image integration run
+[39288879890](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879890) built the prior gateway from the
+recorded baseline commit, ran the new Linux migration and correlated smoke, then started the prior image against the
+forward-migrated database with outbound traffic blocked and checked its health route. Fake Discord credentials were
+used. No down migration or volume deletion occurred.
 
 ## Limits
 

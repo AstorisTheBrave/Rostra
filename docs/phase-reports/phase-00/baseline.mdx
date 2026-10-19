@@ -1,8 +1,8 @@
 ---
 title: Baseline and preservation
-last-updated: 2026-10-18
+last-updated: 2026-10-19
 owner: AstorisTheBrave
-status: pending
+status: pass
 ---
 
 # Phase 00 baseline and preservation
@@ -29,7 +29,7 @@ The inventory numbers come from checked fixtures and snapshot tooling. They esta
 | Web shell and typed domain reads | `apps/web/`, `packages/web-client/`, `packages/web-ui/` | Fixture OAuth and a real typed API against persisted rows. |
 | Optional realtime and Activity seams | `apps/realtime/`, `apps/activity/` | Auth scaffolds only; disabled by default. |
 | Database schema and migration history | `packages/database/prisma/` | Historical paths and bytes remain checked; new migrations are additive. |
-| Deployment, CI inputs and smoke tooling | `infra/`, `.github/workflows/`, `tooling/` | Remote jobs are not verified until they run on the final commit. |
+| Deployment, CI inputs and smoke tooling | `infra/`, `.github/workflows/`, `tooling/` | Exact-source CI, service, browser, rollback, image and security jobs passed. |
 
 ## Preservation proof
 
@@ -37,12 +37,16 @@ The Task 5 report records byte-level checks for historical migration files. Two 
 
 Task 5 registry parity reported 47 commands, 42 modules and 48 events, with zero network attempts. The fixture tests compare normalized command data and the full module inventory. No real Discord login or command publication is part of these checks.
 
-Task 8 reran the local migration status, registry parity and service smoke from the unchanged implementation commit; exact results and durations are in [performance](performance.mdx). The documentation-only commit does not change the tested source inputs. The final commit's GitHub run remains pending.
+Task 8 reran the local migration status, registry parity and service smoke from the unchanged implementation commit;
+exact results and durations are in [performance](performance.mdx). Source snapshot
+`fa2b3472432869e0402e941de190fdd45eccff42` then passed the complete GitHub matrix. This documentation-only
+decision record does not change the tested source inputs.
 
 ## Service evidence carried forward
 
 - Task 5 exercised PostgreSQL 16 and Redis 7, forced one worker interruption, restarted the worker, and verified recovery with exactly one durable effect and two attempts. The report records claim-fencing and tenant-denial tests.
-- Task 6 ran the Chromium login and guild-selector smoke against the real web/API path, disposable PostgreSQL rows and fixture OAuth. It verified that an OAuth-visible but unconfigured guild was absent. Firefox and WebKit remain CI-only.
-- Task 7 ran the Linux API image with all 11 migrations and a correlated API, Redis worker, PostgreSQL effect and typed web-client smoke. The network was internal and Discord credentials were fake. The prior-image rollback workflow is configured but had not run remotely at the time of the Task 7 report.
+- Task 6 ran the Chromium login and guild-selector smoke against the real web/API path, disposable PostgreSQL rows and fixture OAuth. It verified that an OAuth-visible but unconfigured guild was absent. GitHub repeated the browser smoke in Chromium, Firefox and WebKit.
+- Task 7 ran the Linux API image with all 11 migrations and a correlated API, Redis worker, PostgreSQL effect and typed web-client smoke. The network was internal and Discord credentials were fake. GitHub repeated the Compose smoke and started the prior image against the forward-migrated schema successfully.
 
-These reports describe earlier implementation commits and are not substitutes for rerunning the final required checks. See the [index](index.mdx) for the overall pending decision.
+These reports describe earlier implementation commits and are supplemented by the exact-source GitHub runs listed
+in the [index](index.mdx). See that page for the overall PASS decision.

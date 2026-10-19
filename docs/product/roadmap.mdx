@@ -11,11 +11,16 @@ Rostra is developed in reviewed slices. This roadmap describes direction, not a 
 
 ## Phase 00: workspace and service boundaries
 
-The current slice moves the existing Discord runtime into a workspace, adds API, web, worker, realtime and Activity boundaries, and documents deployment and recovery. Its local implementation and smoke evidence are recorded in the [Phase 00 report](../phase-reports/phase-00/index.mdx). Phase 00 is not complete while remote CI, review and matching remote commit evidence are pending.
+This completed slice moved the existing Discord runtime into a workspace, added API, web, worker, realtime and
+Activity boundaries, and documented deployment and recovery. Local and GitHub evidence is recorded in the
+[Phase 00 report](../phase-reports/phase-00/index.mdx). The source snapshot passed review, matching local/remote hash
+verification and every required CI, browser, service, rollback, image and security job.
 
-## Next: replace temporary module discovery
+## Phase 01: replace temporary module discovery
 
-The gateway currently loads the existing modules through a compatibility adapter. A later phase is expected to move toward explicit module manifests and lifecycle ownership, while preserving the command and behavior contracts covered by the current fixtures.
+The gateway currently loads the existing modules through a compatibility adapter. Phase 01 replaces that seam with
+explicit module manifests and lifecycle ownership while preserving the command and behavior contracts covered by the
+current fixtures.
 
 ## Phase R: Rostra-wide rate limits, retries and backpressure
 

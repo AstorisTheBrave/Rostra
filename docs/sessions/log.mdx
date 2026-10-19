@@ -2354,3 +2354,17 @@ The production web server made the loading state short enough for the reduced-mo
 unauthorized redirect. The check now holds only its guild request, waits for the real loading skeleton and releases
 the request after reading the computed animation duration. This keeps the accessibility assertion on the production
 artifact without adding timing retries or changing application behavior.
+
+### 2026-10-19 - Phase 00 pass decision
+
+Source snapshot `fa2b3472432869e0402e941de190fdd45eccff42` matched the remote `sd/revamp` branch and passed the
+complete GitHub gate. CI run 39288879824 passed the root check, PostgreSQL/Redis service integration and Chromium,
+Firefox and WebKit browser smoke. Service and image integration run 39288879890 passed Compose migration,
+correlated smoke, prior-image rollback and all six application image targets. Security run 39288879807 passed
+dependency review, secret scan and SBOM generation; CodeQL run 39288879859 passed JavaScript and TypeScript
+analysis.
+
+The pull request had eight review threads across two passes. Every actionable finding was corrected with focused
+evidence; the OAuth cookie HMAC finding was documented as a false positive. A final thread sweep found no unresolved
+review. Phase 00 is PASS, subject to the evidence-only commit receiving the same final CI and review check before
+Phase 01 work begins.

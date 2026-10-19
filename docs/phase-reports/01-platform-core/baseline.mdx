@@ -25,17 +25,18 @@ any host metadata difference. These host details are not representative deployme
 | Workload | Existing path and evidence | Iterations | Measurements |
 | --- | --- | ---: | --- |
 | Registry parity | `tooling/scripts/snapshot-commands.mjs`, `snapshot-modules.mjs` and checked fixtures | One parity run in the Phase 00 gate | 42 modules, 47 commands, 48 events; prior run took 8.4 s on its recorded host |
-| API authorization | Real Fastify route injection, exact-guild authorization and PostgreSQL guild lookup | 20 | Local service run request p95: 34.78 ms; includes the slower of the auth request and durable-acceptance request per iteration |
-| Tenant cache read | Real `getTenant` L1/Redis L2/database path, with L1 and Redis invalidated for cold reads and L1 evicted before warm Redis reads | 20 | Local cold mean: 14.01 ms; warm mean: 1.42 ms |
-| Durable operation | API acceptance through PostgreSQL `OperationRecord`, Redis publication and a real worker claim/settlement | 20 | Local queue p95: 4 ms; operation returns to completed state for every sample |
+| API authorization | Real Fastify route injection, exact-guild authorization and PostgreSQL guild lookup | 20 | Local authorization GET p95: 5.15 ms; measured authorization request database query count: 1 per iteration |
+| Tenant cache read | Real `getTenant` L1/Redis L2/database path, with L1 and Redis invalidated for cold reads and L1 evicted before warm Redis reads | 20 | Local cold mean: 13.31 ms; warm mean: 1.43 ms |
+| Durable operation | API acceptance through PostgreSQL `OperationRecord`, Redis publication and a real worker claim/settlement | 20 | Local queue p95: 3 ms; operation returns to completed state for every sample |
 
 The local run used disposable PostgreSQL 16 and Redis 7 containers and produced 20 samples per metric.
-Foreground database query count was four Prisma delegate operations per iteration: one guild lookup, one
-tenant upsert on the cold read, and the operation repository's create-many and lookup calls. Worker
-settlement queries are outside that foreground count. Event-loop delay p95 was 26.41 ms. The checked-in
-CI collector repeats these same paths on its PostgreSQL/Redis GitHub service job and uploads the raw
-JSON with this report. A runner artifact is required before treating its measurements as the Phase 01
-comparison baseline. No production throughput, latency, capacity or memory claim is made.
+`databaseQueryCount` is the observed count of calls to the injected `guildDirectory.get` Prisma lookup
+during the authorization GET, which was one per iteration. It does not include tenant-cache reads,
+durable-operation acceptance, or worker settlement queries. The authorization GET p95 was 5.15 ms;
+event-loop delay p95 was 25.00 ms, tenant cold mean was 13.31 ms, warm mean was 1.43 ms, and queue lag
+p95 was 3 ms. The checked-in CI collector repeats these paths on its PostgreSQL/Redis GitHub service job
+and uploads raw JSON with this report. A runner artifact is required before treating its measurements as
+the Phase 01 comparison baseline. No production throughput, latency, capacity or memory claim is made.
 
 ## Comparison contract
 

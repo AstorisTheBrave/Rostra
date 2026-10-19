@@ -8,12 +8,7 @@ import { pathToFileURL } from "node:url";
 import { cacheGet, disconnectCache, invalidateConfig } from "@rostra/cache";
 import { config } from "@rostra/config";
 import { disconnectPrisma, getPrisma } from "@rostra/database";
-import {
-	BullMqOperationPublisher,
-	type NewOperation,
-	type OperationRecord,
-	PrismaOperationRepository,
-} from "@rostra/operations";
+import { BullMqOperationPublisher, PrismaOperationRepository } from "@rostra/operations";
 import { type ConnectionOptions, Queue } from "bullmq";
 import Redis from "ioredis";
 import { createApi } from "../../apps/api/src/server.ts";
@@ -21,6 +16,7 @@ import { evictTenantL1, getTenant } from "../../apps/gateway/src/services/tenant
 import { WorkerRuntime } from "../../apps/workers/src/runtime.ts";
 import type { Phase01Measurements } from "./phase01-measure.mjs";
 import { validateMeasurements } from "./phase01-measure.mjs";
+import { recordAuthorizationSample } from "./phase01-samples.ts";
 
 const iterations = 20;
 const workloadName = "api-auth-tenant-cache-durable-operation";
@@ -55,18 +51,9 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 		connection: redis as unknown as ConnectionOptions,
 	});
 	const publisher = new BullMqOperationPublisher(redis as unknown as ConnectionOptions);
-	const repository = new (class extends PrismaOperationRepository {
-		override async create(
-			input: NewOperation,
-		): Promise<{ record: OperationRecord; created: boolean }> {
-			const result = await super.create(input);
-			foregroundPrismaCalls += 2;
-			operationIds.push(result.record.id);
-			return result;
-		}
-	})();
+	const repository = new PrismaOperationRepository();
 	const runtime = new WorkerRuntime(new Redis(config.redis.url, { maxRetriesPerRequest: null }));
-	let foregroundPrismaCalls = 0;
+	let authorizationDatabaseCalls = 0;
 	let closeApp: (() => Promise<void>) | undefined;
 	const samples = percentileSamples();
 	const cacheKey = `tenant:${guildId}`;
@@ -89,7 +76,7 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 			},
 			guildDirectory: {
 				async get(id) {
-					foregroundPrismaCalls++;
+					authorizationDatabaseCalls++;
 					const guild = await prisma.guild.findUnique({
 						where: { id },
 						select: { id: true },
@@ -105,32 +92,31 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 		runtime.registerOperations(repository, new Map([["phase00.smoke", async () => {}]]));
 
 		for (let index = 0; index < iterations; index++) {
-			foregroundPrismaCalls = 0;
 			const delay = monitorEventLoopDelay({ resolution: 10 });
 			delay.enable();
 			try {
-				const requestStarted = performance.now();
-				const response = await app.inject({
-					method: "GET",
-					url: `/internal/v1/guilds/${guildId}/summary`,
-					headers: { authorization: "Bearer guild" },
+				authorizationDatabaseCalls = 0;
+				await recordAuthorizationSample(samples, async () => {
+					const response = await app.inject({
+						method: "GET",
+						url: `/internal/v1/guilds/${guildId}/summary`,
+						headers: { authorization: "Bearer guild" },
+					});
+					assert.equal(response.statusCode, 200, response.body);
+					return authorizationDatabaseCalls;
 				});
-				assert.equal(response.statusCode, 200, response.body);
-				let requestLatencyMs = performance.now() - requestStarted;
 
 				evictTenantL1(guildId);
 				await invalidateConfig(cacheKey);
 				const coldStarted = performance.now();
 				await getTenant(guildId);
 				samples.cacheColdLatencyMs.push(performance.now() - coldStarted);
-				foregroundPrismaCalls++;
 				assert.ok(await cacheGet(cacheKey), "cold tenant load must populate Redis");
 				evictTenantL1(guildId);
 				const warmStarted = performance.now();
 				await getTenant(guildId);
 				samples.cacheWarmLatencyMs.push(performance.now() - warmStarted);
 
-				const durableRequestStarted = performance.now();
 				const accepted = await app.inject({
 					method: "POST",
 					url: "/internal/v1/smoke",
@@ -141,9 +127,8 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 					payload: { measurement: true },
 				});
 				assert.equal(accepted.statusCode, 202, accepted.body);
-				requestLatencyMs = Math.max(requestLatencyMs, performance.now() - durableRequestStarted);
-				samples.requestLatencyMs.push(requestLatencyMs);
 				const operationId = (accepted.json() as { id: string }).id;
+				operationIds.push(operationId);
 				try {
 					await waitFor(async () => (await repository.get(operationId))?.status === "completed");
 				} catch (error) {
@@ -158,7 +143,6 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 				const job = await queue.getJob(`operation-${operationId}`);
 				if (!job?.processedOn) throw new Error("worker must start the queued operation");
 				samples.queueLagMs.push(Math.max(0, job.processedOn - job.timestamp));
-				samples.databaseQueryCount.push(foregroundPrismaCalls);
 				await new Promise((resolvePromise) => setTimeout(resolvePromise, 15));
 				samples.eventLoopDelayMs.push(delay.max / 1_000_000);
 			} finally {

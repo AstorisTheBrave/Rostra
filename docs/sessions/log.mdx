@@ -2386,7 +2386,9 @@ exact-head GitHub workflows and matching local/remote commit hashes.
 Added a dependency-free JSON measurement validator and before/after summarizer with focused rejection tests for
 missing runtime/iteration metadata, non-finite samples, incompatible workloads and host differences. Workload keys
 are emitted in a prototype-free record. A 20-iteration service collector exercises the real API authorization and
-durable-operation routes, PostgreSQL, Redis L1/L2 cache path and worker settlement. A local disposable PostgreSQL 16
-and Redis 7 run produced valid samples; its Windows 10.0.26300 host results are recorded in the Phase 01 baseline.
+durable-operation routes, PostgreSQL, Redis L1/L2 cache path and worker settlement. Authorization latency and
+database calls are measured only around the authorization GET, with the query count incremented in
+`guildDirectory.get`. A local disposable PostgreSQL 16 and Redis 7 run produced valid samples; its Windows 10.0.26300
+host results are recorded in the Phase 01 baseline.
 CI repeats the collector in the service-integration job and uploads the raw JSON plus Phase 01 evidence pages.
 Browser and process-interruption work remain on GitHub runners. These measurements do not claim production capacity.

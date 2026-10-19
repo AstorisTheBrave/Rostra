@@ -9,7 +9,7 @@ async function main(): Promise<void> {
 	if (!config.realtime.enabled) throw new Error("Realtime runtime is disabled");
 	if (!config.webApp.sessionSecret) throw new Error("Realtime runtime requires WEB_SESSION_SECRET");
 	const tokenSecret = config.webApp.sessionSecret;
-	const app = createRealtimeApp({
+	const app = await createRealtimeApp({
 		authenticate: (authorization) =>
 			verifyPrincipalToken(
 				authorization?.startsWith("Bearer ") ? authorization.slice(7) : undefined,

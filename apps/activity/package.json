@@ -14,6 +14,7 @@
 		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\""
 	},
 	"dependencies": {
+		"@fastify/rate-limit": "^11.1.0",
 		"@rostra/auth": "workspace:*",
 		"@rostra/config": "workspace:*",
 		"@rostra/logger": "workspace:*",

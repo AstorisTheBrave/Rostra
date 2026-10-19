@@ -17,6 +17,17 @@ test("registerLocale merges module strings under a namespace", async () => {
 	assert.equal(t("demo:hi", { name: "Ada" }), "Hello Ada");
 });
 
+test("registerLocale cannot write through a prototype-shaped locale", async () => {
+	const { registerLocale } = await import("./index.ts");
+	const prototype = Object.prototype as Record<string, unknown>;
+	try {
+		registerLocale("__proto__", "rostraSecurityTest", { value: "unsafe" });
+		assert.equal(prototype.rostraSecurityTest, undefined);
+	} finally {
+		delete prototype.rostraSecurityTest;
+	}
+});
+
 test("t handles ICU plurals", async () => {
 	const { t, registerLocale } = await import("./index.ts");
 	registerLocale("en", "plural", { warns: "{count, plural, one {# warning} other {# warnings}}" });

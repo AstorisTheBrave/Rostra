@@ -22,7 +22,7 @@ function authenticate(value: string | undefined): Principal | undefined {
 }
 
 test("realtime health is detail-free and connections are exact-guild scoped", async (t) => {
-	const app = createRealtimeApp({ authenticate });
+	const app = await createRealtimeApp({ authenticate });
 	t.after(() => app.close());
 	assert.deepEqual((await app.inject({ method: "GET", url: "/health/live" })).json(), {
 		status: "ok",
@@ -51,4 +51,21 @@ test("realtime health is detail-free and connections are exact-guild scoped", as
 	});
 	assert.equal(allowed.statusCode, 200);
 	assert.deepEqual(allowed.json(), { status: "authorized", guildId: "guild-1" });
+});
+
+test("realtime connection authorization is rate limited without throttling health", async (t) => {
+	const app = await createRealtimeApp({ authenticate });
+	t.after(() => app.close());
+	let statusCode = 0;
+	for (let attempt = 0; attempt < 61; attempt += 1) {
+		const response = await app.inject({
+			method: "POST",
+			url: "/connections",
+			headers: { authorization: "Bearer guild-1" },
+			payload: { guildId: "guild-1" },
+		});
+		statusCode = response.statusCode;
+	}
+	assert.equal(statusCode, 429);
+	assert.equal((await app.inject({ method: "GET", url: "/health/live" })).statusCode, 200);
 });

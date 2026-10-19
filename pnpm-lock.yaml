@@ -291,6 +291,9 @@ importers:
 
   apps/activity:
     dependencies:
+      '@fastify/rate-limit':
+        specifier: ^11.1.0
+        version: 11.1.0
       '@rostra/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -441,6 +444,9 @@ importers:
 
   apps/realtime:
     dependencies:
+      '@fastify/rate-limit':
+        specifier: ^11.1.0
+        version: 11.1.0
       '@rostra/auth':
         specifier: workspace:*
         version: link:../../packages/auth

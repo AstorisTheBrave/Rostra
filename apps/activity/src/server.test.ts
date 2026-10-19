@@ -14,7 +14,7 @@ function authenticate(value: string | undefined): Principal | undefined {
 }
 
 test("Activity health is detail-free and launch authorization is tenant scoped", async (t) => {
-	const app = createActivityApp({ authenticate });
+	const app = await createActivityApp({ authenticate });
 	t.after(() => app.close());
 	assert.deepEqual((await app.inject({ method: "GET", url: "/health/live" })).json(), {
 		status: "ok",
@@ -37,4 +37,21 @@ test("Activity health is detail-free and launch authorization is tenant scoped",
 		payload: { guildId: "guild-1" },
 	});
 	assert.deepEqual(allowed.json(), { status: "authorized", guildId: "guild-1" });
+});
+
+test("Activity session creation is rate limited without throttling health", async (t) => {
+	const app = await createActivityApp({ authenticate });
+	t.after(() => app.close());
+	let statusCode = 0;
+	for (let attempt = 0; attempt < 61; attempt += 1) {
+		const response = await app.inject({
+			method: "POST",
+			url: "/sessions",
+			headers: { authorization: "Bearer activity" },
+			payload: { guildId: "guild-1" },
+		});
+		statusCode = response.statusCode;
+	}
+	assert.equal(statusCode, 429);
+	assert.equal((await app.inject({ method: "GET", url: "/health/live" })).statusCode, 200);
 });

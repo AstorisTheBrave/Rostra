@@ -1,3 +1,4 @@
+import rateLimit from "@fastify/rate-limit";
 import { AuthorizationError, type Principal, requireGuildPermission } from "@rostra/auth";
 import Fastify, { type FastifyInstance } from "fastify";
 
@@ -11,28 +12,33 @@ function guildIdFrom(value: unknown): string | undefined {
 	return typeof guildId === "string" && guildId.length > 0 ? guildId : undefined;
 }
 
-export function createActivityApp(deps: ActivityDependencies): FastifyInstance {
+export async function createActivityApp(deps: ActivityDependencies): Promise<FastifyInstance> {
 	const app = Fastify({ logger: false });
+	await app.register(rateLimit, { global: false });
 	app.get("/health/live", async () => ({ status: "ok" }));
-	app.post("/sessions", async (request, reply) => {
-		const principal = deps.authenticate(request.headers.authorization);
-		if (!principal) {
-			reply.code(401);
-			return { error: "unauthorized" };
-		}
-		const guildId = guildIdFrom(request.body);
-		if (!guildId) {
-			reply.code(400);
-			return { error: "invalid_request" };
-		}
-		try {
-			requireGuildPermission(principal, guildId, "activity:launch");
-		} catch (error) {
-			if (!(error instanceof AuthorizationError)) throw error;
-			reply.code(404);
-			return { error: "not_found" };
-		}
-		return { status: "authorized", guildId };
-	});
+	app.post(
+		"/sessions",
+		{ config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+		async (request, reply) => {
+			const principal = deps.authenticate(request.headers.authorization);
+			if (!principal) {
+				reply.code(401);
+				return { error: "unauthorized" };
+			}
+			const guildId = guildIdFrom(request.body);
+			if (!guildId) {
+				reply.code(400);
+				return { error: "invalid_request" };
+			}
+			try {
+				requireGuildPermission(principal, guildId, "activity:launch");
+			} catch (error) {
+				if (!(error instanceof AuthorizationError)) throw error;
+				reply.code(404);
+				return { error: "not_found" };
+			}
+			return { status: "authorized", guildId };
+		},
+	);
 	return app;
 }

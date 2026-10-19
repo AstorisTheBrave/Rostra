@@ -9,7 +9,7 @@ async function main(): Promise<void> {
 	if (!config.activity.enabled) throw new Error("Activity runtime is disabled");
 	if (!config.webApp.sessionSecret) throw new Error("Activity runtime requires WEB_SESSION_SECRET");
 	const tokenSecret = config.webApp.sessionSecret;
-	const app = createActivityApp({
+	const app = await createActivityApp({
 		authenticate: (authorization) =>
 			verifyPrincipalToken(
 				authorization?.startsWith("Bearer ") ? authorization.slice(7) : undefined,

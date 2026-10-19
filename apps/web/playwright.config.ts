@@ -38,7 +38,7 @@ export default defineConfig({
 			timeout: 120_000,
 		},
 		{
-			command: "pnpm dev --host 127.0.0.1",
+			command: "pnpm build && pnpm start",
 			cwd: ".",
 			env: fixtureEnvironment,
 			port: 3002,

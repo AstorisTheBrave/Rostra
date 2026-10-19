@@ -3,9 +3,9 @@ import common from "./locales/en/common.json" with { type: "json" };
 import { DEFAULT_LOCALE, normalizeLocale } from "./locales.ts";
 
 export type Vars = Record<string, string | number>;
-type Bundle = Record<string, Record<string, string>>;
+type Bundle = Map<string, Record<string, string>>;
 
-const locales: Record<string, Bundle> = { en: { common } };
+const locales = new Map<string, Bundle>([["en", new Map([["common", common]])]]);
 const formatterCache = new Map<string, IntlMessageFormat>();
 const badMessages = new Set<string>();
 
@@ -14,9 +14,9 @@ export function registerLocale(
 	namespace: string,
 	strings: Record<string, string>,
 ): void {
-	const bundle = locales[locale] ?? {};
-	bundle[namespace] = { ...(bundle[namespace] ?? {}), ...strings };
-	locales[locale] = bundle;
+	const bundle = locales.get(locale) ?? new Map<string, Record<string, string>>();
+	bundle.set(namespace, { ...(bundle.get(namespace) ?? {}), ...strings });
+	locales.set(locale, bundle);
 }
 
 function interpolate(template: string, vars?: Vars): string {
@@ -46,6 +46,7 @@ export function translate(key: string, vars?: Vars, locale = DEFAULT_LOCALE): st
 	const [namespace, ...rest] = key.split(":");
 	const path = rest.join(":");
 	const message =
-		locales[normalized]?.[namespace ?? ""]?.[path] ?? locales.en?.[namespace ?? ""]?.[path];
+		locales.get(normalized)?.get(namespace ?? "")?.[path] ??
+		locales.get("en")?.get(namespace ?? "")?.[path];
 	return message ? format(message, normalized, vars) : key;
 }

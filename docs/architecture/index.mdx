@@ -94,6 +94,6 @@ The schema and all migration directories live under `packages/database/prisma/`.
 
 The default Compose profile runs PostgreSQL, Redis, gateway, API, workers and web with bounded resources. The development overlay binds database and Redis ports to loopback. The VPS overlay pins immutable image tags and does not expose database ports. Realtime and Activity are opt-in. Redis uses append-only persistence and `noeviction`.
 
-The Linux Compose smoke applies all 11 migrations inside the API image, then verifies the gateway-owned API adapter, API intent, Redis delivery, one worker effect and typed web-client scope under one correlation ID. The test network is internal and fake Discord credentials cannot login or publish commands. The prior-image rollback rehearsal is configured in GitHub Actions and remains pending a successful remote run.
+The Linux Compose smoke applies all 11 migrations inside the API image, then verifies the gateway-owned API adapter, API intent, Redis delivery, one worker effect and typed web-client scope under one correlation ID. The test network is internal and fake Discord credentials cannot login or publish commands. The Phase 00 prior-image rollback rehearsal passed on the exact recorded remote commit.
 
 See [deployment](../runbooks/deployment.mdx), [recovery](../runbooks/recovery.mdx), [capability status](../product/capability-status.mdx) and the [Phase 00 evidence index](../phase-reports/phase-00/index.mdx) for operational instructions and verification limits.

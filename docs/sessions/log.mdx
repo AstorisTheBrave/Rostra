@@ -2368,3 +2368,15 @@ The pull request had eight review threads across two passes. Every actionable fi
 evidence; the OAuth cookie HMAC finding was documented as a false positive. A final thread sweep found no unresolved
 review. Phase 00 is PASS, subject to the evidence-only commit receiving the same final CI and review check before
 Phase 01 work begins.
+
+### 2026-10-19 - Phase 01 platform-core plan
+
+Reconciled the short roadmap label with the original Platform Core dossier. The executable Phase 01 plan now covers
+tenant capability tables and stale-authorization denial, configured-owner bypass removal, deterministic module
+manifests and lifecycle supervision, versioned events and cross-process cache invalidation, transactional outbox
+delivery, fenced durable scheduling, truthful feature/provisioning failures and measured operational health.
+
+The plan is split into eight test-first rollback snapshots. Heavy independent work uses fast, high-reasoning agents;
+shared schema and public contracts remain primary-owned and every contribution receives primary review. Phase
+completion requires the full local gate, failure-injection evidence, review and Advanced Security rechecks, green
+exact-head GitHub workflows and matching local/remote commit hashes.

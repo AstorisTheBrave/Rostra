@@ -10,6 +10,15 @@ const sampleFields = [
 	"cacheWarmLatencyMs",
 	"queueLagMs",
 ];
+const environmentFields = [
+	"platform",
+	"architecture",
+	"release",
+	"nodeVersion",
+	"cpuModel",
+	"logicalCpus",
+	"memoryBytes",
+];
 
 function assert(condition, message) {
 	if (!condition) throw new TypeError(message);
@@ -18,6 +27,22 @@ function assert(condition, message) {
 export function validateMeasurements(value) {
 	assert(typeof value === "object" && value !== null, "measurement document must be an object");
 	assert(value.schemaVersion === 1, "unsupported measurement schemaVersion");
+	assert(
+		typeof value.environment === "object" && value.environment !== null,
+		"measurement environment is required",
+	);
+	for (const field of environmentFields.filter(
+		(field) => field !== "logicalCpus" && field !== "memoryBytes",
+	)) {
+		const item = value.environment[field];
+		assert(typeof item === "string" && item.trim(), `${field}: environment metadata is required`);
+	}
+	for (const field of ["logicalCpus", "memoryBytes"]) {
+		assert(
+			Number.isSafeInteger(value.environment[field]) && value.environment[field] > 0,
+			`${field}: environment metadata must be a positive integer`,
+		);
+	}
 	assert(
 		typeof value.workloads === "object" && value.workloads !== null,
 		"measurement workloads are required",
@@ -76,13 +101,18 @@ function summarize(workload) {
 export function compareMeasurements(beforeInput, afterInput) {
 	const before = validateMeasurements(beforeInput);
 	const after = validateMeasurements(afterInput);
+	assert(
+		JSON.stringify(environmentFields.map((field) => before.environment[field])) ===
+			JSON.stringify(environmentFields.map((field) => after.environment[field])),
+		"incompatible host environment metadata",
+	);
 	const beforeNames = Object.keys(before.workloads).sort();
 	const afterNames = Object.keys(after.workloads).sort();
 	assert(
 		JSON.stringify(beforeNames) === JSON.stringify(afterNames),
 		"incompatible workload identities",
 	);
-	const workloads = {};
+	const workloads = Object.create(null);
 	for (const name of beforeNames) {
 		const prior = before.workloads[name];
 		const next = after.workloads[name];
@@ -97,7 +127,7 @@ export function compareMeasurements(beforeInput, afterInput) {
 			after: summarize(next),
 		};
 	}
-	return { schemaVersion: 1, workloads };
+	return { schemaVersion: 1, environment: before.environment, workloads };
 }
 
 function readJson(path) {
@@ -106,14 +136,26 @@ function readJson(path) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
 	try {
-		const [beforePath, afterPath, outputPath] = process.argv.slice(2);
-		assert(
-			beforePath && afterPath,
-			"usage: node phase01-measure.mjs <before.json> <after.json> [output.json]",
-		);
-		const result = `${JSON.stringify(compareMeasurements(readJson(beforePath), readJson(afterPath)), null, 2)}\n`;
-		if (outputPath) writeFileSync(resolve(outputPath), result);
-		else process.stdout.write(result);
+		const args = process.argv.slice(2);
+		if (args[0] === "validate") {
+			const [inputPath, outputPath] = args.slice(1);
+			assert(
+				inputPath,
+				"usage: node phase01-measure.mjs validate <measurements.json> [normalized.json]",
+			);
+			const result = `${JSON.stringify(validateMeasurements(readJson(inputPath)), null, 2)}\n`;
+			if (outputPath) writeFileSync(resolve(outputPath), result);
+			else process.stdout.write(result);
+		} else {
+			const [beforePath, afterPath, outputPath] = args;
+			assert(
+				beforePath && afterPath,
+				"usage: node phase01-measure.mjs <before.json> <after.json> [output.json]",
+			);
+			const result = `${JSON.stringify(compareMeasurements(readJson(beforePath), readJson(afterPath)), null, 2)}\n`;
+			if (outputPath) writeFileSync(resolve(outputPath), result);
+			else process.stdout.write(result);
+		}
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));
 		process.exitCode = 1;

@@ -2384,9 +2384,9 @@ exact-head GitHub workflows and matching local/remote commit hashes.
 ### 2026-10-19 - Phase 01 Task 1 baseline harness
 
 Added a dependency-free JSON measurement validator and before/after summarizer with focused rejection tests for
-missing runtime/iteration metadata, non-finite samples and incompatible workloads. Added the Phase 01 evidence
-index and baseline page, plus a CI artifact step to retain them. The existing Phase 00 fixture preserves 42 modules,
-47 commands and 48 events. The Task 1 host was Windows 10.0.26300 with Node.js 24.19.0, an AMD Ryzen 5 5500H,
-15.4 GiB RAM and eight logical processors. Phase 00 did not capture API p95, query count, event-loop delay,
-tenant-cache cold/warm timings or queue lag; those service-backed samples remain pending and no capacity claim is
-made.
+missing runtime/iteration metadata, non-finite samples, incompatible workloads and host differences. Workload keys
+are emitted in a prototype-free record. A 20-iteration service collector exercises the real API authorization and
+durable-operation routes, PostgreSQL, Redis L1/L2 cache path and worker settlement. A local disposable PostgreSQL 16
+and Redis 7 run produced valid samples; its Windows 10.0.26300 host results are recorded in the Phase 01 baseline.
+CI repeats the collector in the service-integration job and uploads the raw JSON plus Phase 01 evidence pages.
+Browser and process-interruption work remain on GitHub runners. These measurements do not claim production capacity.

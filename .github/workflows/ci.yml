@@ -46,14 +46,6 @@ jobs:
         run: pnpm lint
       - name: Test
         run: pnpm test
-      - name: Preserve Phase 01 measurement evidence
-        if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
-        with:
-          name: phase01-measurement-evidence-${{ github.run_id }}
-          path: docs/phase-reports/01-platform-core/*.mdx
-          if-no-files-found: ignore
-          retention-days: 30
       - name: Guard against legacy embeds (Components V2 only)
         run: |
           if grep -rn "EmbedBuilder" apps modules packages --include='*.ts' --exclude-dir={node_modules,archive,Archive,.superpowers,dist,build,coverage,secrets,.turbo}; then
@@ -187,3 +179,17 @@ jobs:
         run: pnpm prisma:migrate
       - name: Durable operation restart and duplicate-delivery proof
         run: pnpm --filter @rostra/workers test:integration
+      - name: Collect API, tenant cache and durable-operation measurements
+        run: node --import tsx tooling/scripts/phase01-collect.service.ts coverage/phase01-measurements/measurements.json
+      - name: Validate Phase 01 measurement artifact
+        run: node tooling/scripts/phase01-measure.mjs validate coverage/phase01-measurements/measurements.json > /dev/null
+      - name: Preserve Phase 01 measurement evidence
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: phase01-measurements-${{ github.run_id }}
+          path: |
+            coverage/phase01-measurements/measurements.json
+            docs/phase-reports/01-platform-core/*.mdx
+          if-no-files-found: ignore
+          retention-days: 30

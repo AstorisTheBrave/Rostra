@@ -3,7 +3,16 @@ import test from "node:test";
 import { compareMeasurements, validateMeasurements } from "./phase01-measure.mjs";
 
 const measurement = {
-	schemaVersion: 1,
+	schemaVersion: 1 as const,
+	environment: {
+		platform: "win32",
+		architecture: "x64",
+		release: "10.0.26300",
+		nodeVersion: "v24.19.0",
+		cpuModel: "AMD Ryzen 5 5500H",
+		logicalCpus: 8,
+		memoryBytes: 16_500_000_000,
+	},
 	workloads: {
 		apiAuthorization: {
 			runtime: "node v24.19.0; windows x64",
@@ -16,23 +25,20 @@ const measurement = {
 			queueLagMs: [4, 4, 4],
 		},
 	},
-} as const;
+};
 
 test("measurement workload requires runtime and positive iteration metadata", () => {
 	const missingRuntime = structuredClone(measurement);
-	// @ts-expect-error intentional invalid input
-	delete missingRuntime.workloads.apiAuthorization.runtime;
+	Reflect.deleteProperty(missingRuntime.workloads.apiAuthorization, "runtime");
 	assert.throws(() => validateMeasurements(missingRuntime), /runtime/);
 
 	const missingIterations = structuredClone(measurement);
-	// @ts-expect-error intentional invalid input
-	delete missingIterations.workloads.apiAuthorization.iterations;
+	Reflect.deleteProperty(missingIterations.workloads.apiAuthorization, "iterations");
 	assert.throws(() => validateMeasurements(missingIterations), /iterations/);
 });
 
 test("measurement samples reject non-finite values", () => {
 	const invalid = structuredClone(measurement);
-	// @ts-expect-error intentional invalid input
 	invalid.workloads.apiAuthorization.queueLagMs = [Number.POSITIVE_INFINITY, 1, 1];
 	assert.throws(() => validateMeasurements(invalid), /finite/);
 });
@@ -63,4 +69,22 @@ test("comparison rejects different workload metadata and summarizes identical in
 			queueLagP95Ms: 4,
 		},
 	});
+});
+
+test("comparison rejects different host environments", () => {
+	const otherHost = structuredClone(measurement);
+	otherHost.environment.nodeVersion = "v22.0.0";
+	assert.throws(() => compareMeasurements(measurement, otherHost), /environment/);
+});
+
+test("hostile workload keys remain data and do not mutate the prototype", () => {
+	const hostile = JSON.parse(JSON.stringify(measurement));
+	Object.defineProperty(hostile.workloads, "__proto__", {
+		value: structuredClone(measurement.workloads.apiAuthorization),
+		enumerable: true,
+	});
+	const output = compareMeasurements(hostile, hostile);
+	assert.equal(Object.getPrototypeOf(output.workloads), null);
+	assert.equal(Object.hasOwn(output.workloads, "__proto__"), true);
+	assert.equal(({} as { polluted?: boolean }).polluted, undefined);
 });

@@ -15,33 +15,35 @@ publication. This is a structural baseline, not a performance measurement.
 
 ## Measurement host
 
-The Task 1 harness was developed on Windows 10.0.26300, AMD Ryzen 5 5500H, 15.4 GiB RAM, eight logical
-processors, Node.js 24.19.0. These host details are not representative deployment capacity. Runtime and
-iteration count are required on every workload so later measurements can be compared only when metadata
-matches.
+The collector records platform, OS release, architecture, Node version, CPU model, logical processor count
+and memory bytes in every JSON artifact. The local disposable-service run used Windows 10.0.26300, AMD
+Ryzen 5 5500H, 16,487,870,464 bytes RAM, eight logical processors and Node.js 24.19.0. Comparisons reject
+any host metadata difference. These host details are not representative deployment capacity.
 
 ## Workload paths
 
 | Workload | Existing path and evidence | Iterations | Measurements |
 | --- | --- | ---: | --- |
 | Registry parity | `tooling/scripts/snapshot-commands.mjs`, `snapshot-modules.mjs` and checked fixtures | One parity run in the Phase 00 gate | 42 modules, 47 commands, 48 events; prior run took 8.4 s on its recorded host |
-| API authorization | `GET /internal/v1/guilds/:guildId/summary`, exact-guild authorization and denial tests in `apps/api/src/server.test.ts` | No latency samples captured | Pending service-backed sample capture |
-| Tenant cache read | L1, Redis L2 and database fallback in `apps/gateway/src/services/tenant.ts` | No cache-path samples captured | Pending disposable PostgreSQL/Redis sample capture |
-| Durable operation | API acceptance, PostgreSQL claim fencing and worker duplicate/restart proof | CI owns service and process-restart workload | Functional proof exists; latency and queue-lag samples not captured |
+| API authorization | Real Fastify route injection, exact-guild authorization and PostgreSQL guild lookup | 20 | Local service run request p95: 34.78 ms; includes the slower of the auth request and durable-acceptance request per iteration |
+| Tenant cache read | Real `getTenant` L1/Redis L2/database path, with L1 and Redis invalidated for cold reads and L1 evicted before warm Redis reads | 20 | Local cold mean: 14.01 ms; warm mean: 1.42 ms |
+| Durable operation | API acceptance through PostgreSQL `OperationRecord`, Redis publication and a real worker claim/settlement | 20 | Local queue p95: 4 ms; operation returns to completed state for every sample |
 
-Phase 00 evidence reports command durations and service outcomes but did not capture API p95, query counts,
-event-loop delay, cold/warm tenant-cache timings or queue lag. The Task 1 harness defines the validated
-input and deterministic comparison format for those samples; it does not synthesize missing values.
-This baseline therefore remains PENDING until runner-backed samples are attached. No production
-throughput, latency, capacity or memory claim is made.
+The local run used disposable PostgreSQL 16 and Redis 7 containers and produced 20 samples per metric.
+Foreground database query count was four Prisma delegate operations per iteration: one guild lookup, one
+tenant upsert on the cold read, and the operation repository's create-many and lookup calls. Worker
+settlement queries are outside that foreground count. Event-loop delay p95 was 26.41 ms. The checked-in
+CI collector repeats these same paths on its PostgreSQL/Redis GitHub service job and uploads the raw
+JSON with this report. A runner artifact is required before treating its measurements as the Phase 01
+comparison baseline. No production throughput, latency, capacity or memory claim is made.
 
 ## Comparison contract
 
 Each JSON workload has a stable identity, runtime string, positive iteration count and one finite,
 non-negative sample per iteration for request latency, database query count, event-loop delay, cold and
-warm cache latency, and queue lag. The comparison tool rejects missing samples or mismatched workload,
-runtime or iteration metadata. It reports request, event-loop and queue p95 values, mean query count and
-mean cold/warm cache latency in stable key order.
+warm cache latency, and queue lag. The JSON also records the host environment. The comparison tool rejects
+missing samples or mismatched workload, runtime, iteration or host metadata. It reports request,
+event-loop and queue p95 values, mean query count and mean cold/warm cache latency in stable key order.
 
 Service, browser and process-kill workloads remain on GitHub runners. Do not run process interruption or
 disposable-service workloads as part of the lightweight local gate.

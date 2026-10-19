@@ -19,7 +19,7 @@ export interface OAuthAdapter {
 }
 
 export interface SessionStore {
-	put(session: WebSession): void;
+	put(session: WebSession, now: number): void;
 	get(id: string, now: number): WebSession | undefined;
 	delete(id: string): void;
 }
@@ -27,7 +27,10 @@ export interface SessionStore {
 export class MemorySessionStore implements SessionStore {
 	readonly #sessions = new Map<string, WebSession>();
 
-	put(session: WebSession): void {
+	put(session: WebSession, now: number): void {
+		for (const [id, current] of this.#sessions) {
+			if (current.expiresAt < now) this.#sessions.delete(id);
+		}
 		this.#sessions.set(session.id, session);
 	}
 
@@ -181,7 +184,7 @@ export function createAuthController(options: {
 					guilds: identity.guilds,
 					expiresAt: now + SESSION_SECONDS * 1_000,
 				};
-				options.store.put(session);
+				options.store.put(session, now);
 				return {
 					ok: true,
 					session,

@@ -11,7 +11,7 @@ COPY modules ./modules
 COPY games ./games
 COPY tooling ./tooling
 COPY infra ./infra
-COPY prisma.config.ts turbo.json tsconfig.json biome.json ./
+COPY prisma.config.ts turbo.json tsconfig.json tsconfig.base.json biome.json ./
 RUN chmod +x /app/infra/*.sh
 RUN pnpm install --frozen-lockfile
 RUN pnpm prisma:generate
@@ -28,6 +28,7 @@ FROM runtime AS workers
 CMD ["pnpm", "start:workers"]
 
 FROM runtime AS web
+RUN pnpm --filter @rostra/web build
 CMD ["pnpm", "start:web"]
 
 FROM runtime AS realtime

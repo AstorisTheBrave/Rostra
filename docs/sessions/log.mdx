@@ -11,6 +11,29 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-19 - Phase 00 web image build
+
+The web Docker target now runs the `@rostra/web` production build before starting Vite preview. The
+bundle is generated inside the image, so `.dockerignore` can continue excluding host build output.
+The Docker context now includes the root TypeScript base config required by that build. Updated the
+deployment runbook to describe this image behavior.
+
+**evidence**: The Linux web image target built successfully with Docker Buildx. Frozen dependency
+installation, Prisma client generation, Vite client and server bundles, and TypeScript checking passed.
+The temporary local review image tag was removed after the build.
+
+### 2026-10-19 (web session expiry cleanup)
+
+**changed**: The in-memory web session store now prunes expired sessions whenever a new session is
+stored, while reads retain their existing per-session expiry check. Added a focused test proving a new
+login removes expired sessions and retains active sessions without a background timer.
+
+**evidence**: The new test failed before the cleanup implementation because an expired session remained
+readable at its original clock value after a newer session was stored. The focused auth test file passes
+all five tests after the change. Broader web checks are recorded with the task result.
+
+**files touched**: `apps/web/src/server/auth.server.ts`, its focused test, the architecture map and this log.
+
 ### 2026-10-18 (Phase 00: deployment, CI, and correlated service smoke)
 
 **changed**: Added a bounded default Compose topology for PostgreSQL, Redis, gateway, API, workers
@@ -2295,6 +2318,20 @@ delivering its hydration module graph. Late hydration of the original `/` docume
 fixture callback navigation. Browser smoke now builds and serves the production web artifact, which is the runtime
 the matrix is intended to validate and avoids development-only HMR and module-waterfall behavior. The existing
 mobile OAuth test remains the regression proof; the replacement WebKit run owns the cross-browser result.
+
+### 2026-10-19 - Compose integration forwarding and vote webhook ingress
+
+Compose now explicitly forwards supported gateway integration and sharding settings from the caller's
+environment file, while keeping the top.gg webhook credential in the API service that owns its route.
+The API is published on loopback for an externally managed reverse proxy or tunnel to route only
+`POST /votes/topgg`; the runbook documents the endpoint and keeps the ingress control plane outside Rostra.
+The rendered VPS Compose model confirmed the gateway receives the configured settings, only the API receives
+the webhook secret, and the API host binding is `127.0.0.1:3001`.
+
+These image, deployment and session corrections address all four findings from the second pull-request review.
+The frozen install, boundaries, typecheck, lint, 33 workspace test tasks, 39 tooling tests, full build and diff
+check passed locally. The replacement GitHub runs own the cross-platform, browser, service, image and security
+evidence.
 
 ### 2026-10-19 - Phase 00 security review and resilience planning
 

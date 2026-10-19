@@ -55,6 +55,22 @@ services:
       <<: *app-env
       DISCORD_TOKEN: ${DISCORD_TOKEN:?set DISCORD_TOKEN}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?set DISCORD_CLIENT_ID}
+      OWNER_IDS: ${OWNER_IDS:-}
+      DEV_GUILD_ID: ${DEV_GUILD_ID:-}
+      TOTAL_SHARDS: ${TOTAL_SHARDS:-}
+      SHARDING_MODE: ${SHARDING_MODE:-}
+      SHARDS_PER_CLUSTER: ${SHARDS_PER_CLUSTER:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_MODEL: ${AI_MODEL:-}
+      LAVALINK_NODES: ${LAVALINK_NODES:-}
+      LAVALINK_RECONNECT_TRIES: ${LAVALINK_RECONNECT_TRIES:-}
+      LAVALINK_RESUME: ${LAVALINK_RESUME:-}
+      LAVALINK_REST_TIMEOUT: ${LAVALINK_REST_TIMEOUT:-}
+      TOPGG_TOKEN: ${TOPGG_TOKEN:-}
+      TOPGG_BOT_ID: ${TOPGG_BOT_ID:-}
+      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
+      TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
     deploy: *app-resources
   api:
     image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/astoristhebrave/rostra}-api:${ROSTRA_IMAGE_TAG:-dev}
@@ -67,6 +83,8 @@ services:
       <<: *app-env
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?set INTERNAL_API_TOKEN}
       WEB_SESSION_SECRET: ${WEB_SESSION_SECRET:?set WEB_SESSION_SECRET}
+      TOPGG_WEBHOOK_AUTH: ${TOPGG_WEBHOOK_AUTH:-}
+    ports: ["127.0.0.1:3001:3001"]
     deploy: *app-resources
   workers:
     image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/astoristhebrave/rostra}-workers:${ROSTRA_IMAGE_TAG:-dev}

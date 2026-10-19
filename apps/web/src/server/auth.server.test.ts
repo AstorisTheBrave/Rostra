@@ -126,3 +126,20 @@ test("logout revokes the opaque server session", async () => {
 	auth.logout(cookiePair(sessionCookie));
 	assert.equal(auth.session(cookiePair(sessionCookie), 1_101), undefined);
 });
+
+test("memory session store removes expired sessions when a new session is stored", () => {
+	const store = new MemorySessionStore();
+	store.put({ id: "expired", profile: identity.profile, guilds: identity.guilds, expiresAt: 1 }, 0);
+	store.put(
+		{
+			id: "active",
+			profile: identity.profile,
+			guilds: identity.guilds,
+			expiresAt: 120_000,
+		},
+		2,
+	);
+
+	assert.equal(store.get("expired", 0), undefined);
+	assert.ok(store.get("active", 2));
+});

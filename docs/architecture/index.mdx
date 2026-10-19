@@ -84,7 +84,7 @@ The current module inventory has no active `JobDefinition` handlers. Future modu
 
 The web login uses OAuth authorization code flow with signed state, PKCE, an opaque server-side session identifier and an HttpOnly SameSite=Lax cookie. The browser uses a typed API client for persisted, read-only guild summaries. Route guards provide navigation, while the API remains the authorization boundary.
 
-Browser smoke uses fixture OAuth with the real web/API path and disposable PostgreSQL rows. It verifies that an OAuth-visible guild with no persisted configuration is not fabricated in the result. Sessions are currently stored in memory, so multiple web instances are not supported.
+Browser smoke uses fixture OAuth with the real web/API path and disposable PostgreSQL rows. It verifies that an OAuth-visible guild with no persisted configuration is not fabricated in the result. Sessions are currently stored in memory and expired entries are pruned when a new session is stored, so multiple web instances are not supported.
 
 Realtime and Activity verify signed principals scoped to their own audience and exact guild permission. They are disabled in the default profile. Their health and auth tests do not establish multiplayer or device compatibility.
 

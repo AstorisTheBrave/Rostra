@@ -87,9 +87,10 @@ not use the alias. Never import another package's private files, including throu
     GitHub security finding, including automated Advanced Security reviews. Resolve every actionable item, document
     false positives with concrete evidence, rerun the owned gate, push the correction and re-fetch review state.
     Never call a phase complete while an actionable thread remains unresolved.
-15. For heavy work that separates cleanly into independent scopes, delegate to fast subagents at high reasoning.
-    Keep small, sequential or tightly coupled work in the primary task, and review every delegated result before it
-    enters a phase snapshot.
+15. For deep design, security, concurrency or multi-file coding that separates cleanly, delegate to a capable
+    workhorse subagent at high reasoning. Use a fast subagent at high reasoning for lightweight, mechanical or
+    narrowly scoped work. Keep small, sequential or tightly coupled work in the primary task, and review every
+    delegated result before it enters a phase snapshot.
 
 ## Discord entrypoints and boundaries
 

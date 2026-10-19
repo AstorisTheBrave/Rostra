@@ -1,6 +1,6 @@
 # Rostra Phase 01 Platform Core Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development for heavy independent tasks and superpowers:executing-plans for shared contracts, schema changes and final integration. Use fast, high-reasoning subagents for separable audits and focused implementation, then have the primary agent review every diff.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development for heavy independent tasks and superpowers:executing-plans for shared contracts, schema changes and final integration. Use a capable workhorse at high reasoning for deep design and coding, and a fast model at high reasoning for lightweight mechanical work. The primary agent reviews every diff.
 
 **Goal:** Replace the Phase 00 compatibility seams with enforceable tenant authorization, explicit module ownership, coherent caches, transactional durable work, recoverable scheduling and measurable operational health without changing Rostra's existing Discord behavior.
 

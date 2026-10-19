@@ -2376,8 +2376,8 @@ tenant capability tables and stale-authorization denial, configured-owner bypass
 manifests and lifecycle supervision, versioned events and cross-process cache invalidation, transactional outbox
 delivery, fenced durable scheduling, truthful feature/provisioning failures and measured operational health.
 
-The plan is split into eight test-first rollback snapshots. Heavy independent work uses fast, high-reasoning agents;
-shared schema and public contracts remain primary-owned and every contribution receives primary review. Phase
+The plan is split into eight test-first rollback snapshots. Deep independent work uses a capable high-reasoning
+workhorse while lightweight mechanical tasks use a fast high-reasoning agent. Shared schema and public contracts remain primary-owned and every contribution receives primary review. Phase
 completion requires the full local gate, failure-injection evidence, review and Advanced Security rechecks, green
 exact-head GitHub workflows and matching local/remote commit hashes.
 
@@ -2392,3 +2392,9 @@ database calls are measured only around the authorization GET, with the query co
 host results are recorded in the Phase 01 baseline.
 CI repeats the collector in the service-integration job and uploads the raw JSON plus Phase 01 evidence pages.
 Browser and process-interruption work remain on GitHub runners. These measurements do not claim production capacity.
+
+The exact-head CI run `39319245310` passed check, service integration and all three browser jobs. Its service job
+uploaded and revalidated a 20-iteration Linux runner artifact: authorization GET p95 2.001639 ms, one authorization
+query per request, event-loop delay p95 11.214847 ms, tenant cold/warm cache means 3.036164/0.170972 ms and queue-lag
+p95 1 ms. Delegation guidance now assigns deep design, security, concurrency and multi-file coding to a capable
+workhorse at high reasoning, while lightweight mechanical work uses a fast model at high reasoning.

@@ -1,4 +1,14 @@
+export type { DisposableEventRegistration, ModuleEventDescriptor } from "./events.ts";
 export type { AdaptedLegacyModule, LegacyModule } from "./legacy-adapter.ts";
-export { adaptLegacyModules } from "./legacy-adapter.ts";
-export type { ModuleLifecycle, ModuleManifest, RuntimePlacement } from "./manifest.ts";
-export { validateModuleManifest } from "./manifest.ts";
+export { adaptLegacyModule, adaptLegacyModules } from "./legacy-adapter.ts";
+export type { LifecycleFailure, ModuleLifecycle, SupervisedModule } from "./lifecycle.ts";
+export { superviseModuleLifecycles } from "./lifecycle.ts";
+export type {
+	ModuleDependency,
+	ModuleManifest,
+	ModuleManifestV1,
+	RuntimePlacement,
+} from "./manifest.ts";
+export { gatewayManifest, validateModuleManifest } from "./manifest.ts";
+export type { ModuleRegistryEntry } from "./registry.ts";
+export { orderModuleRegistry } from "./registry.ts";

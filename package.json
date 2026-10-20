@@ -47,6 +47,7 @@
 		"@rostra/logger": "workspace:*",
 		"@rostra/i18n": "workspace:*",
 		"@rostra/discord-ui": "workspace:*",
+		"@rostra/module-sdk": "workspace:*",
 		"@fastify/rate-limit": "^11.1.0",
 		"@keyv/redis": "^5.1.6",
 		"@napi-rs/canvas": "^1.0.2",

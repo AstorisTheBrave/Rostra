@@ -29,6 +29,7 @@ export function defineEvent<K extends keyof ClientEvents>(
 			};
 			if (opts.once) client.once(name, handler);
 			else client.on(name, handler);
+			return () => client.off(name, handler);
 		},
 	};
 }

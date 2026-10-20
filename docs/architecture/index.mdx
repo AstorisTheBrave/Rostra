@@ -46,7 +46,7 @@ The web server does not connect to PostgreSQL. It issues a short-lived read requ
 | `infra/` | Compose profiles, containers and recovery/deployment tooling |
 | `tooling/` | Workspace, boundary, parity and smoke checks |
 
-The compatibility loader currently validates 42 modules. Fixtures preserve 47 command definitions and 48 events from the recorded baseline. The registry currently declares no module-owned durable queue handlers; workers own the active queue runtime.
+The checked-in registry validates and orders 42 modules. Fixtures preserve 47 command definitions and 48 events from the recorded baseline. The registry currently declares no module-owned durable queue handlers; workers own the active queue runtime. See [module registry](module-registry.mdx) for its manifest, lifecycle and compatibility contracts.
 
 ## Shared authorities and imports
 
@@ -66,7 +66,7 @@ Package exports point to ESM TypeScript source and use explicit export maps. New
 
 ## Gateway and module flow
 
-The manager in `apps/gateway/src/cluster.ts` starts Discord shards and owns manager-level health and aggregate work. Each shard loads commands, events, interactions and modules from the repository-level `modules/` directory. `@rostra/module-sdk` validates module IDs and lifecycle cancellation; it does not rewrite feature behavior.
+The manager in `apps/gateway/src/cluster.ts` starts Discord shards and owns manager-level health and aggregate work. Each shard loads the explicit `modules/registry.ts` entries in dependency order, then registers commands, events and interactions. `@rostra/module-sdk` validates manifests and supervises lifecycle cancellation; the temporary adapter preserves current feature behavior.
 
 A slash interaction is acknowledged and routed through shared helpers. The handler checks permissions and validated options, performs feature work through public package owners, and returns Components V2 output with localized user-facing strings. Durable domain operations cross the gateway/API boundary; expensive work belongs in workers.
 

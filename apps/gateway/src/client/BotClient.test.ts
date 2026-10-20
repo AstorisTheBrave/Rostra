@@ -45,3 +45,53 @@ test("fake-token registry boot loads every module without login or REST writes",
 		client.destroy();
 	}
 });
+
+test("failed post-start initialization disposes events and drains modules", async () => {
+	const { BotClient } = await import("./BotClient.ts");
+	const { moduleRegistry } = await import("@/modules/registry.ts");
+	const entry = moduleRegistry.find(({ manifest }) => manifest.id === "ai");
+	assert.ok(entry);
+	const originalLoad = entry.load;
+	const calls: string[] = [];
+	entry.load = async () => {
+		const imported = await originalLoad();
+		return {
+			default: {
+				...imported.default,
+				lifecycle: {
+					start: async () => {
+						calls.push("start");
+					},
+					drain: async () => {
+						calls.push("drain");
+					},
+					stop: async () => {
+						calls.push("stop");
+					},
+					dispose: () => {
+						calls.push("dispose");
+					},
+				},
+				components: new Proxy([], {
+					get(target, key, receiver) {
+						if (key === Symbol.iterator)
+							return () => {
+								throw new Error("late registration failed");
+							};
+						return Reflect.get(target, key, receiver);
+					},
+				}),
+			},
+		};
+	};
+	const client = new BotClient();
+	const listenerCount = client.listenerCount("messageCreate");
+	try {
+		await assert.rejects(client.init(), /late registration failed/);
+		assert.deepEqual(calls, ["start", "drain", "stop", "dispose"]);
+		assert.equal(client.listenerCount("messageCreate"), listenerCount);
+	} finally {
+		entry.load = originalLoad;
+		await client.destroy();
+	}
+});

@@ -1,0 +1,16 @@
+---
+title: Module registry and lifecycle
+last-updated: 2026-10-20
+owner: AstorisTheBrave
+status: in-flux
+---
+
+# Module registry and lifecycle
+
+`modules/registry.ts` owns the version-1 manifest and lazy entrypoint import for each of the 42 canonical modules. Its helper supplies current gateway defaults while allowing an entry to declare version, dependencies and other metadata in one place. The gateway validates the complete registry before importing feature code, then loads dependencies first. Independent IDs use code-point order. Unknown schema versions, unstable versions, duplicate IDs or arrays, missing or incompatible dependencies, cycles and invalid budgets fail loading with a module-specific error. Current entries have no declared dependencies; none are inferred from import order.
+
+`@rostra/module-sdk` owns the manifest, dependency ordering, event descriptor and lifecycle supervisor contracts. A manifest declares runtime placement, dependencies, capabilities, owned commands/routes/events/jobs, settings schema metadata, resource budgets and health labels. The sole legacy adapter enriches the registry-owned manifest with names from each current `BotModule`. Feature entrypoints retain their existing behavior until a later migration moves them behind runtime factories. The `@/` alias remains limited to gateway and legacy modules.
+
+The supervisor gives each enabled module an abort signal and awaits an in-flight start before shutdown completes. Shutdown aborts owned work, awaits drain, then runs stop and dispose for every started module even when another hook fails. Disabled modules do nothing. The gateway logs isolated hook failures and excludes modules whose start hook failed from command and event registration. Discord listener registration returns disposers, replaces a previous registration on the same client and removes listeners at shutdown. If initialization fails after module start, the gateway disposes listeners and stops modules before reporting the original error. This is a gateway edge adapter; versioned transport and cross-process cache coherence belong to Phase 01 Task 4, and durable scheduling belongs to Task 6.
+
+The checked-in command and module snapshots prove 47 normalized commands, 48 event registrations, intents, partials and all 42 IDs against the pre-move baseline with fake credentials and network access blocked. The snapshot fixture is an assertion target, not generated output for a registry change.

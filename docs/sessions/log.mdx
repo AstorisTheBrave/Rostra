@@ -2410,3 +2410,16 @@ The web requests read only regardless of OAuth administrator or manager snapshot
 bot-owner bypasses from moderation, ticket support and the shared Discord member permission helper.
 Focused negative tests cover revoked membership and grants, host and swapped-guild denial, unknown
 capabilities and configured-owner denial. The migration is additive and preserves historical bytes.
+
+### 2026-10-20 - Phase 01 Task 3 deterministic module registry
+
+Replaced gateway filesystem discovery with checked-in lazy imports for the 42 canonical modules. The
+module SDK now validates version-1 manifests, checks dependency compatibility and cycles, and orders
+independent IDs deterministically. A single temporary adapter retains current `BotModule` behavior.
+Lifecycle supervision owns abort, drain, stop and dispose, and repeated Discord event registration
+replaces prior listeners and returns a shutdown disposer. The existing 47-command and 48-event
+snapshots remain the parity gate, with import and load network access blocked. Versioned transport,
+cache coherence and durable scheduling remain in their later Phase 01 tasks.
+Review corrections keep manifests on checked-in entries, preserve abort to drain to stop ordering,
+wait for in-flight starts before shutdown, and clean up events and modules after a late gateway
+initialization failure. Focused regressions cover each path.

@@ -23,8 +23,13 @@ const { GATEWAY_INTENTS, GATEWAY_PARTIALS } = await import(
 	"../../apps/gateway/src/client/BotClient.ts"
 );
 const { loadModules } = await import("../../apps/gateway/src/client/loaders/modules.ts");
+const { moduleRegistry } = await import("../../modules/registry.ts");
 const { listFeatures } = await import("../../apps/gateway/src/services/featureFlags.ts");
 const modules = await loadModules();
+assert.deepEqual(
+	moduleRegistry.map(({ manifest }) => manifest.id).sort(),
+	modules.map(({ name }) => name).sort(),
+);
 const snapshot = {
 	intents: GATEWAY_INTENTS.map((intent) => GatewayIntentBits[intent]).sort(),
 	partials: GATEWAY_PARTIALS.map((partial) => Partials[partial]).sort(),

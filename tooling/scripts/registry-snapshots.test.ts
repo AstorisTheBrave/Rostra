@@ -27,12 +27,17 @@ for (const name of ["commands", "modules"]) {
 	});
 }
 
-test("every current module id is represented once in the compatibility snapshot", () => {
+test("checked-in registry exactly matches canonical module IDs", async () => {
+	const { moduleRegistry } = await import("../../modules/registry.ts");
 	const snapshot = JSON.parse(
 		readFileSync(join(root, "tooling/fixtures/gateway-modules.json"), "utf8"),
 	) as { modules: Array<{ name: string }> };
 	assert.equal(snapshot.modules.length, 42);
 	assert.equal(new Set(snapshot.modules.map((module) => module.name)).size, 42);
+	assert.deepEqual(
+		moduleRegistry.map((entry) => entry.manifest.id).sort(),
+		snapshot.modules.map((module) => module.name),
+	);
 });
 
 test("the current compatibility registry has no live module queue handlers to strand in gateway", () => {

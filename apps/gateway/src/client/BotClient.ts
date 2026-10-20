@@ -1,5 +1,6 @@
 import { config } from "@rostra/config";
 import { getLogger } from "@rostra/logger";
+import { superviseModuleLifecycles } from "@rostra/module-sdk";
 import { Client, type ClientOptions, Collection, GatewayIntentBits, Partials } from "discord.js";
 import { ClusterClient, getInfo } from "discord-hybrid-sharding";
 import { createIpc, type Ipc } from "@/cluster/ipc.ts";
@@ -50,6 +51,8 @@ export class BotClient extends Client {
 	/** Present only in hybrid mode: the cluster bridge for cross-cluster broadcastEval. */
 	readonly cluster?: ClusterClient<Client>;
 	#ipc?: Ipc;
+	#disposeEvents?: () => void;
+	#modules?: ReturnType<typeof superviseModuleLifecycles>;
 
 	constructor() {
 		super({
@@ -71,29 +74,72 @@ export class BotClient extends Client {
 	/** Discover modules and register their gateway-owned commands, events, and components. */
 	async init(): Promise<void> {
 		this.#ipc = createIpc(this);
-		const { loadModules } = await import("@/client/loaders/modules.ts");
+		const { loadModuleRegistry } = await import("@/client/loaders/modules.ts");
 		const { registerCommands } = await import("@/client/loaders/commands.ts");
 		const { registerEvents } = await import("@/client/loaders/events.ts");
 		const { registerInteractions } = await import("@/client/loaders/interactions.ts");
 
 		const { interactionRouter } = await import("@/interactions/router.ts");
 
-		const modules = await loadModules();
-		registerCommands(this, modules);
-		registerEvents(this, modules, [interactionRouter]);
-		registerInteractions(this, modules);
+		const loaded = await loadModuleRegistry();
+		this.#modules = superviseModuleLifecycles(
+			loaded.map(({ manifest, lifecycle }) => ({
+				id: manifest.id,
+				enabled: true,
+				lifecycle,
+			})),
+		);
+		try {
+			const failed = new Set(
+				(await this.#modules.start()).map(({ id, error }) => {
+					log.error({ err: error, module: id }, "module start failed");
+					return id;
+				}),
+			);
+			const modules = loaded
+				.filter(({ manifest }) => !failed.has(manifest.id))
+				.map(({ module }) => module);
+			registerCommands(this, modules);
+			this.#disposeEvents = registerEvents(this, modules, [interactionRouter]);
+			registerInteractions(this, modules);
 
-		// Overlay live (DB) translations on the bundled baseline and subscribe to
-		// fleet-wide reloads so language changes apply with no restart.
-		const { loadLiveLocales, subscribeLocaleReload } = await import("@rostra/i18n/live");
-		subscribeLocaleReload();
-		await loadLiveLocales();
+			// Overlay live (DB) translations on the bundled baseline and subscribe to
+			// fleet-wide reloads so language changes apply with no restart.
+			const { loadLiveLocales, subscribeLocaleReload } = await import("@rostra/i18n/live");
+			subscribeLocaleReload();
+			await loadLiveLocales();
 
-		// Load global feature flags and subscribe to live flips/kill-switches.
-		const { loadFeatureFlags, subscribeFeatureFlags } = await import("@/services/featureFlags.ts");
-		subscribeFeatureFlags();
-		await loadFeatureFlags();
+			// Load global feature flags and subscribe to live flips/kill-switches.
+			const { loadFeatureFlags, subscribeFeatureFlags } = await import(
+				"@/services/featureFlags.ts"
+			);
+			subscribeFeatureFlags();
+			await loadFeatureFlags();
 
-		log.info({ modules: modules.length, commands: this.commands.size }, "client initialized");
+			log.info({ modules: modules.length, commands: this.commands.size }, "client initialized");
+		} catch (error) {
+			try {
+				await this.destroy();
+			} catch (cleanupError) {
+				log.error({ err: cleanupError }, "client initialization cleanup failed");
+			}
+			throw error;
+		}
+	}
+
+	override async destroy(): Promise<void> {
+		try {
+			this.#disposeEvents?.();
+		} catch (error) {
+			log.error({ err: error }, "event disposal failed");
+		} finally {
+			this.#disposeEvents = undefined;
+		}
+		try {
+			for (const { id, phase, error } of (await this.#modules?.stop()) ?? [])
+				log.error({ err: error, module: id, phase }, "module shutdown failed");
+		} finally {
+			await super.destroy();
+		}
 	}
 }

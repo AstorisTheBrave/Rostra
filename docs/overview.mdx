@@ -11,13 +11,13 @@ Rostra is a Discord bot with a growing set of web and service boundaries. This p
 
 ## What works today
 
-The Discord runtime lives in `apps/gateway/`; 42 feature modules live in `modules/`. The compatibility loader validates the modules through `@rostra/module-sdk`. Recorded fixtures preserve 47 command definitions and 48 events without logging into Discord or publishing commands.
+The Discord runtime lives in `apps/gateway/`; 42 feature modules live in `modules/`. The checked-in registry declares their IDs and imports, and `@rostra/module-sdk` validates and orders them. Recorded fixtures preserve 47 command definitions and 48 events without logging into Discord or publishing commands.
 
 The API and workers are separate applications. PostgreSQL stores durable operation intent before Redis delivers work. The web application supports fixture-tested login and persisted, read-only guild summaries through a typed API client. Realtime and Activity are authenticated scaffolds, disabled by default. These boundaries and their limits are described in [capability status](product/capability-status.mdx).
 
 ## Where things live
 
-- `apps/gateway/` - Discord sharding, interactions, events and compatibility module discovery
+- `apps/gateway/` - Discord sharding, interactions, events and checked-in module loading
 - `apps/api/` - authenticated domain routes, health checks and external webhook boundaries
 - `apps/web/` - public routes, member shell, OAuth flow and typed API reads
 - `apps/workers/` - durable queue consumers, reconciliation and shutdown drain

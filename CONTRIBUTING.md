@@ -59,7 +59,7 @@ See the [workspace overview](docs/overview.mdx), [architecture map](docs/archite
 
 ## Module changes
 
-The current compatibility module exports its `BotModule` from the module entrypoint, with commands, events, interactions, components, jobs and translations as needed. Follow nearby modules and the compatibility types in `apps/gateway/src/types/module.ts`. Durable queue consumers belong to `apps/workers/`, not to a gateway shard. Keep modules isolated and put shared behavior behind an owning package's public export.
+The current compatibility module exports its `BotModule` from the module entrypoint, with commands, events, interactions, components, jobs and translations as needed. Add its ID and lazy import to `modules/registry.ts`; the gateway no longer discovers folders. Follow nearby modules and the compatibility types in `apps/gateway/src/types/module.ts`. The registry supplies the version-1 manifest, validates dependencies and orders modules before loading. See the [module registry contract](docs/architecture/module-registry.mdx). Durable queue consumers belong to `apps/workers/`, not to a gateway shard. Keep modules isolated and put shared behavior behind an owning package's public export.
 
 For schema changes, edit `packages/database/prisma/schema.prisma`, generate the client with `pnpm prisma:generate`, and add a forward-only migration. Preserve all existing migration directories and checksums. Add focused tests for new logic and update the module guide.
 

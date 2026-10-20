@@ -1,4 +1,5 @@
 import type { JobDefinition } from "@rostra/contracts";
+import type { DisposableEventRegistration, ModuleLifecycle } from "@rostra/module-sdk";
 import type {
 	AutocompleteInteraction,
 	Awaitable,
@@ -45,11 +46,7 @@ export interface ComponentHandler {
 	): Awaitable<void>;
 }
 
-export interface RegisteredEvent {
-	name: keyof ClientEvents;
-	once: boolean;
-	register(client: BotClient): void;
-}
+export type RegisteredEvent = DisposableEventRegistration<BotClient, keyof ClientEvents>;
 
 export type { JobDefinition } from "@rostra/contracts";
 
@@ -59,6 +56,7 @@ export interface BotModule {
 	events?: RegisteredEvent[];
 	components?: ComponentHandler[];
 	jobs?: JobDefinition[];
+	lifecycle?: Partial<ModuleLifecycle>;
 	/** English strings, registered under namespace = module name. */
 	i18n?: Record<string, string>;
 }

@@ -34,6 +34,7 @@ Within the structure priority, prefer one source of truth, isolated modules and 
 - `apps/realtime/`: optional authoritative rooms with explicit connection authorization.
 - `apps/activity/`: embedded Discord client with a separate origin and authentication boundary.
 - `modules/<name>/`: feature logic, manifests, settings/data ownership and tests.
+- `modules/registry.ts`: checked-in canonical module IDs and lazy imports; add new modules here, not through filesystem discovery.
 - `packages/`: narrow shared public contracts with explicit export maps and no cycles.
 - `integrations/`: authorized external adapters; credentials stay within their owning boundary.
 - `games/`: game rules and renderers; share pure contracts through the game core.

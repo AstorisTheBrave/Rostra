@@ -2423,3 +2423,35 @@ cache coherence and durable scheduling remain in their later Phase 01 tasks.
 Review corrections keep manifests on checked-in entries, preserve abort to drain to stop ordering,
 wait for in-flight starts before shutdown, and clean up events and modules after a late gateway
 initialization failure. Focused regressions cover each path.
+
+### 2026-10-20 - Phase 01 Task 4 versioned cache and event coherence
+
+Added a forward-only cache revision table and transaction-bound revision increment for
+persisted configuration and preference writes. The cache bus validates version-1 tenant
+invalidations, exposes publication and subscription outcomes, resubscribes after reconnect,
+and returns idempotent disposers. Tenant, user preference, verification and persisted module
+configuration/list caches now use bounded local TTLs and exact-tenant invalidation after
+commit. Gateway provisioning writes use the same owner identities. Derived automod filters
+follow their config object; runtime maps remain local. The module SDK now validates a
+version-1 tenant-scoped event envelope without a new transport. Live locales and global
+flags retain their existing messages while logging failed fleet delivery.
+
+Focused tests started red for the missing cache and event contracts. Unit checks cover
+schema/scope rejection, duplicate and stale delivery, TTL fallback, disposal, reconnect,
+and absent or failed Redis publication. A disposable PostgreSQL 16 and Redis 7 proof applied
+all thirteen migrations and started a second Node process: it observed committed updates,
+while an aborted or not-yet-committed write emitted no invalidation. Full gate results and
+remaining limits are recorded in the Task 4 report.
+
+Task 4 review found that a direct cache-aside read could refill Redis after the writer's
+deletion, and stacking the shared and local TTLs could exceed the intended five-minute
+fallback. Removed the redundant shared config layer from tenant, user preference and
+verification and deleted the now-unused generic config cache path. Persisted misses now
+read PostgreSQL directly. A service regression holds a pre-write PostgreSQL result until
+after the committed invalidation and checks that the local cache retries the read. The
+Phase 01 collector now measures a PostgreSQL cold miss and L1 warm hit. Its cache numbers
+must be qualified against the earlier Redis-warm baseline; cold-read database load remains
+an exact-head measurement limit. A disposable local run recorded 20 corrected collector
+iterations with PostgreSQL cold mean 8.393 ms and L1 warm mean 0.006 ms; the collector
+now closes its bus subscription on exit. Feature-flag and live-locale subscriptions now
+log an unavailable bus while keeping their disposable handles.

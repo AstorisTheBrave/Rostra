@@ -5,7 +5,8 @@ import { arch, cpus, platform, release, totalmem } from "node:os";
 import { dirname, resolve } from "node:path";
 import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import { pathToFileURL } from "node:url";
-import { cacheGet, disconnectCache, invalidateConfig } from "@rostra/cache";
+import { disconnectCache } from "@rostra/cache";
+import { closeBus } from "@rostra/cache/bus";
 import { config } from "@rostra/config";
 import { disconnectPrisma, getPrisma } from "@rostra/database";
 import { BullMqOperationPublisher, PrismaOperationRepository } from "@rostra/operations";
@@ -56,7 +57,6 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 	let authorizationDatabaseCalls = 0;
 	let closeApp: (() => Promise<void>) | undefined;
 	const samples = percentileSamples();
-	const cacheKey = `tenant:${guildId}`;
 	try {
 		await prisma.guild.create({ data: { id: guildId } });
 		const app = await createApi({
@@ -112,12 +112,9 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 				});
 
 				evictTenantL1(guildId);
-				await invalidateConfig(cacheKey);
 				const coldStarted = performance.now();
 				await getTenant(guildId);
 				samples.cacheColdLatencyMs.push(performance.now() - coldStarted);
-				assert.ok(await cacheGet(cacheKey), "cold tenant load must populate Redis");
-				evictTenantL1(guildId);
 				const warmStarted = performance.now();
 				await getTenant(guildId);
 				samples.cacheWarmLatencyMs.push(performance.now() - warmStarted);
@@ -186,11 +183,11 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 		}
 		await prisma.operationRecord.deleteMany({ where: { id: { in: operationIds } } });
 		evictTenantL1(guildId);
-		await invalidateConfig(cacheKey);
 		await prisma.guildTenant.deleteMany({ where: { guildId } });
 		await prisma.guild.deleteMany({ where: { id: guildId } });
 		await queue.close();
 		redis.disconnect();
+		closeBus();
 		await disconnectCache();
 		await disconnectPrisma();
 	}

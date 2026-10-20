@@ -48,6 +48,11 @@ The web server does not connect to PostgreSQL. It issues a short-lived read requ
 
 The checked-in registry validates and orders 42 modules. Fixtures preserve 47 command definitions and 48 events from the recorded baseline. The registry currently declares no module-owned durable queue handlers; workers own the active queue runtime. See [module registry](module-registry.mdx) for its manifest, lifecycle and compatibility contracts.
 
+Persisted guild configuration and user preferences use [versioned cache invalidation](cache-coherence.mdx).
+The owning write advances a PostgreSQL revision in its transaction, then publishes a
+validated tenant-scoped invalidation. Persisted config and preference misses read PostgreSQL
+directly; local caches use a five-minute TTL when Redis delivery is unavailable.
+
 ## Shared authorities and imports
 
 - `@rostra/config` reads runtime environment variables and exposes validated configuration.

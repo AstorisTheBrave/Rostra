@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { AntinukeConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { Accent, container, text } from "@rostra/discord-ui";
@@ -15,20 +16,18 @@ export type AntinukeModule =
 	| "antiWebhook"
 	| "antiGuildUpdate";
 
-const cache = new Map<string, AntinukeConfig | null>();
+const cache = createCoherentCache<AntinukeConfig | null>("security", "guild");
 
 /** Per-guild antinuke config (cached). Null when antinuke has never been configured. */
 export async function getConfig(guildId: string): Promise<AntinukeConfig | null> {
-	const cached = cache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma()
-		.antinukeConfig.findUnique({ where: { guildId } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load antinuke config");
-			return null;
-		});
-	cache.set(guildId, cfg);
-	return cfg;
+	return cache.get(guildId, () =>
+		getPrisma()
+			.antinukeConfig.findUnique({ where: { guildId } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load antinuke config");
+				return null;
+			}),
+	);
 }
 
 /** Create or update config, refreshing the cache. */
@@ -36,17 +35,18 @@ export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<AntinukeConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<AntinukeConfig> {
-	const cfg = await getPrisma().antinukeConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	cache.set(guildId, cfg);
+	const { value: cfg } = await cache.write(guildId, (tx) =>
+		tx.antinukeConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return cfg;
 }
 
 export function invalidate(guildId: string): void {
-	cache.delete(guildId);
+	cache.evict(guildId);
 }
 
 /** A user is trusted (immune to antinuke) if they are the bot, the owner, an extra owner, or whitelisted. */

@@ -32,6 +32,9 @@ so verifying in time (or a config change) is self-cancelling - no task id bookke
 
 ## gotchas
 
+- Config misses read PostgreSQL directly. Committed writes publish a versioned tenant
+  invalidation; the bounded local cache expires within five minutes if delivery fails.
+
 - The bot needs Manage Roles and the verified role must sit below the bot's highest role. Auto-kick also
   needs Kick Members; non-kickable members are skipped.
 - The button reply is ephemeral; `deferEphemeral` is set so a slow role add still acknowledges.

@@ -31,6 +31,9 @@ anyone on the per-user 60s notify cooldown. Each remaining subscriber is fetched
 
 ## gotchas
 
+- Persisted word lists receive versioned tenant invalidation after writes and expire locally
+  within five minutes if Redis delivery fails. Notification cooldowns stay local.
+
 - `resolveHits` consumes the cooldown for the subscribers it returns, so it is not a pure read - call it
   once per message. The active-window and cooldown maps are in-process per shard (fine: guilds are
   single-shard owned).

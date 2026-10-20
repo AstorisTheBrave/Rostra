@@ -1,28 +1,28 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { Suggestion, SuggestionConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 
-const configCache = new Map<string, SuggestionConfig | null>();
+const configCache = createCoherentCache<SuggestionConfig | null>("suggest", "guild");
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
 export async function getConfig(guildId: string): Promise<SuggestionConfig | null> {
-	const cached = configCache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma().suggestionConfig.findUnique({ where: { guildId } });
-	configCache.set(guildId, cfg);
-	return cfg;
+	return configCache.get(guildId, () =>
+		getPrisma().suggestionConfig.findUnique({ where: { guildId } }),
+	);
 }
 
 export async function upsertConfig(
 	guildId: string,
 	data: Partial<Pick<SuggestionConfig, "channelId" | "enabled">>,
 ): Promise<SuggestionConfig> {
-	const cfg = await getPrisma().suggestionConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	configCache.set(guildId, cfg);
+	const { value: cfg } = await configCache.write(guildId, (tx) =>
+		tx.suggestionConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return cfg;
 }
 

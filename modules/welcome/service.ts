@@ -1,39 +1,39 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { WelcomeConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 
 const log = getLogger("welcome");
 
-const cache = new Map<string, WelcomeConfig | null>();
+const cache = createCoherentCache<WelcomeConfig | null>("welcome", "guild");
 
 export async function getConfig(guildId: string): Promise<WelcomeConfig | null> {
-	const cached = cache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma()
-		.welcomeConfig.findUnique({ where: { guildId } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load welcome config");
-			return null;
-		});
-	cache.set(guildId, cfg);
-	return cfg;
+	return cache.get(guildId, () =>
+		getPrisma()
+			.welcomeConfig.findUnique({ where: { guildId } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load welcome config");
+				return null;
+			}),
+	);
 }
 
 export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<WelcomeConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<WelcomeConfig> {
-	const cfg = await getPrisma().welcomeConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	cache.set(guildId, cfg);
+	const { value: cfg } = await cache.write(guildId, (tx) =>
+		tx.welcomeConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return cfg;
 }
 
 export function invalidate(guildId: string): void {
-	cache.delete(guildId);
+	cache.evict(guildId);
 }
 
 export interface MessageContext {

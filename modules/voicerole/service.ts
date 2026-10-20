@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { VoiceRoleConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 
@@ -6,27 +7,28 @@ import { getPrisma } from "@rostra/database";
  * remove it when they disconnect. Config is one row per guild, cached in-process.
  */
 
-const cache = new Map<string, VoiceRoleConfig | null>();
+const cache = createCoherentCache<VoiceRoleConfig | null>("voicerole", "guild");
 
 export async function getConfig(guildId: string): Promise<VoiceRoleConfig | null> {
-	if (cache.has(guildId)) return cache.get(guildId) ?? null;
-	const row = await getPrisma().voiceRoleConfig.findUnique({ where: { guildId } });
-	cache.set(guildId, row);
-	return row;
+	return cache.get(guildId, () => getPrisma().voiceRoleConfig.findUnique({ where: { guildId } }));
 }
 
 export async function setConfig(guildId: string, roleId: string): Promise<void> {
-	await getPrisma().voiceRoleConfig.upsert({
-		where: { guildId },
-		create: { guildId, roleId },
-		update: { roleId },
-	});
-	cache.delete(guildId);
+	await cache.write(guildId, (tx) =>
+		tx.voiceRoleConfig.upsert({
+			where: { guildId },
+			create: { guildId, roleId },
+			update: { roleId },
+		}),
+	);
 }
 
 export async function disableConfig(guildId: string): Promise<boolean> {
-	const res = await getPrisma().voiceRoleConfig.deleteMany({ where: { guildId } });
-	cache.delete(guildId);
+	const { value: res } = await cache.write(
+		guildId,
+		(tx) => tx.voiceRoleConfig.deleteMany({ where: { guildId } }),
+		() => undefined,
+	);
 	return res.count > 0;
 }
 

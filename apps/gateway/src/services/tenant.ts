@@ -1,31 +1,19 @@
-import { cachedConfig, invalidateConfig } from "@rostra/cache";
+import { createCoherentCache } from "@rostra/cache";
 import type { GuildTenant, Prisma } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 
 /**
- * Centralized per-guild config ("tenant"). Reads come from a two-layer cache:
- * L1 is a per-shard in-process map of hot guilds; L2 is Redis at the 5-minute
- * config TTL; a miss loads (and lazily creates) the row from Postgres. Writes go
- * through `updateTenant`, which invalidates both layers so config never goes
- * stale. Guilds are owned by a single shard, so the L1 map needs no cross-shard
- * invalidation.
+ * Centralized per-guild config ("tenant"). A bounded per-process cache loads
+ * misses from Postgres. Writes through `updateTenant` notify other processes;
+ * missed invalidations expire within five minutes.
  */
-
-const L1 = new Map<string, GuildTenant>();
-const L1_MAX = 1000;
-const cacheKey = (guildId: string) => `tenant:${guildId}`;
-
-function rememberL1(guildId: string, tenant: GuildTenant): void {
-	if (L1.size >= L1_MAX) {
-		const oldest = L1.keys().next().value;
-		if (oldest !== undefined) L1.delete(oldest);
-	}
-	L1.set(guildId, tenant);
-}
+const cache = createCoherentCache<GuildTenant>("tenant", "guild", {
+	maxEntries: 1_000,
+});
 
 /** Drop a guild from the in-process cache (e.g. on leave). */
 export function evictTenantL1(guildId: string): void {
-	L1.delete(guildId);
+	cache.evict(guildId);
 }
 
 function loadOrCreate(guildId: string): Promise<GuildTenant> {
@@ -36,13 +24,9 @@ function loadOrCreate(guildId: string): Promise<GuildTenant> {
 	});
 }
 
-/** Cached per-guild tenant: L1 in-process, then L2 Redis (5-min TTL), then DB. */
+/** Cached per-guild tenant: bounded local L1, then durable PostgreSQL. */
 export async function getTenant(guildId: string): Promise<GuildTenant> {
-	const hot = L1.get(guildId);
-	if (hot) return hot;
-	const tenant = await cachedConfig(cacheKey(guildId), () => loadOrCreate(guildId));
-	rememberL1(guildId, tenant);
-	return tenant;
+	return cache.get(guildId, () => loadOrCreate(guildId));
 }
 
 export interface TenantPatch {
@@ -56,7 +40,7 @@ export interface TenantPatch {
 	settings?: Record<string, unknown>;
 }
 
-/** Write tenant fields and invalidate both cache layers. */
+/** Write tenant fields and publish a post-commit fleet invalidation. */
 export async function updateTenant(guildId: string, patch: TenantPatch): Promise<GuildTenant> {
 	const data: Omit<Prisma.GuildTenantUncheckedCreateInput, "guildId"> = {
 		...(patch.locale !== undefined ? { locale: patch.locale } : {}),
@@ -70,13 +54,13 @@ export async function updateTenant(guildId: string, patch: TenantPatch): Promise
 		...(patch.features !== undefined ? { features: patch.features } : {}),
 		...(patch.settings !== undefined ? { settings: patch.settings as Prisma.InputJsonValue } : {}),
 	};
-	const updated = await getPrisma().guildTenant.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	await invalidateConfig(cacheKey(guildId));
-	rememberL1(guildId, updated);
+	const { value: updated } = await cache.write(guildId, (tx) =>
+		tx.guildTenant.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return updated;
 }
 

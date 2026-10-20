@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { Highlight } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 
@@ -12,16 +13,12 @@ export const MIN_WORD_LEN = 2;
 const NOTIFY_COOLDOWN_MS = 60_000; // per (guild,user) - avoid DM spam
 const ACTIVE_WINDOW_MS = 5 * 60_000; // skip if the subscriber spoke here recently
 
-const cache = new Map<string, Highlight[]>();
+const cache = createCoherentCache<Highlight[]>("highlight", "guild");
 const lastNotified = new Map<string, number>(); // `${guildId}:${userId}` -> ts
 const lastActive = new Map<string, number>(); // `${channelId}:${userId}` -> ts
 
 export async function getGuildHighlights(guildId: string): Promise<Highlight[]> {
-	const hit = cache.get(guildId);
-	if (hit) return hit;
-	const rows = await getPrisma().highlight.findMany({ where: { guildId } });
-	cache.set(guildId, rows);
-	return rows;
+	return cache.get(guildId, () => getPrisma().highlight.findMany({ where: { guildId } }));
 }
 
 export async function listHighlights(guildId: string, userId: string): Promise<string[]> {
@@ -39,8 +36,11 @@ export async function addHighlight(
 	const current = await listHighlights(guildId, userId);
 	if (current.includes(clean)) return "exists";
 	if (current.length >= MAX_WORDS) return "limit";
-	await getPrisma().highlight.create({ data: { guildId, userId, word: clean } });
-	cache.delete(guildId);
+	await cache.write(
+		guildId,
+		(tx) => tx.highlight.create({ data: { guildId, userId, word: clean } }),
+		() => undefined,
+	);
 	return "ok";
 }
 
@@ -49,16 +49,23 @@ export async function removeHighlight(
 	userId: string,
 	word: string,
 ): Promise<boolean> {
-	const res = await getPrisma().highlight.deleteMany({
-		where: { guildId, userId, word: word.trim().toLowerCase() },
-	});
-	cache.delete(guildId);
+	const { value: res } = await cache.write(
+		guildId,
+		(tx) =>
+			tx.highlight.deleteMany({
+				where: { guildId, userId, word: word.trim().toLowerCase() },
+			}),
+		() => undefined,
+	);
 	return res.count > 0;
 }
 
 export async function clearHighlights(guildId: string, userId: string): Promise<number> {
-	const res = await getPrisma().highlight.deleteMany({ where: { guildId, userId } });
-	cache.delete(guildId);
+	const { value: res } = await cache.write(
+		guildId,
+		(tx) => tx.highlight.deleteMany({ where: { guildId, userId } }),
+		() => undefined,
+	);
 	return res.count;
 }
 

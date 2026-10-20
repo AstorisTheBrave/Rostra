@@ -600,6 +600,9 @@ importers:
       '@rostra/config':
         specifier: workspace:*
         version: link:../config
+      '@rostra/database':
+        specifier: workspace:*
+        version: link:../database
       '@rostra/logger':
         specifier: workspace:*
         version: link:../logger

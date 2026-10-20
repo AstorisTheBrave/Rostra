@@ -1,11 +1,11 @@
-import { cachedConfig, invalidateConfig } from "@rostra/cache";
+import { createCoherentCache } from "@rostra/cache";
 import type { VerificationConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 
-const cfgKey = (guildId: string) => `verify:cfg:${guildId}`;
+const cache = createCoherentCache<VerificationConfig | null>("verification", "guild");
 
 export async function getConfig(guildId: string): Promise<VerificationConfig | null> {
-	return cachedConfig(cfgKey(guildId), () =>
+	return cache.get(guildId, () =>
 		getPrisma().verificationConfig.findUnique({ where: { guildId } }),
 	);
 }
@@ -19,11 +19,12 @@ export async function upsertConfig(
 		>
 	>,
 ): Promise<VerificationConfig> {
-	const row = await getPrisma().verificationConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	await invalidateConfig(cfgKey(guildId));
+	const { value: row } = await cache.write(guildId, (tx) =>
+		tx.verificationConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return row;
 }

@@ -1,11 +1,11 @@
-import { getRedis } from "@rostra/cache";
+import { createCoherentCache, getRedis } from "@rostra/cache";
 import type { LevelConfig, LevelUser } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 
 const log = getLogger("leveling");
 
-const configCache = new Map<string, LevelConfig | null>();
+const configCache = createCoherentCache<LevelConfig | null>("leveling", "guild");
 
 /** Total XP required to reach a given level: 50 * level * (level + 1). */
 export function totalXpForLevel(level: number): number {
@@ -28,33 +28,32 @@ export function levelProgress(xp: number): { level: number; into: number; needed
 }
 
 export async function getConfig(guildId: string): Promise<LevelConfig | null> {
-	const cached = configCache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma()
-		.levelConfig.findUnique({ where: { guildId } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load level config");
-			return null;
-		});
-	configCache.set(guildId, cfg);
-	return cfg;
+	return configCache.get(guildId, () =>
+		getPrisma()
+			.levelConfig.findUnique({ where: { guildId } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load level config");
+				return null;
+			}),
+	);
 }
 
 export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<LevelConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<LevelConfig> {
-	const cfg = await getPrisma().levelConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	configCache.set(guildId, cfg);
+	const { value: cfg } = await configCache.write(guildId, (tx) =>
+		tx.levelConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return cfg;
 }
 
 export function invalidate(guildId: string): void {
-	configCache.delete(guildId);
+	configCache.evict(guildId);
 }
 
 export async function getUser(guildId: string, userId: string): Promise<LevelUser> {

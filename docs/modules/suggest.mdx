@@ -30,6 +30,9 @@ status + staff note and re-render the card (buttons drop once decided).
 
 ## gotchas
 
+- Cached per-guild configuration receives versioned invalidation after a committed write;
+  missed delivery expires within five minutes. Individual suggestions are read separately.
+
 - One vote per user per suggestion; voting is disabled once a suggestion is approved/denied.
 - `interaction.update` acknowledges within Discord's 3s window, so `safeAck` never auto-defers; the card is
   edited in place.

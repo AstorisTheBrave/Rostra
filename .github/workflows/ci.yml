@@ -177,6 +177,8 @@ jobs:
       - run: pnpm prisma:generate
       - name: Apply forward migrations
         run: pnpm prisma:migrate
+      - name: Cache revision and independent process proof
+        run: pnpm --filter @rostra/cache test:integration
       - name: Durable operation restart and duplicate-delivery proof
         run: pnpm --filter @rostra/workers test:integration
       - name: Collect API, tenant cache and durable-operation measurements

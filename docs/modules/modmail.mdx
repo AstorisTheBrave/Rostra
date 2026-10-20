@@ -35,6 +35,9 @@ and the pure `relayBody` / `isStaffNote` (tested).
 
 ## gotchas
 
+- Cached per-guild configuration receives versioned invalidation after a committed write;
+  missed delivery expires within five minutes. Active threads are read from PostgreSQL.
+
 - Needs the **DirectMessages** intent (added to `BotClient`) plus `Partials.Channel`/`Partials.Message`
   (already present) to receive and fetch DM messages.
 - The staff parent channel must be a normal **GuildText** channel that only staff can see - threads inherit

@@ -35,3 +35,5 @@ live database overlays. See `localization.mdx` for locale selection and the tran
 - Keys are `namespace:dotted.path`. The core namespace is `common`; each module uses its own namespace.
 - Unknown keys return the key string - useful for spotting untranslated text in output.
 - New modules must `registerLocale('en', '<module>', {...})` during load before their commands run.
+- Live locale bus subscriptions are disposable; publication failures are logged and remote
+  overlays recover on the next successful reload or process boot.

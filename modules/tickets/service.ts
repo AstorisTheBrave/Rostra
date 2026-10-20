@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { Prisma, TicketConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
@@ -22,36 +23,35 @@ import {
 
 const log = getLogger("tickets");
 
-const cache = new Map<string, TicketConfig | null>();
+const cache = createCoherentCache<TicketConfig | null>("tickets", "guild");
 
 export async function getConfig(guildId: string): Promise<TicketConfig | null> {
-	const cached = cache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma()
-		.ticketConfig.findUnique({ where: { guildId } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load ticket config");
-			return null;
-		});
-	cache.set(guildId, cfg);
-	return cfg;
+	return cache.get(guildId, () =>
+		getPrisma()
+			.ticketConfig.findUnique({ where: { guildId } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load ticket config");
+				return null;
+			}),
+	);
 }
 
 export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<TicketConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<TicketConfig> {
-	const cfg = await getPrisma().ticketConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data } as Prisma.TicketConfigUncheckedCreateInput,
-		update: data as Prisma.TicketConfigUncheckedUpdateInput,
-	});
-	cache.set(guildId, cfg);
+	const { value: cfg } = await cache.write(guildId, (tx) =>
+		tx.ticketConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data } as Prisma.TicketConfigUncheckedCreateInput,
+			update: data as Prisma.TicketConfigUncheckedUpdateInput,
+		}),
+	);
 	return cfg;
 }
 
 export function invalidate(guildId: string): void {
-	cache.delete(guildId);
+	cache.evict(guildId);
 }
 
 /** The guild's ticket queues (custom if configured, else the built-in defaults). */

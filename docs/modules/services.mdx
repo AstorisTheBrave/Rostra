@@ -24,17 +24,16 @@ shared instance so the whole bot reuses one connection instead of making new one
 - `getCache(): Keyv` - cache (Redis-backed if `REDIS_URL`, else in-memory).
 - `getRedis(): Redis | undefined` - raw ioredis client for sorted-set ops (leaderboards); undefined w/o Redis.
 - `cacheGet/cacheSet/cacheDel/withCache` - typed convenience helpers; `disconnectCache()` for shutdown.
-- `cachedConfig(key, loader)` + `invalidateConfig(key)` + `CONFIG_TTL_MS` (300_000) - the standard
-  cache-aside convention for per-guild config and other hot, rarely-changing reads (5-minute TTL). Pair
-  every write with `invalidateConfig`. This is the caching foundation the GuildTenant builds on (see
-  `docs/superpowers/specs/2026-06-06-centralized-platform-systems.md`).
+- `createCoherentCache(owner, scope)` + `commitCoherentWrite(identity, writer, onCommit)` -
+  bounded local caches for persisted configuration and preferences. Misses read PostgreSQL
+  directly. A write advances its revision with the data in one transaction and publishes
+  the exact identity after commit. `CONFIG_TTL_MS` is 300,000 (five minutes).
 
 **`apps/gateway/src/services/tenant.ts`** - the centralized per-guild config ("tenant", model `GuildTenant`).
-- `getTenant(guildId)` - two-layer cache: L1 in-process map of hot guilds, then L2 Redis (`tenant:<guildId>`
-  at the 5-min config TTL), then DB (lazily upserts the row). Guilds live on one shard, so L1 needs no
-  cross-shard invalidation.
-- `updateTenant(guildId, patch)` - writes the row and invalidates both layers. The setup wizard writes
-  channel/role ids and feature flags here, so features resolve them from cache (no raw lookups).
+- `getTenant(guildId)` - bounded local cache of hot guilds, then PostgreSQL (lazily upserts
+  the row). Versioned invalidations evict other processes after a committed write.
+- `updateTenant(guildId, patch)` - writes the row and publishes a versioned invalidation.
+  The setup wizard writes channel/role ids and feature flags here.
 - `isFeatureEnabled(tenant, name)`, `getSetting(tenant, key)`, `setFeatures(guildId, flags)`,
   `evictTenantL1(guildId)`.
 

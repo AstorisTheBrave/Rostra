@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { LoggingConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
@@ -27,36 +28,35 @@ export type LogEvent = Extract<
 	| "nicknameChanges"
 >;
 
-const cache = new Map<string, LoggingConfig | null>();
+const cache = createCoherentCache<LoggingConfig | null>("logging", "guild");
 
 export async function getConfig(guildId: string): Promise<LoggingConfig | null> {
-	const cached = cache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma()
-		.loggingConfig.findUnique({ where: { guildId } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load logging config");
-			return null;
-		});
-	cache.set(guildId, cfg);
-	return cfg;
+	return cache.get(guildId, () =>
+		getPrisma()
+			.loggingConfig.findUnique({ where: { guildId } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load logging config");
+				return null;
+			}),
+	);
 }
 
 export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<LoggingConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<LoggingConfig> {
-	const cfg = await getPrisma().loggingConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	cache.set(guildId, cfg);
+	const { value: cfg } = await cache.write(guildId, (tx) =>
+		tx.loggingConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return cfg;
 }
 
 export function invalidate(guildId: string): void {
-	cache.delete(guildId);
+	cache.evict(guildId);
 }
 
 /** Truncate a string for safe inclusion in a log entry. */

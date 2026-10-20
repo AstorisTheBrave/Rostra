@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import { getPrisma } from "@rostra/database";
 
 // ── AFK (in-memory authoritative, DB-backed for restart recovery) ────────────
@@ -60,15 +61,13 @@ export interface Responder {
 	response: string;
 }
 
-const responders = new Map<string, Responder[]>();
+const responders = createCoherentCache<Responder[]>("responders", "guild");
 
 export async function getResponders(guildId: string): Promise<Responder[]> {
-	const cached = responders.get(guildId);
-	if (cached) return cached;
-	const rows = await getPrisma().autoResponder.findMany({ where: { guildId } });
-	const list = rows.map((r) => ({ trigger: r.trigger.toLowerCase(), response: r.response }));
-	responders.set(guildId, list);
-	return list;
+	return responders.get(guildId, async () => {
+		const rows = await getPrisma().autoResponder.findMany({ where: { guildId } });
+		return rows.map((r) => ({ trigger: r.trigger.toLowerCase(), response: r.response }));
+	});
 }
 
 export async function addResponder(
@@ -76,19 +75,27 @@ export async function addResponder(
 	trigger: string,
 	response: string,
 ): Promise<void> {
-	await getPrisma().autoResponder.upsert({
-		where: { guildId_trigger: { guildId, trigger: trigger.toLowerCase() } },
-		create: { guildId, trigger: trigger.toLowerCase(), response },
-		update: { response },
-	});
-	responders.delete(guildId);
+	await responders.write(
+		guildId,
+		(tx) =>
+			tx.autoResponder.upsert({
+				where: { guildId_trigger: { guildId, trigger: trigger.toLowerCase() } },
+				create: { guildId, trigger: trigger.toLowerCase(), response },
+				update: { response },
+			}),
+		() => undefined,
+	);
 }
 
 export async function removeResponder(guildId: string, trigger: string): Promise<boolean> {
-	const result = await getPrisma().autoResponder.deleteMany({
-		where: { guildId, trigger: trigger.toLowerCase() },
-	});
-	responders.delete(guildId);
+	const { value: result } = await responders.write(
+		guildId,
+		(tx) =>
+			tx.autoResponder.deleteMany({
+				where: { guildId, trigger: trigger.toLowerCase() },
+			}),
+		() => undefined,
+	);
 	return result.count > 0;
 }
 

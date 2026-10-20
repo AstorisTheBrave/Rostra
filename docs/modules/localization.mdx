@@ -35,8 +35,11 @@ language via `Intl.PluralRules`. Locale precedence: explicit arg -> ambient (`ru
 Missing key -> English -> the raw key. `getTranslator(locale)` returns a bound translator for per-recipient
 rendering. Modules still register English strings via `module.i18n`; translated files layer on top.
 
-**service (`services/localization.ts`)** - cached per-user `UserPreference` (L1 in-proc + Redis, like
-tenant). `resolveLocale({userId, guildId, interactionLocale, scope})`: guild scope = guild language ->
+**service (`services/localization.ts`)** - cached per-user `UserPreference` with a bounded local
+cache and direct PostgreSQL misses. A committed preference write advances a PostgreSQL cache
+revision and publishes an exact-user invalidation. Local entries expire within five minutes
+if delivery fails.
+`resolveLocale({userId, guildId, interactionLocale, scope})`: guild scope = guild language ->
 English; user/actor scope = explicit user preference -> Discord client locale -> guild -> English.
 `setUserLocale` / `setUserFeature` / `isOptedOut`, `setGuildLocale`, and `localizeAction({actor, target,
 guild})` -> `{actorT, targetT, guildT}` for the three-audience model.
@@ -56,10 +59,11 @@ localized in each client. Seed data only for now; the rest is translation conten
 **hot reload (no restart, fleet-wide)** - build-time files are the baseline; `LocaleString` DB rows are a
 live overlay loaded at boot (`loadLiveLocales`) and layered over the files. Any write (`setLocaleString`, or
 `pushLocaleBundle` from `pnpm i18n:push`) persists to the DB and **publishes on the Redis control bus**
-(`packages/cache/src/bus.ts`, channel `rostra:i18n`); every shard's `subscribeLocaleReload` re-applies the change
-in its in-memory registry instantly. So adding or fixing a language at scale (78 shards, millions of users)
-is a data push, never a deploy/restart. Without Redis (single process) the writer applies locally and the
-publish is a harmless no-op. Workflow: edit `locales/<code>/*.json` -> `pnpm i18n:push` -> live everywhere.
+(`packages/cache/src/bus.ts`, channel `rostra:i18n`); subscribed shards re-apply the change
+on delivery. The bus reports missing Redis or publication failure and the writer logs that
+fleet reload did not occur. Live overlays currently reload at boot or on a later successful
+message, unlike preference caches with a TTL. Workflow: edit `locales/<code>/*.json` ->
+`pnpm i18n:push` -> check publication outcome and affected shards.
 
 ## gotchas
 

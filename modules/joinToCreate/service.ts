@@ -1,39 +1,39 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { JoinToCreateConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 
 const log = getLogger("j2c");
 
-const cache = new Map<string, JoinToCreateConfig | null>();
+const cache = createCoherentCache<JoinToCreateConfig | null>("joinToCreate", "guild");
 
 export async function getConfig(guildId: string): Promise<JoinToCreateConfig | null> {
-	const cached = cache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma()
-		.joinToCreateConfig.findUnique({ where: { guildId } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load j2c config");
-			return null;
-		});
-	cache.set(guildId, cfg);
-	return cfg;
+	return cache.get(guildId, () =>
+		getPrisma()
+			.joinToCreateConfig.findUnique({ where: { guildId } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load j2c config");
+				return null;
+			}),
+	);
 }
 
 export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<JoinToCreateConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<JoinToCreateConfig> {
-	const cfg = await getPrisma().joinToCreateConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	cache.set(guildId, cfg);
+	const { value: cfg } = await cache.write(guildId, (tx) =>
+		tx.joinToCreateConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return cfg;
 }
 
 export function invalidate(guildId: string): void {
-	cache.delete(guildId);
+	cache.evict(guildId);
 }
 
 export async function recordTemp(

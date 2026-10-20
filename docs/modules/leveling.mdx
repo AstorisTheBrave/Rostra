@@ -31,6 +31,9 @@ rank/leaderboard/reward-list are open.
 
 ## gotchas
 
+- Cached configuration receives versioned tenant invalidation and a five-minute local TTL.
+  XP cooldowns remain process-local.
+
 - XP is granted on `messageCreate` with a per-user cooldown (`cooldownMs`, default 60s) tracked
   in-memory; a guild's messages land on one shard so this is correct.
 - XP is mirrored to a Redis sorted set `lb:level:<guild>`; the leaderboard reads it with a DB fallback.

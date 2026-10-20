@@ -716,6 +716,16 @@ model UserPreference {
   updatedAt DateTime @updatedAt
 }
 
+/// Monotonic cache identity revision, advanced with the owning write in one transaction.
+model CacheRevision {
+  owner   String
+  tenant  String
+  key     String
+  version BigInt @default(0)
+
+  @@id([owner, tenant, key])
+}
+
 // ── Verification gate ────────────────────────────────────────────────────────
 
 model VerificationConfig {

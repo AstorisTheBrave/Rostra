@@ -25,18 +25,3 @@ test("CONFIG_TTL_MS is 5 minutes", async () => {
 	const { CONFIG_TTL_MS } = await import("@rostra/cache");
 	assert.equal(CONFIG_TTL_MS, 300_000);
 });
-
-test("cachedConfig caches and invalidateConfig forces a reload", async () => {
-	const { cachedConfig, invalidateConfig } = await import("@rostra/cache");
-	const key = `test:cfg:${Math.random().toString(36).slice(2)}`;
-	let calls = 0;
-	const loader = async () => ({ n: ++calls });
-
-	assert.deepEqual(await cachedConfig(key, loader), { n: 1 });
-	assert.deepEqual(await cachedConfig(key, loader), { n: 1 });
-	assert.equal(calls, 1, "served from cache");
-
-	await invalidateConfig(key);
-	assert.deepEqual(await cachedConfig(key, loader), { n: 2 }, "reloads after invalidation");
-	await invalidateConfig(key);
-});

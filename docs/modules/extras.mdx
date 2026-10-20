@@ -26,6 +26,9 @@ removeResponder` + pure `matchResponder(list, content)`.
 
 ## gotchas
 
+- Persisted autoresponder lists receive versioned tenant invalidation and a five-minute
+  cache TTL. AFK presence and snipe state remain process-local.
+
 - This module exports **multiple top-level commands** from one `BotModule` - modules aren't limited to one
   command.
 - AFK is kept in an in-memory Map (fast per-message checks) and mirrored to `AfkStatus`; `loadAfk` repopulates

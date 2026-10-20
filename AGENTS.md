@@ -92,6 +92,11 @@ not use the alias. Never import another package's private files, including throu
     workhorse subagent at high reasoning. Use a fast subagent at high reasoning for lightweight, mechanical or
     narrowly scoped work. Keep small, sequential or tightly coupled work in the primary task, and review every
     delegated result before it enters a phase snapshot.
+16. Persisted configuration or preference caches use `@rostra/cache` coherent writes.
+    Advance the PostgreSQL cache revision with the write in one transaction, then publish
+    the exact tenant invalidation after commit. Persisted configuration and preference reads
+    use a bounded local cache with direct PostgreSQL misses; local entries must expire within
+    five minutes when Redis delivery fails. Process-owned runtime maps stay local.
 
 ## Discord entrypoints and boundaries
 

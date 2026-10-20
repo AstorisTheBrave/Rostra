@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { AutomodConfig, AutomodRule } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { Accent, container, text } from "@rostra/discord-ui";
@@ -15,58 +16,53 @@ import {
 
 const log = getLogger("automod");
 
-const configCache = new Map<string, AutomodConfig | null>();
-const filterCache = new Map<string, Filter>();
-const rulesCache = new Map<string, AutomodRule[]>();
+const configCache = createCoherentCache<AutomodConfig | null>("automod", "guild");
+const filterCache = new WeakMap<AutomodConfig, Filter>();
+const rulesCache = createCoherentCache<AutomodRule[]>("automodRules", "guild");
 const spamBuckets = new Map<string, number[]>();
 
 export async function getConfig(guildId: string): Promise<AutomodConfig | null> {
-	const cached = configCache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma()
-		.automodConfig.findUnique({ where: { guildId } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load automod config");
-			return null;
-		});
-	configCache.set(guildId, cfg);
-	return cfg;
+	return configCache.get(guildId, () =>
+		getPrisma()
+			.automodConfig.findUnique({ where: { guildId } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load automod config");
+				return null;
+			}),
+	);
 }
 
 export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<AutomodConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<AutomodConfig> {
-	const cfg = await getPrisma().automodConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	configCache.set(guildId, cfg);
-	filterCache.delete(guildId);
+	const { value: cfg } = await configCache.write(guildId, (tx) =>
+		tx.automodConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return cfg;
 }
 
 export function invalidate(guildId: string): void {
-	configCache.delete(guildId);
-	filterCache.delete(guildId);
-	rulesCache.delete(guildId);
+	configCache.evict(guildId);
+	rulesCache.evict(guildId);
 }
 
 // ── Custom rules ─────────────────────────────────────────────────────────────
 
 /** Cached list of a guild's custom automod rules. */
 export async function getRules(guildId: string): Promise<AutomodRule[]> {
-	const cached = rulesCache.get(guildId);
-	if (cached) return cached;
-	const rows = await getPrisma()
-		.automodRule.findMany({ where: { guildId }, orderBy: { createdAt: "asc" } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load automod rules");
-			return [] as AutomodRule[];
-		});
-	rulesCache.set(guildId, rows);
-	return rows;
+	return rulesCache.get(guildId, () =>
+		getPrisma()
+			.automodRule.findMany({ where: { guildId }, orderBy: { createdAt: "asc" } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load automod rules");
+				return [] as AutomodRule[];
+			}),
+	);
 }
 
 export async function addRule(data: {
@@ -76,18 +72,30 @@ export async function addRule(data: {
 	pattern: string;
 	action: string;
 }): Promise<AutomodRule> {
-	const row = await getPrisma().automodRule.upsert({
-		where: { guildId_name: { guildId: data.guildId, name: data.name } },
-		create: data,
-		update: { trigger: data.trigger, pattern: data.pattern, action: data.action, enabled: true },
-	});
-	rulesCache.delete(data.guildId);
+	const { value: row } = await rulesCache.write(
+		data.guildId,
+		(tx) =>
+			tx.automodRule.upsert({
+				where: { guildId_name: { guildId: data.guildId, name: data.name } },
+				create: data,
+				update: {
+					trigger: data.trigger,
+					pattern: data.pattern,
+					action: data.action,
+					enabled: true,
+				},
+			}),
+		() => undefined,
+	);
 	return row;
 }
 
 export async function removeRule(guildId: string, name: string): Promise<boolean> {
-	const res = await getPrisma().automodRule.deleteMany({ where: { guildId, name } });
-	rulesCache.delete(guildId);
+	const { value: res } = await rulesCache.write(
+		guildId,
+		(tx) => tx.automodRule.deleteMany({ where: { guildId, name } }),
+		() => undefined,
+	);
 	return res.count > 0;
 }
 
@@ -96,20 +104,24 @@ export async function toggleRule(guildId: string, name: string): Promise<Automod
 		where: { guildId_name: { guildId, name } },
 	});
 	if (!rule) return null;
-	const updated = await getPrisma().automodRule.update({
-		where: { guildId_name: { guildId, name } },
-		data: { enabled: !rule.enabled },
-	});
-	rulesCache.delete(guildId);
+	const { value: updated } = await rulesCache.write(
+		guildId,
+		(tx) =>
+			tx.automodRule.update({
+				where: { guildId_name: { guildId, name } },
+				data: { enabled: !rule.enabled },
+			}),
+		() => undefined,
+	);
 	return updated;
 }
 
 function getFilter(config: AutomodConfig): Filter {
-	let filter = filterCache.get(config.guildId);
+	let filter = filterCache.get(config);
 	if (!filter) {
 		filter = new Filter();
 		if (config.customWords.length) filter.addWords(...config.customWords);
-		filterCache.set(config.guildId, filter);
+		filterCache.set(config, filter);
 	}
 	return filter;
 }

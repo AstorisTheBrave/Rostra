@@ -50,6 +50,9 @@ tested): `isAllowed` (blacklist/whitelist with user>role>channel specificity), `
 
 ## gotchas
 
+- Board, override and autostar lists use versioned tenant invalidation after committed
+  writes and a five-minute local TTL if Redis delivery fails.
+
 - A message can appear on multiple boards at once (one `StarboardEntry` per board+message). Routing is by
   emoji (per-board `emojis`/`downvoteEmojis`); role/channel routing is `authorRoleId`/`ignoredChannels`.
 - Blacklist/whitelist specificity: a more specific whitelist beats a less specific blacklist (user > role >

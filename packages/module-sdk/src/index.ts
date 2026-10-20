@@ -1,4 +1,10 @@
-export type { DisposableEventRegistration, ModuleEventDescriptor } from "./events.ts";
+export type {
+	DisposableEventRegistration,
+	ModuleEventDescriptor,
+	ModuleEventV1,
+	VersionedModuleEventDescriptor,
+} from "./events.ts";
+export { validateModuleEvent } from "./events.ts";
 export type { AdaptedLegacyModule, LegacyModule } from "./legacy-adapter.ts";
 export { adaptLegacyModule, adaptLegacyModules } from "./legacy-adapter.ts";
 export type { LifecycleFailure, ModuleLifecycle, SupervisedModule } from "./lifecycle.ts";

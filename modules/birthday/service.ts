@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { Birthday, BirthdayConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
@@ -21,31 +22,30 @@ export function msUntilNextRun(hourUtc: number, now = new Date()): number {
 	return next.getTime() - now.getTime();
 }
 
-const cache = new Map<string, BirthdayConfig | null>();
+const cache = createCoherentCache<BirthdayConfig | null>("birthday", "guild");
 
 export async function getConfig(guildId: string): Promise<BirthdayConfig | null> {
-	const cached = cache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma()
-		.birthdayConfig.findUnique({ where: { guildId } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load birthday config");
-			return null;
-		});
-	cache.set(guildId, cfg);
-	return cfg;
+	return cache.get(guildId, () =>
+		getPrisma()
+			.birthdayConfig.findUnique({ where: { guildId } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load birthday config");
+				return null;
+			}),
+	);
 }
 
 export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<BirthdayConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<BirthdayConfig> {
-	const cfg = await getPrisma().birthdayConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	cache.set(guildId, cfg);
+	const { value: cfg } = await cache.write(guildId, (tx) =>
+		tx.birthdayConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return cfg;
 }
 

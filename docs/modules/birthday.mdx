@@ -25,6 +25,9 @@ Server) `channel`, `role`, `message`.
 
 ## gotchas
 
+- Cached per-guild configuration receives versioned invalidation after a committed write;
+  missed delivery expires within five minutes.
+
 - **Scheduling is per-shard** (like giveaways): on `ready`, each shard arms a timer for 09:00 UTC; each
   run handles only birthdays for guilds that shard owns (`client.guilds.cache.get`).
 - The birthday role is granted then removed ~23h later via `setTimeout`; a bot restart within that window

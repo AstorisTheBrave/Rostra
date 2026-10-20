@@ -1,4 +1,4 @@
-import { publish, subscribe } from "@rostra/cache/bus";
+import { publish, type Subscription, subscribe } from "@rostra/cache/bus";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 
@@ -61,8 +61,16 @@ export function applyFlagMessage(payload: unknown): void {
 }
 
 /** Subscribe this shard to live flag flips. Call at boot. */
-export function subscribeFeatureFlags(): void {
-	subscribe(CHANNEL, applyFlagMessage);
+export function subscribeFeatureFlags(): Subscription {
+	const subscription = subscribe(CHANNEL, applyFlagMessage);
+	void subscription.ready.then((outcome) => {
+		if (outcome.status === "ttl-fallback")
+			log.error(
+				{ reason: outcome.reason },
+				"feature flag subscription unavailable; updates require restart or manual reload",
+			);
+	});
+	return subscription;
 }
 
 /** Flip a flag fleet-wide: persist, apply locally, and fan out to every shard. */
@@ -73,5 +81,7 @@ export async function setFeatureLive(name: string, enabled: boolean): Promise<vo
 		update: { enabled },
 	});
 	overrides.set(name, enabled);
-	await publish(CHANNEL, { name, enabled });
+	const outcome = await publish(CHANNEL, { name, enabled });
+	if (outcome.status === "ttl-fallback")
+		log.warn({ name, reason: outcome.reason }, "feature flag update did not reach the fleet");
 }

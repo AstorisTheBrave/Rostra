@@ -4,6 +4,9 @@ import { getLogger } from "@rostra/logger";
 import Redis from "ioredis";
 import Keyv from "keyv";
 
+export type { CoherentCache } from "./coherent.ts";
+export { commitCoherentWrite, createCoherentCache } from "./coherent.ts";
+
 const log = getLogger("cache");
 
 let keyv: Keyv | undefined;
@@ -58,23 +61,10 @@ export async function withCache<T>(key: string, ttlMs: number, fn: () => Promise
 }
 
 /**
- * Standard TTL for per-guild config and other rarely-changing reads: 5 minutes.
- * Bounds staleness while cutting DB trips on hot, read-heavy event paths.
+ * Standard local TTL for persisted config and preference caches: 5 minutes.
+ * Bounds staleness when a Redis invalidation is missed.
  */
 export const CONFIG_TTL_MS = 300_000;
-
-/**
- * Cache-aside read at the standard config TTL. Use for per-guild config and
- * similar hot reads; pair every write with `invalidateConfig(key)`.
- */
-export async function cachedConfig<T>(key: string, loader: () => Promise<T>): Promise<T> {
-	return withCache(key, CONFIG_TTL_MS, loader);
-}
-
-/** Drop a cached config entry after a write so the next read reloads it. */
-export async function invalidateConfig(key: string): Promise<void> {
-	await cacheDel(key);
-}
 
 export async function disconnectCache(): Promise<void> {
 	await keyv?.disconnect?.();

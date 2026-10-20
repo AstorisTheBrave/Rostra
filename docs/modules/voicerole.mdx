@@ -27,6 +27,9 @@ guild and invalidated on set/disable (the cache stores `null` for known-empty gu
 
 ## gotchas
 
+- Cached per-guild configuration receives versioned invalidation after set or disable;
+  missed delivery expires within five minutes.
+
 - Needs the **Manage Roles** permission and the target role below the bot's highest role; both the command
   and the listener guard the hierarchy.
 - Moving between voice channels is a `none` action, so the role is not churned on every hop.

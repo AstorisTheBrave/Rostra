@@ -1,4 +1,4 @@
-import { cachedConfig, invalidateConfig } from "@rostra/cache";
+import { createCoherentCache } from "@rostra/cache";
 import type { Guild, UserPreference } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getTranslator, type Translator } from "@rostra/i18n";
@@ -9,8 +9,8 @@ import { getTenant, updateTenant } from "@/services/tenant.ts";
  * The localization platform service - peer to `tenant`. Resolves which language
  * a given audience should be addressed in (user / guild / moderator) and exposes
  * locale-bound translators so a single action can render per recipient. Also owns
- * per-user preferences (language + feature opt-outs). User prefs read through the
- * shared two-layer config cache (Redis, 5-min TTL), like tenant config.
+ * per-user preferences (language + feature opt-outs). User prefs use a bounded
+ * per-process cache with a five-minute TTL and direct PostgreSQL misses.
  */
 
 // ── Feature opt-outs ─────────────────────────────────────────────────────────
@@ -24,42 +24,30 @@ export type UserFeature =
 	| "matchmaking" // social/matchmaking features
 	| "achievementNotifications";
 
-const L1 = new Map<string, UserPreference>();
-const L1_MAX = 5000;
-const cacheKey = (userId: string) => `userpref:${userId}`;
-
-function rememberL1(userId: string, pref: UserPreference): void {
-	if (L1.size >= L1_MAX) {
-		const oldest = L1.keys().next().value;
-		if (oldest !== undefined) L1.delete(oldest);
-	}
-	L1.set(userId, pref);
-}
+const cache = createCoherentCache<UserPreference>("userpref", "user", {
+	maxEntries: 5_000,
+});
 
 function loadOrCreate(userId: string): Promise<UserPreference> {
 	return getPrisma().userPreference.upsert({ where: { userId }, create: { userId }, update: {} });
 }
 
-/** Cached per-user preferences: L1 in-process, then Redis (5-min), then DB. */
+/** Cached per-user preferences: bounded local L1, then durable PostgreSQL. */
 export async function getUserPreference(userId: string): Promise<UserPreference> {
-	const hot = L1.get(userId);
-	if (hot) return hot;
-	const pref = await cachedConfig(cacheKey(userId), () => loadOrCreate(userId));
-	rememberL1(userId, pref);
-	return pref;
+	return cache.get(userId, () => loadOrCreate(userId));
 }
 
 async function writePreference(
 	userId: string,
 	data: { locale?: string | null; features?: Record<string, boolean> },
 ): Promise<UserPreference> {
-	const updated = await getPrisma().userPreference.upsert({
-		where: { userId },
-		create: { userId, ...data },
-		update: data,
-	});
-	await invalidateConfig(cacheKey(userId));
-	rememberL1(userId, updated);
+	const { value: updated } = await cache.write(userId, (tx) =>
+		tx.userPreference.upsert({
+			where: { userId },
+			create: { userId, ...data },
+			update: data,
+		}),
+	);
 	return updated;
 }
 
@@ -91,7 +79,7 @@ export async function isOptedOut(userId: string, feature: UserFeature): Promise<
 
 /** Drop a user's preference from the in-process cache (e.g. after a write elsewhere). */
 export function evictUserPreferenceL1(userId: string): void {
-	L1.delete(userId);
+	cache.evict(userId);
 }
 
 // ── Locale resolution ────────────────────────────────────────────────────────

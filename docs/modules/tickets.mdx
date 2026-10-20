@@ -32,6 +32,9 @@ module that uses interactive **buttons**.
 
 ## gotchas
 
+- Cached ticket configuration receives versioned tenant invalidation and a five-minute
+  local TTL. Active ticket state and event bookkeeping are separate.
+
 - This module is the reference for **component interactions**: export `components: ComponentHandler[]`,
   build buttons with `customId` `prefix:action`, and the router handles dispatch.
 - One open ticket per user per guild is enforced (`Ticket` query before create).

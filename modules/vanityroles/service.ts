@@ -1,39 +1,39 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { VanityRoleConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 
 const log = getLogger("vanityroles");
 
-const cache = new Map<string, VanityRoleConfig | null>();
+const cache = createCoherentCache<VanityRoleConfig | null>("vanityroles", "guild");
 
 export async function getConfig(guildId: string): Promise<VanityRoleConfig | null> {
-	const cached = cache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma()
-		.vanityRoleConfig.findUnique({ where: { guildId } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load vanity config");
-			return null;
-		});
-	cache.set(guildId, cfg);
-	return cfg;
+	return cache.get(guildId, () =>
+		getPrisma()
+			.vanityRoleConfig.findUnique({ where: { guildId } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load vanity config");
+				return null;
+			}),
+	);
 }
 
 export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<VanityRoleConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<VanityRoleConfig> {
-	const cfg = await getPrisma().vanityRoleConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	cache.set(guildId, cfg);
+	const { value: cfg } = await cache.write(guildId, (tx) =>
+		tx.vanityRoleConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return cfg;
 }
 
 export function invalidate(guildId: string): void {
-	cache.delete(guildId);
+	cache.evict(guildId);
 }
 
 /** True if any of the status/activity texts contains the keyword (case-insensitive). */

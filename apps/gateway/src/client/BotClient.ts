@@ -1,3 +1,4 @@
+import type { Subscription } from "@rostra/cache/bus";
 import { config } from "@rostra/config";
 import { getLogger } from "@rostra/logger";
 import { superviseModuleLifecycles } from "@rostra/module-sdk";
@@ -52,6 +53,7 @@ export class BotClient extends Client {
 	readonly cluster?: ClusterClient<Client>;
 	#ipc?: Ipc;
 	#disposeEvents?: () => void;
+	#busSubscriptions: Subscription[] = [];
 	#modules?: ReturnType<typeof superviseModuleLifecycles>;
 
 	constructor() {
@@ -106,14 +108,14 @@ export class BotClient extends Client {
 			// Overlay live (DB) translations on the bundled baseline and subscribe to
 			// fleet-wide reloads so language changes apply with no restart.
 			const { loadLiveLocales, subscribeLocaleReload } = await import("@rostra/i18n/live");
-			subscribeLocaleReload();
+			this.#busSubscriptions.push(subscribeLocaleReload());
 			await loadLiveLocales();
 
 			// Load global feature flags and subscribe to live flips/kill-switches.
 			const { loadFeatureFlags, subscribeFeatureFlags } = await import(
 				"@/services/featureFlags.ts"
 			);
-			subscribeFeatureFlags();
+			this.#busSubscriptions.push(subscribeFeatureFlags());
 			await loadFeatureFlags();
 
 			log.info({ modules: modules.length, commands: this.commands.size }, "client initialized");
@@ -128,6 +130,7 @@ export class BotClient extends Client {
 	}
 
 	override async destroy(): Promise<void> {
+		for (const subscription of this.#busSubscriptions.splice(0)) subscription.dispose();
 		try {
 			this.#disposeEvents?.();
 		} catch (error) {

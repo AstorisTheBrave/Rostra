@@ -63,6 +63,14 @@ The current compatibility module exports its `BotModule` from the module entrypo
 
 For schema changes, edit `packages/database/prisma/schema.prisma`, generate the client with `pnpm prisma:generate`, and add a forward-only migration. Preserve all existing migration directories and checksums. Add focused tests for new logic and update the module guide.
 
+For a persisted value cached across gateway processes, use `createCoherentCache` and write
+through its transaction method. An owner outside that module may use
+`commitCoherentWrite` with the same owner, tenant and key. Read PostgreSQL directly on
+local cache misses and publish only after commit;
+keep process-owned timers, sessions and event state out of the fleet cache. Handle the typed
+TTL fallback outcome or rely on its structured warning, and document the five-minute
+staleness bound.
+
 ## Pull requests
 
 Use a focused branch and pull request. `main` is protected and needs the required CI checks. Use a conventional commit subject such as `feat:`, `fix:`, `docs:` or `test:`. Do not add attribution trailers. A local green gate does not prove remote CI, independent review, image/security matrices or phase delivery; record outstanding evidence accurately.

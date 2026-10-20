@@ -48,6 +48,9 @@ payload carries `{guildId, restoreLevel}` so a restart can still restore correct
 
 ## gotchas
 
+- Cached per-guild configuration receives versioned invalidation after a committed write;
+  missed delivery expires within five minutes. Raid windows and temporary locks stay local.
+
 - Detection relies on Discord's **audit log**, which can lag the gateway event slightly - `resolveAudit
   Executor` retries once after 500ms and only matches entries within an 8s TTL.
 - An absent `AntinukeConfig` row means antinuke was never set up (treated as disabled). `getConfig`

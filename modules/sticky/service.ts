@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { StickyMessage } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 
@@ -11,15 +12,13 @@ import { getPrisma } from "@rostra/database";
 export const STICKY_PREFIX = "📌";
 const MAX_LEN = 2000;
 
-const cache = new Map<string, Map<string, StickyMessage>>(); // guildId -> channelId -> row
+const cache = createCoherentCache<Map<string, StickyMessage>>("sticky", "guild");
 
 export async function getGuildStickies(guildId: string): Promise<Map<string, StickyMessage>> {
-	const hit = cache.get(guildId);
-	if (hit) return hit;
-	const rows = await getPrisma().stickyMessage.findMany({ where: { guildId } });
-	const map = new Map(rows.map((r) => [r.channelId, r]));
-	cache.set(guildId, map);
-	return map;
+	return cache.get(guildId, async () => {
+		const rows = await getPrisma().stickyMessage.findMany({ where: { guildId } });
+		return new Map(rows.map((r) => [r.channelId, r]));
+	});
 }
 
 export async function setSticky(
@@ -27,25 +26,42 @@ export async function setSticky(
 	channelId: string,
 	content: string,
 ): Promise<void> {
-	await getPrisma().stickyMessage.upsert({
-		where: { channelId },
-		create: { channelId, guildId, content },
-		update: { content, lastMessageId: null },
-	});
-	cache.delete(guildId);
+	await cache.write(
+		guildId,
+		(tx) =>
+			tx.stickyMessage.upsert({
+				where: { channelId },
+				create: { channelId, guildId, content },
+				update: { content, lastMessageId: null },
+			}),
+		() => undefined,
+	);
 }
 
 export async function removeSticky(guildId: string, channelId: string): Promise<boolean> {
-	const res = await getPrisma().stickyMessage.deleteMany({ where: { channelId, guildId } });
-	cache.delete(guildId);
+	const { value: res } = await cache.write(
+		guildId,
+		(tx) => tx.stickyMessage.deleteMany({ where: { channelId, guildId } }),
+		() => undefined,
+	);
 	return res.count > 0;
 }
 
 export async function setLastMessageId(channelId: string, messageId: string | null): Promise<void> {
-	await getPrisma().stickyMessage.updateMany({
+	const row = await getPrisma().stickyMessage.findUnique({
 		where: { channelId },
-		data: { lastMessageId: messageId },
+		select: { guildId: true },
 	});
+	if (!row) return;
+	await cache.write(
+		row.guildId,
+		(tx) =>
+			tx.stickyMessage.updateMany({
+				where: { channelId, guildId: row.guildId },
+				data: { lastMessageId: messageId },
+			}),
+		() => undefined,
+	);
 }
 
 /** Render the sticky body: ensure the pin marker and clamp to Discord's limit. */

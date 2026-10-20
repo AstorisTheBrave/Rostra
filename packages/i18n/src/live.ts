@@ -1,4 +1,4 @@
-import { publish, subscribe } from "@rostra/cache/bus";
+import { publish, type Subscription, subscribe } from "@rostra/cache/bus";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 import { registerLocale } from "./index.ts";
@@ -77,8 +77,8 @@ async function reloadSlice(locale?: string, namespace?: string): Promise<void> {
 }
 
 /** Subscribe this shard to live-translation reload signals. Call at boot. */
-export function subscribeLocaleReload(): void {
-	subscribe(CHANNEL, (payload) => {
+export function subscribeLocaleReload(): Subscription {
+	const subscription = subscribe(CHANNEL, (payload) => {
 		const msg = (payload ?? {}) as ReloadMessage;
 		if (msg.all) {
 			void loadLiveLocales();
@@ -86,6 +86,14 @@ export function subscribeLocaleReload(): void {
 		}
 		void reloadSlice(msg.locale, msg.namespace);
 	});
+	void subscription.ready.then((outcome) => {
+		if (outcome.status === "ttl-fallback")
+			log.error(
+				{ reason: outcome.reason },
+				"live locale subscription unavailable; updates require restart or manual reload",
+			);
+	});
+	return subscription;
 }
 
 /** Upsert one live string: persist, apply locally now, and fan out to other shards. */
@@ -101,7 +109,9 @@ export async function setLocaleString(
 		update: { value },
 	});
 	registerLocale(locale, namespace, { [key]: value });
-	await publish(CHANNEL, { locale, namespace } satisfies ReloadMessage);
+	const outcome = await publish(CHANNEL, { locale, namespace } satisfies ReloadMessage);
+	if (outcome.status === "ttl-fallback")
+		log.warn({ reason: outcome.reason }, "live locale reload did not reach the fleet");
 }
 
 /**
@@ -124,6 +134,8 @@ export async function pushLocaleBundle(
 			}),
 		),
 	);
-	await publish(CHANNEL, { locale, namespace } satisfies ReloadMessage);
+	const outcome = await publish(CHANNEL, { locale, namespace } satisfies ReloadMessage);
+	if (outcome.status === "ttl-fallback")
+		log.warn({ reason: outcome.reason }, "live locale reload did not reach the fleet");
 	return entries.length;
 }

@@ -1,4 +1,5 @@
-import { getPrisma } from "@rostra/database";
+import { commitCoherentWrite } from "@rostra/cache";
+import { getPrisma, type Prisma } from "@rostra/database";
 import { updateTenant } from "@/services/tenant.ts";
 
 // Declarative description of the channels and roles Rostra's systems need. The
@@ -25,6 +26,14 @@ export interface RoleSpec {
 	wire?: (guildId: string, roleId: string) => Promise<void>;
 }
 
+function wireCachedConfig<T>(
+	owner: string,
+	guildId: string,
+	write: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<unknown> {
+	return commitCoherentWrite({ owner, tenant: `guild:${guildId}`, key: guildId }, write, () => {});
+}
+
 export const CHANNELS: ChannelSpec[] = [
 	{
 		key: "audit-log",
@@ -32,11 +41,13 @@ export const CHANNELS: ChannelSpec[] = [
 		topic: "Server activity and audit feed (logging module).",
 		staffOnly: true,
 		wire: async (guildId, id) => {
-			await getPrisma().loggingConfig.upsert({
-				where: { guildId },
-				create: { guildId, logChannelId: id },
-				update: { logChannelId: id },
-			});
+			await wireCachedConfig("logging", guildId, (tx) =>
+				tx.loggingConfig.upsert({
+					where: { guildId },
+					create: { guildId, logChannelId: id },
+					update: { logChannelId: id },
+				}),
+			);
 			await updateTenant(guildId, { logChannelId: id });
 		},
 	},
@@ -55,11 +66,13 @@ export const CHANNELS: ChannelSpec[] = [
 		topic: "Automod deletions and escalation actions.",
 		staffOnly: true,
 		wire: async (guildId, id) => {
-			await getPrisma().automodConfig.upsert({
-				where: { guildId },
-				create: { guildId, logChannelId: id },
-				update: { logChannelId: id },
-			});
+			await wireCachedConfig("automod", guildId, (tx) =>
+				tx.automodConfig.upsert({
+					where: { guildId },
+					create: { guildId, logChannelId: id },
+					update: { logChannelId: id },
+				}),
+			);
 		},
 	},
 	{
@@ -67,11 +80,13 @@ export const CHANNELS: ChannelSpec[] = [
 		name: "welcome",
 		topic: "New member welcomes.",
 		wire: async (guildId, id) => {
-			await getPrisma().welcomeConfig.upsert({
-				where: { guildId },
-				create: { guildId, welcomeChannelId: id },
-				update: { welcomeChannelId: id },
-			});
+			await wireCachedConfig("welcome", guildId, (tx) =>
+				tx.welcomeConfig.upsert({
+					where: { guildId },
+					create: { guildId, welcomeChannelId: id },
+					update: { welcomeChannelId: id },
+				}),
+			);
 			await updateTenant(guildId, { welcomeChannelId: id });
 		},
 	},
@@ -87,13 +102,12 @@ export const CHANNELS: ChannelSpec[] = [
 		name: "starboard",
 		topic: "The best messages, voted by the community.",
 		wire: async (guildId, id) => {
-			const prisma = getPrisma();
-			const existing = await prisma.starboard.findFirst({ where: { guildId, name: "main" } });
-			if (existing) {
-				await prisma.starboard.update({ where: { id: existing.id }, data: { channelId: id } });
-			} else {
-				await prisma.starboard.create({ data: { guildId, name: "main", channelId: id } });
-			}
+			await wireCachedConfig("starboard", guildId, async (tx) => {
+				const existing = await tx.starboard.findFirst({ where: { guildId, name: "main" } });
+				return existing
+					? tx.starboard.update({ where: { id: existing.id }, data: { channelId: id } })
+					: tx.starboard.create({ data: { guildId, name: "main", channelId: id } });
+			});
 		},
 	},
 	{
@@ -102,11 +116,13 @@ export const CHANNELS: ChannelSpec[] = [
 		topic: "Staff side of modmail threads.",
 		staffOnly: true,
 		wire: async (guildId, id) => {
-			await getPrisma().modmailConfig.upsert({
-				where: { guildId },
-				create: { guildId, channelId: id, enabled: true },
-				update: { channelId: id },
-			});
+			await wireCachedConfig("modmail", guildId, (tx) =>
+				tx.modmailConfig.upsert({
+					where: { guildId },
+					create: { guildId, channelId: id, enabled: true },
+					update: { channelId: id },
+				}),
+			);
 		},
 	},
 	{
@@ -129,11 +145,13 @@ export const ROLES: RoleSpec[] = [
 		name: "Verified",
 		color: 0x57f287,
 		wire: async (guildId, id) => {
-			await getPrisma().verificationConfig.upsert({
-				where: { guildId },
-				create: { guildId, roleId: id, enabled: true },
-				update: { roleId: id, enabled: true },
-			});
+			await wireCachedConfig("verification", guildId, (tx) =>
+				tx.verificationConfig.upsert({
+					where: { guildId },
+					create: { guildId, roleId: id, enabled: true },
+					update: { roleId: id, enabled: true },
+				}),
+			);
 		},
 	},
 ];

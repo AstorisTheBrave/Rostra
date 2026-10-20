@@ -29,6 +29,9 @@ a `GuildVoice` channel (owner gets Manage/Move/Mute/Deafen over it), moves the m
 
 ## gotchas
 
+- Cached per-guild configuration receives versioned invalidation after a committed write;
+  missed delivery expires within five minutes.
+
 - Requires the **Guild Voice States** intent (enabled).
 - Temp channels are tracked in `J2CChannel` so cleanup survives restarts (any tracked channel that ends up
   empty is removed on the next relevant `voiceStateUpdate`).

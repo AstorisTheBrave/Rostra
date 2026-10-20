@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import type {
 	AutostarChannel,
 	Prisma,
@@ -11,19 +12,17 @@ export type BoardWithOverrides = Starboard & { overrides: StarboardOverride[] };
 
 // ── Boards (cached per guild) ────────────────────────────────────────────────
 
-const boardCache = new Map<string, BoardWithOverrides[]>();
-const autostarCache = new Map<string, AutostarChannel[]>();
+const boardCache = createCoherentCache<BoardWithOverrides[]>("starboard", "guild");
+const autostarCache = createCoherentCache<AutostarChannel[]>("autostar", "guild");
 
 export async function listBoards(guildId: string): Promise<BoardWithOverrides[]> {
-	const cached = boardCache.get(guildId);
-	if (cached) return cached;
-	const rows = await getPrisma().starboard.findMany({
-		where: { guildId },
-		orderBy: { createdAt: "asc" },
-		include: { overrides: true },
-	});
-	boardCache.set(guildId, rows);
-	return rows;
+	return boardCache.get(guildId, () =>
+		getPrisma().starboard.findMany({
+			where: { guildId },
+			orderBy: { createdAt: "asc" },
+			include: { overrides: true },
+		}),
+	);
 }
 
 export function getBoard(guildId: string, name: string): Promise<Starboard | null> {
@@ -36,8 +35,11 @@ export async function createBoard(data: {
 	channelId: string;
 	emojis: string[];
 }): Promise<Starboard> {
-	const board = await getPrisma().starboard.create({ data });
-	boardCache.delete(data.guildId);
+	const { value: board } = await boardCache.write(
+		data.guildId,
+		(tx) => tx.starboard.create({ data }),
+		() => undefined,
+	);
 	return board;
 }
 
@@ -50,17 +52,24 @@ export async function updateBoard(
 		where: { guildId_name: { guildId, name } },
 	});
 	if (!board) return null;
-	const updated = await getPrisma().starboard.update({
-		where: { id: board.id },
-		data: patch as Prisma.StarboardUncheckedUpdateInput,
-	});
-	boardCache.delete(guildId);
+	const { value: updated } = await boardCache.write(
+		guildId,
+		(tx) =>
+			tx.starboard.update({
+				where: { id: board.id },
+				data: patch as Prisma.StarboardUncheckedUpdateInput,
+			}),
+		() => undefined,
+	);
 	return updated;
 }
 
 export async function deleteBoard(guildId: string, name: string): Promise<boolean> {
-	const res = await getPrisma().starboard.deleteMany({ where: { guildId, name } });
-	boardCache.delete(guildId);
+	const { value: res } = await boardCache.write(
+		guildId,
+		(tx) => tx.starboard.deleteMany({ where: { guildId, name } }),
+		() => undefined,
+	);
 	return res.count > 0;
 }
 
@@ -84,8 +93,11 @@ export async function createOverride(data: {
 	scopeType: string;
 	scopeIds: string[];
 }): Promise<StarboardOverride> {
-	const row = await getPrisma().starboardOverride.create({ data });
-	boardCache.delete(data.guildId);
+	const { value: row } = await boardCache.write(
+		data.guildId,
+		(tx) => tx.starboardOverride.create({ data }),
+		() => undefined,
+	);
 	return row;
 }
 
@@ -104,11 +116,15 @@ export async function updateOverride(
 		where: { starboardId_name: { starboardId, name } },
 	});
 	if (!existing) return null;
-	const row = await getPrisma().starboardOverride.update({
-		where: { id: existing.id },
-		data: patch,
-	});
-	boardCache.delete(guildId);
+	const { value: row } = await boardCache.write(
+		guildId,
+		(tx) =>
+			tx.starboardOverride.update({
+				where: { id: existing.id },
+				data: patch,
+			}),
+		() => undefined,
+	);
 	return row;
 }
 
@@ -117,19 +133,20 @@ export async function deleteOverride(
 	starboardId: string,
 	name: string,
 ): Promise<boolean> {
-	const res = await getPrisma().starboardOverride.deleteMany({ where: { starboardId, name } });
-	boardCache.delete(guildId);
+	const { value: res } = await boardCache.write(
+		guildId,
+		(tx) => tx.starboardOverride.deleteMany({ where: { starboardId, name } }),
+		() => undefined,
+	);
 	return res.count > 0;
 }
 
 // ── Autostar channels (cached per guild) ─────────────────────────────────────
 
 export async function listAutostar(guildId: string): Promise<AutostarChannel[]> {
-	const cached = autostarCache.get(guildId);
-	if (cached) return cached;
-	const rows = await getPrisma().autostarChannel.findMany({ where: { guildId } });
-	autostarCache.set(guildId, rows);
-	return rows;
+	return autostarCache.get(guildId, () =>
+		getPrisma().autostarChannel.findMany({ where: { guildId } }),
+	);
 }
 
 export async function getAutostar(
@@ -145,18 +162,25 @@ export async function addAutostar(
 	channelId: string,
 	emojis: string[],
 ): Promise<AutostarChannel> {
-	const row = await getPrisma().autostarChannel.upsert({
-		where: { guildId_channelId: { guildId, channelId } },
-		create: { guildId, channelId, emojis },
-		update: { emojis },
-	});
-	autostarCache.delete(guildId);
+	const { value: row } = await autostarCache.write(
+		guildId,
+		(tx) =>
+			tx.autostarChannel.upsert({
+				where: { guildId_channelId: { guildId, channelId } },
+				create: { guildId, channelId, emojis },
+				update: { emojis },
+			}),
+		() => undefined,
+	);
 	return row;
 }
 
 export async function removeAutostar(guildId: string, channelId: string): Promise<boolean> {
-	const res = await getPrisma().autostarChannel.deleteMany({ where: { guildId, channelId } });
-	autostarCache.delete(guildId);
+	const { value: res } = await autostarCache.write(
+		guildId,
+		(tx) => tx.autostarChannel.deleteMany({ where: { guildId, channelId } }),
+		() => undefined,
+	);
 	return res.count > 0;
 }
 

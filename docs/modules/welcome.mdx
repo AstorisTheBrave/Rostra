@@ -36,6 +36,9 @@ Rendering failures fall back to the text-only greeting.
 
 ## gotchas
 
+- Cached per-guild configuration receives versioned invalidation after a committed write;
+  missed delivery expires within five minutes.
+
 - Autorole assignment and member lists need the **Guild Members** intent (enabled).
 - Welcome/goodbye posts use Components V2 containers, not plain content.
 - Requires `prisma migrate` for the `WelcomeConfig` table.

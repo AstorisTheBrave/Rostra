@@ -1,3 +1,4 @@
+import { createCoherentCache } from "@rostra/cache";
 import type { ModmailConfig, ModmailThread } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
@@ -6,33 +7,32 @@ import { isFeatureBlocked } from "@/services/tenant.ts";
 
 const log = getLogger("modmail");
 
-const configCache = new Map<string, ModmailConfig | null>();
+const configCache = createCoherentCache<ModmailConfig | null>("modmail", "guild");
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
 export async function getConfig(guildId: string): Promise<ModmailConfig | null> {
-	const cached = configCache.get(guildId);
-	if (cached !== undefined) return cached;
-	const cfg = await getPrisma()
-		.modmailConfig.findUnique({ where: { guildId } })
-		.catch((err) => {
-			log.error({ err, guildId }, "failed to load modmail config");
-			return null;
-		});
-	configCache.set(guildId, cfg);
-	return cfg;
+	return configCache.get(guildId, () =>
+		getPrisma()
+			.modmailConfig.findUnique({ where: { guildId } })
+			.catch((err) => {
+				log.error({ err, guildId }, "failed to load modmail config");
+				return null;
+			}),
+	);
 }
 
 export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<ModmailConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<ModmailConfig> {
-	const cfg = await getPrisma().modmailConfig.upsert({
-		where: { guildId },
-		create: { guildId, ...data },
-		update: data,
-	});
-	configCache.set(guildId, cfg);
+	const { value: cfg } = await configCache.write(guildId, (tx) =>
+		tx.modmailConfig.upsert({
+			where: { guildId },
+			create: { guildId, ...data },
+			update: data,
+		}),
+	);
 	return cfg;
 }
 

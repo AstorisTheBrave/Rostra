@@ -48,6 +48,9 @@ guard, respecting the same exempt list, and `enforce(..., rule.action)` applies 
 
 ## gotchas
 
+- Persisted config and custom-rule lists use versioned tenant invalidation after a committed
+  write, with a five-minute local TTL if Redis delivery fails. Spam buckets remain local.
+
 - Requires the **Message Content** intent (enabled on the bot) to read message text.
 - The `bad-words` `Filter` is cached per guild and rebuilt when config changes (custom words added).
 - Spam tracking is per-process in-memory (per guild+user sliding window) - at multi-shard scale a guild's

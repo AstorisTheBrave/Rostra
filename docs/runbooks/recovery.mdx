@@ -7,12 +7,28 @@ status: in-flux
 
 # Backup and rollback
 
-PostgreSQL is the durable source of operation intent. Redis is an at-least-once delivery queue with
-append-only persistence; the worker reconciler republishes pending and retryable database intent if
-Redis loses a queued job. A Redis restore may therefore redeliver work, and handlers must remain
-idempotent. PostgreSQL loss beyond the last verified backup can lose durable intent and application
-data. Redis AOF `everysec` can lose roughly the last second of queue writes, but PostgreSQL intent is
-reconcilable.
+PostgreSQL is the durable source of operation and delivery intent. An operation, its outbox row and an
+optional domain mutation commit together. Redis is an at-least-once delivery queue with append-only
+persistence. The tracked outbox relay retries pending, failed and expired claims after Redis recovers.
+API and worker publication use finite-failure producer connections, so a Redis outage defers delivery
+without indefinitely holding an accepted request or worker drain.
+An API request may return `202` while delivery is deferred; this means intent is durable, not that the
+effect completed. The operation reconciler republishes retryable execution only after outbox publication.
+A Redis restore may redeliver work, and handlers must remain idempotent. PostgreSQL loss beyond the last
+verified backup can lose durable intent and application data. Redis AOF `everysec` can lose roughly the
+last second of queue writes, but PostgreSQL intent is reconcilable.
+
+For a delivery incident, inspect `OperationOutbox` status, `nextAttemptAt`, `leaseUntil`, `attempts`,
+`claimVersion` and `lastErrorCode` alongside the operation status. `publish_failed` is a coded failure,
+not raw exception text. Restart Redis and the workers, then confirm due rows progress to `published`
+and operation attempts resume. A `claimed` row with an expired lease is automatically reclaimable.
+Do not delete rows or manually reset claim versions; a publisher may have sent a job just before
+crashing, so replay is expected.
+
+A rollback image may write a nonterminal `OperationRecord` without an outbox row after the additive
+migration has already run. On re-upgrade, the relay repairs at most 20 such rows before each claim
+poll, then publishes them through the normal fenced path. Do not expect migration deploy to repeat
+its one-time backfill. Check for missing rows if delivery has not resumed after Redis and workers recover.
 
 ## Before deployment
 

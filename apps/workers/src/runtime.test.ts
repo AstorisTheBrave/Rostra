@@ -1,14 +1,106 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { OperationFailure, OperationRecord, OperationRepository } from "@rostra/operations";
+import type {
+	OperationFailure,
+	OperationOutboxRepository,
+	OperationRecord,
+	OperationRepository,
+} from "@rostra/operations";
 import { RetryableOperationError } from "@rostra/operations";
+import Redis from "ioredis";
 import {
 	createOperationProcessor,
 	drainRuntimeAndDatabase,
 	OperationReconciler,
+	OutboxRelay,
 	TrackedWorkers,
 	WorkerRuntime,
 } from "./runtime.ts";
+
+test("outbox relay retries failed publication and drains an active claim", async () => {
+	let status = "pending";
+	let version = 0;
+	let releasesPublish = () => {};
+	const publishGate = new Promise<void>((resolve) => {
+		releasesPublish = resolve;
+	});
+	const repository: OperationOutboxRepository = {
+		async claimOutbox() {
+			return undefined;
+		},
+		async claimDueOutbox() {
+			if (status === "published") return [];
+			status = "claimed";
+			return [{ operationId: "operation-1", claimVersion: ++version, attempts: version }];
+		},
+		async publishOutbox(_id, claimVersion) {
+			if (claimVersion !== version) return false;
+			status = "published";
+			return true;
+		},
+		async retryOutbox(_id, claimVersion) {
+			if (claimVersion !== version) return false;
+			status = "retryable";
+			return true;
+		},
+	};
+	let publications = 0;
+	const relay = new OutboxRelay(repository, {
+		async publish() {
+			publications++;
+			if (publications === 1) throw new Error("redis unavailable");
+			await publishGate;
+		},
+	});
+	await assert.rejects(relay.runOnce(), AggregateError);
+	assert.equal(status, "retryable");
+	assert.deepEqual(relay.metrics, { claimed: 1, published: 0, deferred: 1 });
+	const errors: unknown[] = [];
+	relay.start((error) => errors.push(error));
+	while (publications < 2) await new Promise((resolve) => setImmediate(resolve));
+	let drained = false;
+	const drain = relay.close().then(() => {
+		drained = true;
+	});
+	assert.equal(drained, false);
+	releasesPublish();
+	await drain;
+	assert.equal(status, "published");
+	assert.equal(publications, 2);
+	assert.deepEqual(relay.metrics, { claimed: 2, published: 1, deferred: 1 });
+	assert.deepEqual(errors, []);
+});
+
+test("relay drain completes when its Redis producer cannot connect", async () => {
+	const connection = new Redis("redis://127.0.0.1:1", {
+		lazyConnect: true,
+		maxRetriesPerRequest: null,
+	});
+	const runtime = new WorkerRuntime(connection);
+	let retried = false;
+	const repository: OperationOutboxRepository = {
+		async claimOutbox() {
+			return undefined;
+		},
+		async claimDueOutbox() {
+			return [{ operationId: "unreachable", claimVersion: 1, attempts: 1 }];
+		},
+		async publishOutbox() {
+			return true;
+		},
+		async retryOutbox() {
+			retried = true;
+			return true;
+		},
+	};
+	const errors: unknown[] = [];
+	const started = Date.now();
+	runtime.registerOutboxRelay(repository, (error) => errors.push(error));
+	await runtime.drain();
+	assert.ok(Date.now() - started < 5_000, "relay drain must finish promptly");
+	assert.equal(retried, true);
+	assert.equal(errors.length, 1);
+});
 
 class Repository implements OperationRepository {
 	readonly record: OperationRecord = {

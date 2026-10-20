@@ -77,8 +77,12 @@ not use the alias. Never import another package's private files, including throu
    module inventory, events and behavior unless a tested security fix requires a change.
 10. PostgreSQL owns durable intent; Redis delivery is at least once. Consumers must be idempotent,
     return each claim version from the same transaction that increments it, fence settlement by that
-    claim version, reconcile recoverable intent and drain on shutdown. Do not report an effect before
-    it is durable.
+    claim version, reconcile recoverable intent and drain on shutdown. New operations write an outbox
+    row in the same transaction as their domain mutation; API best-effort delivery and the tracked
+    worker relay publish only after commit. Producer connections must fail and close promptly during
+    Redis outages; the BullMQ Worker connection keeps its separate retry policy. Each relay poll
+    repairs a bounded batch of missing outbox rows left by a rollback image. Do not report an effect
+    before it is durable.
 11. Stable dependencies only. No alpha, beta, RC or development releases unless that is the package's
     only published stable channel. Verify support and deployment requirements before selecting tooling.
 12. Every change updates `docs/sessions/log.mdx` and relevant module or architecture documentation.

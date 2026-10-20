@@ -11,6 +11,25 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-20 - Phase 01 transactional operation outbox
+
+Operation creation now commits its outbox row with the operation and optional domain mutation. The
+API returns durable `202` after commit when immediate Redis delivery fails. A tracked worker relay
+claims bounded due rows, fences publication settlement by claim version and retries coded failures or
+expired leases. The existing operation reconciler handles execution retries only after outbox
+publication. Duplicate idempotency keys now require matching kind, guild and payload.
+Review correction separated finite-failure API and worker producer connections from the BullMQ Worker
+connection, so a Redis outage fails publication and drains promptly. Every relay poll also repairs a
+bounded, idempotent batch of nonterminal operations missing outbox rows after a prior-image rollback.
+
+**evidence**: Focused unit and disposable PostgreSQL/Redis service tests prove atomic rollback,
+concurrent same-key creation, post-commit publication, failed publish retry, expired claim takeover,
+stale settlement rejection, duplicate BullMQ job identity and one durable effect. The full local gate
+and remote review status are recorded in the task report; this entry does not claim a Phase 01 pass.
+An unreachable-Redis regression proves API publish and relay drain terminate promptly. A disposable
+PostgreSQL/Redis regression creates a prior-image operation after migration, then proves repair,
+publication and one outbox identity on redeployment.
+
 ### 2026-10-19 - Phase 00 web image build
 
 The web Docker target now runs the `@rostra/web` production build before starting Vite preview. The

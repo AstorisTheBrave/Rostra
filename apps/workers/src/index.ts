@@ -30,6 +30,9 @@ async function main(): Promise<void> {
 	]);
 	const runtime = new WorkerRuntime(connection);
 	runtime.registerOperations(repository, handlers);
+	runtime.registerOutboxRelay(repository, (error) =>
+		log.error({ err: error }, "operation outbox relay failed"),
+	);
 	runtime.registerReconciler(repository, (error) =>
 		log.error({ err: error }, "operation reconciliation failed"),
 	);
@@ -40,7 +43,10 @@ async function main(): Promise<void> {
 	const close = async (signal: string) => {
 		if (closing) return;
 		closing = true;
-		log.info({ signal, workers: runtime.workerCount }, "worker drain started");
+		log.info(
+			{ signal, workers: runtime.workerCount, outbox: runtime.outboxMetrics },
+			"worker drain started",
+		);
 		const failed = await drainRuntimeAndDatabase(runtime, disconnectPrisma, (error) =>
 			log.error({ err: error }, "worker shutdown cleanup failed"),
 		);

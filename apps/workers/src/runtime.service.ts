@@ -3,8 +3,10 @@ import { test } from "node:test";
 import { config } from "@rostra/config";
 import { disconnectPrisma, getPrisma } from "@rostra/database";
 import {
-	createAndPublishOperation,
+	BullMqOperationPublisher,
+	createAndRelayOperation,
 	IdempotencyConflictError,
+	OPERATION_PRODUCER_OPTIONS,
 	type OperationHandler,
 	operationJobId,
 	PrismaOperationRepository,
@@ -12,7 +14,7 @@ import {
 } from "@rostra/operations";
 import { type ConnectionOptions, Queue } from "bullmq";
 import Redis from "ioredis";
-import { WorkerRuntime } from "./runtime.ts";
+import { OutboxRelay, WorkerRuntime } from "./runtime.ts";
 
 async function waitFor(check: () => Promise<boolean>, timeoutMs = 10_000): Promise<void> {
 	const deadline = Date.now() + timeoutMs;
@@ -36,7 +38,7 @@ test("PostgreSQL intent and Redis redelivery survive a worker restart with one d
 	try {
 		await queue.obliterate({ force: true });
 		const key = `service-${Date.now()}`;
-		const operation = await createAndPublishOperation(
+		const { record: operation } = await createAndRelayOperation(
 			repository,
 			{
 				publish: (payload) =>
@@ -129,6 +131,116 @@ test("PostgreSQL intent and Redis redelivery survive a worker restart with one d
 		if (operationIds.length)
 			await prisma.operationRecord.deleteMany({ where: { id: { in: operationIds } } });
 		await queue.obliterate({ force: true }).catch(() => undefined);
+		await queue.close().catch(() => undefined);
+		redis.disconnect();
+		await disconnectPrisma();
+	}
+});
+
+test("outbox relay reclaims publication without settlement and BullMQ keeps one job identity", async () => {
+	assert.ok(config.redis.url, "REDIS_URL is required for service integration");
+	const redis = new Redis(config.redis.url, { maxRetriesPerRequest: null });
+	const queue = new Queue("operations", { connection: redis as unknown as ConnectionOptions });
+	const publisher = new BullMqOperationPublisher({
+		...redis.options,
+		...OPERATION_PRODUCER_OPTIONS,
+	} as ConnectionOptions);
+	const repository = new PrismaOperationRepository();
+	const prisma = getPrisma();
+	let runtime: WorkerRuntime | undefined;
+	let operationId: string | undefined;
+	try {
+		await queue.obliterate({ force: true });
+		const created = await repository.create({
+			kind: "phase01.outbox",
+			idempotencyKey: `outbox-service-${Date.now()}`,
+		});
+		operationId = created.record.id;
+		const first = await repository.claimOutbox(operationId, new Date(), 30_000);
+		assert.ok(first);
+		await publisher.publish({ version: 1, operationId });
+		assert.equal(
+			(await prisma.operationOutbox.findUniqueOrThrow({ where: { operationId } })).status,
+			"claimed",
+		);
+		const relay = new OutboxRelay(repository, publisher);
+		assert.equal(await relay.runOnce(new Date(Date.now() + 31_000)), 1);
+		const settled = await prisma.operationOutbox.findUniqueOrThrow({ where: { operationId } });
+		assert.equal(settled.status, "published");
+		assert.equal(settled.claimVersion, first.claimVersion + 1);
+		assert.equal(settled.attempts, 2);
+		assert.equal(
+			await repository.publishOutbox(operationId, first.claimVersion, new Date()),
+			false,
+		);
+		assert.ok(await queue.getJob(operationJobId(operationId)));
+		const workerConnection = new Redis(config.redis.url, { maxRetriesPerRequest: null });
+		runtime = new WorkerRuntime(workerConnection);
+		runtime.registerOperations(
+			repository,
+			new Map<string, OperationHandler>([
+				[
+					"phase01.outbox",
+					async (record) => {
+						await repository.recordEffect(record.id, { ok: true });
+					},
+				],
+			]),
+		);
+		await waitFor(
+			async () => (await repository.get(operationId as string))?.status === "completed",
+		);
+		await publisher.publish({ version: 1, operationId });
+		await waitFor(
+			async () => (await prisma.operationEffect.count({ where: { operationId } })) === 1,
+		);
+		assert.equal(await prisma.operationEffect.count({ where: { operationId } }), 1);
+	} finally {
+		await runtime?.drain();
+		if (operationId) await prisma.operationRecord.deleteMany({ where: { id: operationId } });
+		await queue.obliterate({ force: true }).catch(() => undefined);
+		await publisher.close().catch(() => undefined);
+		await queue.close().catch(() => undefined);
+		redis.disconnect();
+		await disconnectPrisma();
+	}
+});
+
+test("relay repairs operations created by a rolled-back image after the outbox migration", async () => {
+	assert.ok(config.redis.url, "REDIS_URL is required for service integration");
+	const redis = new Redis(config.redis.url, { maxRetriesPerRequest: null });
+	const queue = new Queue("operations", { connection: redis as unknown as ConnectionOptions });
+	const publisher = new BullMqOperationPublisher({
+		...redis.options,
+		...OPERATION_PRODUCER_OPTIONS,
+	} as ConnectionOptions);
+	const repository = new PrismaOperationRepository();
+	const prisma = getPrisma();
+	let operationId: string | undefined;
+	try {
+		await queue.obliterate({ force: true });
+		const oldImageRecord = await prisma.operationRecord.create({
+			data: {
+				kind: "phase01.rollback-repair",
+				idempotencyKey: `rollback-repair-${Date.now()}`,
+				payload: {},
+			},
+		});
+		operationId = oldImageRecord.id;
+		assert.equal(await prisma.operationOutbox.count({ where: { operationId } }), 0);
+		const relay = new OutboxRelay(repository, publisher);
+		assert.equal(await relay.runOnce(), 1);
+		assert.equal(
+			(await prisma.operationOutbox.findUniqueOrThrow({ where: { operationId } })).status,
+			"published",
+		);
+		assert.ok(await queue.getJob(operationJobId(operationId)));
+		assert.equal(await relay.runOnce(), 0);
+		assert.equal(await prisma.operationOutbox.count({ where: { operationId } }), 1);
+	} finally {
+		if (operationId) await prisma.operationRecord.deleteMany({ where: { id: operationId } });
+		await queue.obliterate({ force: true }).catch(() => undefined);
+		await publisher.close().catch(() => undefined);
 		await queue.close().catch(() => undefined);
 		redis.disconnect();
 		await disconnectPrisma();

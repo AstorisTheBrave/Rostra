@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
 	classifyOperationError,
-	createAndPublishOperation,
+	createAndRelayOperation,
 	IdempotencyConflictError,
 	type NewOperation,
 	type OperationFailure,
@@ -21,6 +21,7 @@ class MemoryRepository implements OperationRepository {
 	readonly keys = new Map<string, string>();
 	readonly failures: OperationFailure[] = [];
 	readonly effects = new Set<string>();
+	readonly published = new Set<string>();
 	#sequence = 0;
 
 	async create(input: NewOperation) {
@@ -47,6 +48,20 @@ class MemoryRepository implements OperationRepository {
 		this.records.set(record.id, record);
 		this.keys.set(record.idempotencyKey, record.id);
 		return { record, created: true };
+	}
+
+	async claimOutbox(id: string) {
+		return this.published.has(id) ? undefined : { operationId: id, claimVersion: 1, attempts: 1 };
+	}
+	async claimDueOutbox() {
+		return [];
+	}
+	async publishOutbox(id: string) {
+		this.published.add(id);
+		return true;
+	}
+	async retryOutbox() {
+		return true;
 	}
 
 	async get(id: string) {
@@ -111,10 +126,10 @@ test("durable intent is created before delivery and idempotency avoids duplicate
 		},
 	};
 	const input = { kind: "smoke", guildId: "guild-1", idempotencyKey: "request-1" };
-	const first = await createAndPublishOperation(repository, publisher, input);
-	const second = await createAndPublishOperation(repository, publisher, input);
-	assert.equal(first.id, second.id);
-	assert.deepEqual(order, ["publish", "publish"]);
+	const first = await createAndRelayOperation(repository, publisher, input);
+	const second = await createAndRelayOperation(repository, publisher, input);
+	assert.equal(first.record.id, second.record.id);
+	assert.deepEqual(order, ["publish"]);
 });
 
 test("queue payload validation rejects malformed delivery without exposing internals", () => {

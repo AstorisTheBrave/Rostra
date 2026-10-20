@@ -2,6 +2,18 @@ import type { Prisma } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { type ConnectionOptions, Queue } from "bullmq";
 import { claimOperationRow } from "./claim-transaction.ts";
+import {
+	claimDueOutboxRows,
+	claimOutboxRow,
+	createOperationWithOutbox,
+	type OperationOutboxRepository,
+	relayOperation,
+	retryClaimedOutbox,
+	settlePublishedOutbox,
+} from "./outbox.ts";
+
+export type { OperationOutboxClaim, OperationOutboxRepository } from "./outbox.ts";
+export { IdempotencyConflictError, publishClaimedOutbox, relayOperation } from "./outbox.ts";
 
 export type OperationStatus = "pending" | "processing" | "retryable" | "completed" | "failed";
 export type FailureClassification = "retryable" | "permanent";
@@ -71,7 +83,10 @@ export interface OperationFailure {
 }
 
 export interface OperationRepository {
-	create(input: NewOperation): Promise<{ record: OperationRecord; created: boolean }>;
+	create(
+		input: NewOperation,
+		mutate?: (tx: Prisma.TransactionClient) => Promise<void>,
+	): Promise<{ record: OperationRecord; created: boolean }>;
 	get(id: string): Promise<OperationRecord | undefined>;
 	claim(id: string, now: Date, leaseMs: number): Promise<OperationClaim>;
 	complete(id: string, claimVersion: number): Promise<boolean>;
@@ -108,10 +123,6 @@ export class RetryableOperationError extends Error {
 	}
 }
 
-export class IdempotencyConflictError extends Error {
-	readonly code = "idempotency_conflict";
-}
-
 export function classifyOperationError(error: unknown): OperationFailure {
 	if (error instanceof PermanentOperationError)
 		return { classification: "permanent", code: error.code };
@@ -120,15 +131,19 @@ export function classifyOperationError(error: unknown): OperationFailure {
 	return { classification: "retryable", code: "unhandled_error" };
 }
 
-export async function createAndPublishOperation(
-	repository: OperationRepository,
+export async function createAndRelayOperation(
+	repository: OperationRepository & OperationOutboxRepository,
 	publisher: OperationPublisher,
 	input: NewOperation,
-): Promise<OperationRecord> {
-	const result = await repository.create(input);
-	if (!["completed", "failed"].includes(result.record.status))
-		await publisher.publish({ version: 1, operationId: result.record.id });
-	return result.record;
+	mutate?: (tx: Prisma.TransactionClient) => Promise<void>,
+): Promise<{ record: OperationRecord; delivery: "published" | "degraded" | "busy" }> {
+	const result = await repository.create(input, mutate);
+	if (["completed", "failed"].includes(result.record.status))
+		return { record: result.record, delivery: "busy" };
+	const delivery = await relayOperation(repository, publisher, result.record.id).catch(
+		() => "degraded" as const,
+	);
+	return { record: result.record, delivery };
 }
 
 export async function processOperation(
@@ -171,32 +186,56 @@ export function operationJobId(operationId: string): string {
 	return `operation-${operationId}`;
 }
 
+export const OPERATION_PRODUCER_OPTIONS = {
+	maxRetriesPerRequest: 1,
+	enableOfflineQueue: false,
+	connectTimeout: 1_000,
+	commandTimeout: 2_000,
+	retryStrategy: () => null,
+} as const;
+
 export class BullMqOperationPublisher implements OperationPublisher {
-	readonly #queue: Queue<OperationQueuePayload>;
+	readonly #connection: ConnectionOptions;
+	#queue: Queue<OperationQueuePayload> | undefined;
+	#closed = false;
 
 	constructor(connection: ConnectionOptions) {
-		this.#queue = new Queue<OperationQueuePayload>("operations", { connection });
+		this.#connection = connection;
 	}
 
 	async publish(payload: OperationQueuePayload): Promise<void> {
-		const jobId = operationJobId(payload.operationId);
-		const existing = await this.#queue.getJob(jobId);
-		if (existing) {
-			const state = await existing.getState();
-			if (state === "failed" || state === "completed") await existing.retry(state);
-			return;
+		if (this.#closed) throw new Error("Operation publisher is closed");
+		if (!this.#queue)
+			this.#queue = new Queue<OperationQueuePayload>("operations", {
+				connection: this.#connection,
+			});
+		const queue = this.#queue;
+		try {
+			const jobId = operationJobId(payload.operationId);
+			const existing = await queue.getJob(jobId);
+			if (existing) {
+				const state = await existing.getState();
+				if (state === "failed" || state === "completed") await existing.retry(state);
+				return;
+			}
+			await queue.add("operation", payload, {
+				jobId,
+				attempts: 5,
+				backoff: { type: "exponential", delay: 1_000 },
+				removeOnComplete: 1_000,
+				removeOnFail: false,
+			});
+		} catch (error) {
+			if (this.#queue === queue) this.#queue = undefined;
+			await queue.close().catch(() => undefined);
+			throw error;
 		}
-		await this.#queue.add("operation", payload, {
-			jobId,
-			attempts: 5,
-			backoff: { type: "exponential", delay: 1_000 },
-			removeOnComplete: 1_000,
-			removeOnFail: false,
-		});
 	}
 
 	async close(): Promise<void> {
-		await this.#queue.close();
+		this.#closed = true;
+		await this.#queue?.close();
+		this.#queue = undefined;
 	}
 }
 
@@ -215,26 +254,25 @@ function record(row: {
 	return { ...row, status: row.status as OperationStatus };
 }
 
-export class PrismaOperationRepository implements OperationRepository {
-	async create(input: NewOperation): Promise<{ record: OperationRecord; created: boolean }> {
-		const prisma = getPrisma();
-		const inserted = await prisma.operationRecord.createMany({
-			data: [
-				{
-					guildId: input.guildId ?? null,
-					kind: input.kind,
-					idempotencyKey: input.idempotencyKey,
-					payload: (input.payload ?? {}) as Prisma.InputJsonValue,
-				},
-			],
-			skipDuplicates: true,
-		});
-		const existing = await prisma.operationRecord.findUniqueOrThrow({
-			where: { idempotencyKey: input.idempotencyKey },
-		});
-		if (existing.kind !== input.kind || existing.guildId !== (input.guildId ?? null))
-			throw new IdempotencyConflictError();
-		return { record: record(existing), created: inserted.count === 1 };
+export class PrismaOperationRepository implements OperationRepository, OperationOutboxRepository {
+	create(input: NewOperation, mutate?: (tx: Prisma.TransactionClient) => Promise<void>) {
+		return createOperationWithOutbox(input, mutate);
+	}
+
+	claimOutbox(id: string, now: Date, leaseMs: number) {
+		return claimOutboxRow(id, now, leaseMs);
+	}
+
+	claimDueOutbox(now: Date, limit: number, leaseMs: number) {
+		return claimDueOutboxRows(now, limit, leaseMs);
+	}
+
+	publishOutbox(id: string, claimVersion: number, now: Date) {
+		return settlePublishedOutbox(id, claimVersion, now);
+	}
+
+	retryOutbox(id: string, claimVersion: number, now: Date) {
+		return retryClaimedOutbox(id, claimVersion, now);
 	}
 
 	async get(id: string): Promise<OperationRecord | undefined> {
@@ -298,6 +336,7 @@ export class PrismaOperationRepository implements OperationRepository {
 	async listRecoverable(now: Date, limit: number): Promise<OperationRecord[]> {
 		const rows = await getPrisma().operationRecord.findMany({
 			where: {
+				outbox: { is: { status: "published" } },
 				OR: [
 					{ status: "pending" },
 					{ status: "retryable" },

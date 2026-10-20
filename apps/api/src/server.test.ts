@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Principal } from "@rostra/auth";
-import type { OperationRecord, OperationRepository } from "@rostra/operations";
+import type {
+	OperationOutboxRepository,
+	OperationRecord,
+	OperationRepository,
+} from "@rostra/operations";
 import { IdempotencyConflictError } from "@rostra/operations";
 import { createApi } from "./server.ts";
 
@@ -25,8 +29,20 @@ function record(
 	};
 }
 
-function repository(): OperationRepository {
+function repository(): OperationRepository & OperationOutboxRepository {
 	return {
+		async claimOutbox() {
+			return { operationId: "operation-1", claimVersion: 1, attempts: 1 };
+		},
+		async claimDueOutbox() {
+			return [];
+		},
+		async publishOutbox() {
+			return true;
+		},
+		async retryOutbox() {
+			return true;
+		},
 		async create() {
 			return { record: record(), created: true };
 		},
@@ -181,7 +197,7 @@ test("operation reads enforce the stored host or guild scope", async (t) => {
 	assert.equal((await request("host-operation", "Bearer internal-secret")).statusCode, 200);
 });
 
-test("delivery failures return a generic unavailable response after durable creation", async (t) => {
+test("delivery failures still accept durable intent for the relay", async (t) => {
 	let created = false;
 	const repo = repository();
 	const app = await createApi({
@@ -210,8 +226,38 @@ test("delivery failures return a generic unavailable response after durable crea
 		headers: { authorization: "Bearer internal-secret", "idempotency-key": "request-1" },
 	});
 	assert.equal(created, true);
+	assert.equal(response.statusCode, 202);
+	assert.equal(response.json().id, "operation-1");
+	assert.equal(response.json().status, "pending");
+});
+
+test("database creation failure still rejects the request", async (t) => {
+	const app = await createApi({
+		authenticate,
+		guildDirectory,
+		guildCapabilities,
+		ready: async () => true,
+		repository: {
+			...repository(),
+			async create() {
+				throw new Error("database unavailable");
+			},
+		},
+		publisher: {
+			async publish() {
+				throw new Error("must not publish");
+			},
+		},
+		async recordVote() {},
+	});
+	t.after(() => app.close());
+	const response = await app.inject({
+		method: "POST",
+		url: "/internal/v1/smoke",
+		headers: { authorization: "Bearer internal-secret", "idempotency-key": "request-1" },
+	});
 	assert.equal(response.statusCode, 503);
-	assert.deepEqual(response.json(), { error: "delivery_unavailable" });
+	assert.deepEqual(response.json(), { error: "storage_unavailable" });
 });
 
 test("mismatched idempotency ownership returns a conflict", async (t) => {

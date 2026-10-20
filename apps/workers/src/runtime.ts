@@ -1,21 +1,94 @@
 import type { JobDefinition } from "@rostra/contracts";
 import type {
 	OperationHandler,
+	OperationOutboxRepository,
 	OperationPublisher,
 	OperationQueuePayload,
 	OperationRepository,
 } from "@rostra/operations";
 import {
 	BullMqOperationPublisher,
+	OPERATION_PRODUCER_OPTIONS,
 	PermanentOperationError,
 	parseOperationQueuePayload,
 	processOperation,
+	publishClaimedOutbox,
 } from "@rostra/operations";
 import { type ConnectionOptions, type Job, Worker } from "bullmq";
 import type Redis from "ioredis";
 
 interface DrainableWorker {
 	close(force?: boolean): Promise<void>;
+}
+
+export class OutboxRelay implements DrainableWorker {
+	readonly #repository: OperationOutboxRepository;
+	readonly #publisher: OperationPublisher;
+	readonly #intervalMs: number;
+	#timer: NodeJS.Timeout | undefined;
+	#inFlight: Promise<void> | undefined;
+	#closing = false;
+	#claimed = 0;
+	#published = 0;
+	#deferred = 0;
+
+	constructor(
+		repository: OperationOutboxRepository,
+		publisher: OperationPublisher,
+		intervalMs = 5_000,
+	) {
+		this.#repository = repository;
+		this.#publisher = publisher;
+		this.#intervalMs = intervalMs;
+	}
+
+	async runOnce(now = new Date()): Promise<number> {
+		const claims = await this.#repository.claimDueOutbox(now, 20, 30_000);
+		this.#claimed += claims.length;
+		const failures: unknown[] = [];
+		for (let index = 0; index < claims.length; index += 2) {
+			const results = await Promise.allSettled(
+				claims.slice(index, index + 2).map(async (claim) => {
+					if (!(await publishClaimedOutbox(this.#repository, this.#publisher, claim)))
+						throw new Error("outbox_publish_deferred");
+				}),
+			);
+			failures.push(
+				...results
+					.filter((result): result is PromiseRejectedResult => result.status === "rejected")
+					.map((result) => result.reason),
+			);
+			this.#published += results.filter((result) => result.status === "fulfilled").length;
+			this.#deferred += results.filter((result) => result.status === "rejected").length;
+		}
+		if (failures.length)
+			throw new AggregateError(failures, "Outbox relay deferred one or more operations");
+		return claims.length;
+	}
+
+	get metrics(): { claimed: number; published: number; deferred: number } {
+		return { claimed: this.#claimed, published: this.#published, deferred: this.#deferred };
+	}
+
+	start(onError: (error: unknown) => void): void {
+		const trigger = () => {
+			if (this.#closing || this.#inFlight) return;
+			this.#inFlight = this.runOnce()
+				.then(() => undefined)
+				.catch(onError)
+				.finally(() => {
+					this.#inFlight = undefined;
+				});
+		};
+		trigger();
+		this.#timer = setInterval(trigger, this.#intervalMs);
+	}
+
+	async close(): Promise<void> {
+		this.#closing = true;
+		if (this.#timer) clearInterval(this.#timer);
+		await this.#inFlight;
+	}
 }
 
 export class OperationReconciler implements DrainableWorker {
@@ -108,6 +181,7 @@ export function createOperationProcessor(
 export class WorkerRuntime {
 	readonly #connection: Redis;
 	readonly #tracked: TrackedWorkers;
+	#outboxRelay: OutboxRelay | undefined;
 
 	constructor(connection: Redis, tracked = new TrackedWorkers()) {
 		this.#connection = connection;
@@ -116,6 +190,10 @@ export class WorkerRuntime {
 
 	get workerCount(): number {
 		return this.#tracked.size;
+	}
+
+	get outboxMetrics(): { claimed: number; published: number; deferred: number } | undefined {
+		return this.#outboxRelay?.metrics;
 	}
 
 	registerOperations(
@@ -139,9 +217,7 @@ export class WorkerRuntime {
 		onError: (error: unknown) => void,
 		intervalMs = 5_000,
 	): void {
-		const publisher = new BullMqOperationPublisher(
-			this.#connection as unknown as ConnectionOptions,
-		);
+		const publisher = new BullMqOperationPublisher(this.#producerConnection());
 		const reconciler = new OperationReconciler(repository, publisher, intervalMs);
 		this.#tracked.track({
 			async close() {
@@ -155,6 +231,26 @@ export class WorkerRuntime {
 		reconciler.start(onError);
 	}
 
+	registerOutboxRelay(
+		repository: OperationOutboxRepository,
+		onError: (error: unknown) => void,
+		intervalMs = 5_000,
+	): void {
+		const publisher = new BullMqOperationPublisher(this.#producerConnection());
+		const relay = new OutboxRelay(repository, publisher, intervalMs);
+		this.#outboxRelay = relay;
+		this.#tracked.track({
+			async close() {
+				try {
+					await relay.close();
+				} finally {
+					await publisher.close();
+				}
+			},
+		});
+		relay.start(onError);
+	}
+
 	registerJobs(definitions: readonly JobDefinition[]): void {
 		for (const definition of definitions) {
 			this.#tracked.track(
@@ -164,6 +260,10 @@ export class WorkerRuntime {
 				}),
 			);
 		}
+	}
+
+	#producerConnection(): ConnectionOptions {
+		return { ...this.#connection.options, ...OPERATION_PRODUCER_OPTIONS } as ConnectionOptions;
 	}
 
 	async drain(): Promise<void> {

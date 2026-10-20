@@ -1007,8 +1007,26 @@ model OperationRecord {
   updatedAt      DateTime           @updatedAt
   attempts       OperationAttempt[]
   effect         OperationEffect?
+  outbox         OperationOutbox?
 
   @@index([guildId])
+  @@index([status, leaseUntil])
+}
+
+model OperationOutbox {
+  operationId    String          @id
+  status         String          @default("pending")
+  nextAttemptAt  DateTime        @default(now())
+  leaseUntil     DateTime?
+  claimVersion   Int             @default(0)
+  attempts       Int             @default(0)
+  lastErrorCode  String?
+  publishedAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  operation      OperationRecord @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
   @@index([status, leaseUntil])
 }
 

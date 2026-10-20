@@ -13,11 +13,12 @@ import {
 import { getLogger } from "@rostra/logger";
 import type {
 	NewOperation,
+	OperationOutboxRepository,
 	OperationPublisher,
 	OperationRecord,
 	OperationRepository,
 } from "@rostra/operations";
-import { createAndPublishOperation, IdempotencyConflictError } from "@rostra/operations";
+import { createAndRelayOperation, IdempotencyConflictError } from "@rostra/operations";
 import type { GuildSummary } from "@rostra/web-client";
 import Fastify, { type FastifyInstance } from "fastify";
 import { parseVotePayload, type VotePayload } from "./vote.ts";
@@ -34,7 +35,7 @@ export interface ApiDependencies {
 		get(guildId: string): Promise<GuildSummary | undefined>;
 	};
 	guildCapabilities: GuildCapabilityStore;
-	repository: OperationRepository;
+	repository: OperationRepository & OperationOutboxRepository;
 	publisher: OperationPublisher;
 	recordVote(vote: VotePayload): Promise<void>;
 }
@@ -147,17 +148,27 @@ export async function createApi(deps: ApiDependencies): Promise<FastifyInstance>
 			payload: typeof request.body === "object" && request.body !== null ? request.body : {},
 		};
 		let operation: OperationRecord;
+		let delivery: "published" | "degraded" | "busy";
 		try {
-			operation = await createAndPublishOperation(deps.repository, deps.publisher, input);
+			({ record: operation, delivery } = await createAndRelayOperation(
+				deps.repository,
+				deps.publisher,
+				input,
+			));
 		} catch (error) {
 			if (error instanceof IdempotencyConflictError) {
 				reply.code(409);
 				return { error: error.code };
 			}
-			log.error({ err: error }, "durable operation delivery failed");
+			log.error({ err: error }, "durable operation creation failed");
 			reply.code(503);
-			return { error: "delivery_unavailable" };
+			return { error: "storage_unavailable" };
 		}
+		if (delivery === "degraded")
+			log.warn(
+				{ correlationId: request.id, operationId: operation.id },
+				"operation delivery deferred to relay",
+			);
 		log.info({ correlationId: request.id, operationId: operation.id }, "smoke operation accepted");
 		reply.code(202);
 		return publicOperation(operation);

@@ -1,5 +1,5 @@
 import type { OperationPublisher } from "@rostra/operations";
-import { BullMqOperationPublisher } from "@rostra/operations";
+import { BullMqOperationPublisher, OPERATION_PRODUCER_OPTIONS } from "@rostra/operations";
 import type { ConnectionOptions } from "bullmq";
 import Redis from "ioredis";
 
@@ -20,8 +20,16 @@ export function createOperationQueueTransport(url: string | undefined): Operatio
 			async close() {},
 		};
 	}
-	const connection = new Redis(url, { maxRetriesPerRequest: null });
-	const publisher = new BullMqOperationPublisher(connection as unknown as ConnectionOptions);
+	const connection = new Redis(url, {
+		maxRetriesPerRequest: 1,
+		enableOfflineQueue: false,
+		connectTimeout: 1_000,
+		commandTimeout: 2_000,
+	});
+	const publisher = new BullMqOperationPublisher({
+		...connection.options,
+		...OPERATION_PRODUCER_OPTIONS,
+	} as ConnectionOptions);
 	return {
 		async publish(payload) {
 			await publisher.publish(payload);

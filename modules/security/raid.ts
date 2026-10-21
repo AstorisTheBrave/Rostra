@@ -1,6 +1,7 @@
 import type { AntinukeConfig } from "@rostra/database";
 import { Accent, container, text } from "@rostra/discord-ui";
 import { getLogger } from "@rostra/logger";
+import { PermanentScheduledTaskError, requireTaskPayload } from "@rostra/operations";
 import { type Client, type Guild, GuildVerificationLevel, MessageFlags } from "discord.js";
 import { schedule } from "@/services/scheduler.ts";
 
@@ -60,7 +61,6 @@ async function alert(guild: Guild, config: AntinukeConfig, body: string): Promis
 export async function triggerLockdown(
 	guild: Guild,
 	config: AntinukeConfig,
-	client: Client,
 	reason: string,
 	lockMinutes = config.raidLockMinutes,
 ): Promise<boolean> {
@@ -80,15 +80,12 @@ export async function triggerLockdown(
 		`${reason}\nVerification raised to **Very High**.${lockMinutes > 0 ? ` Auto-lifts in ${lockMinutes} min.` : " Lift it with `/security panic state:off`."}`,
 	);
 	if (lockMinutes > 0) {
-		await schedule(
-			{
-				type: "raid_unlock",
-				runAt: new Date(Date.now() + lockMinutes * 60_000),
-				guildId: guild.id,
-				payload: { guildId: guild.id, restoreLevel },
-			},
-			client,
-		);
+		await schedule({
+			type: "raid_unlock",
+			runAt: new Date(Date.now() + lockMinutes * 60_000),
+			guildId: guild.id,
+			payload: { guildId: guild.id, restoreLevel },
+		});
 	}
 	return true;
 }
@@ -100,6 +97,7 @@ export async function triggerLockdown(
 export async function liftLockdown(
 	guild: Guild,
 	fallbackLevel?: GuildVerificationLevel,
+	strict = false,
 ): Promise<void> {
 	const restoreLevel = locked.get(guild.id) ?? fallbackLevel ?? GuildVerificationLevel.Low;
 	locked.delete(guild.id);
@@ -110,18 +108,21 @@ export async function liftLockdown(
 		}
 	} catch (err) {
 		log.warn({ err, guild: guild.id }, "could not restore verification level");
+		if (strict) throw err;
 	}
 }
 
 /** Scheduler handler: auto-lift a raid lockdown (payload carries guildId + restoreLevel). */
-export async function raidUnlockTask(payload: unknown, client: Client): Promise<void> {
-	const data = (payload ?? {}) as { guildId?: string; restoreLevel?: number };
-	if (!data.guildId) return;
+export async function raidUnlockTask(
+	payload: unknown,
+	client: Client,
+	taskGuildId: string | null,
+): Promise<void> {
+	const data = requireTaskPayload(payload, ["guildId"]);
+	const level = (payload as Record<string, unknown>).restoreLevel;
+	if (data.guildId !== taskGuildId || typeof level !== "number" || ![0, 1, 2, 3, 4].includes(level))
+		throw new PermanentScheduledTaskError();
 	const guild = client.guilds.cache.get(data.guildId);
-	if (!guild) {
-		locked.delete(data.guildId);
-		return;
-	}
-	const restoreLevel = (data.restoreLevel ?? GuildVerificationLevel.Low) as GuildVerificationLevel;
-	await liftLockdown(guild, restoreLevel);
+	if (!guild) throw new Error("scheduled_guild_unavailable");
+	await liftLockdown(guild, level as GuildVerificationLevel, true);
 }

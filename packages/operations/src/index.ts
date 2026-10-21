@@ -14,6 +14,21 @@ import {
 
 export type { OperationOutboxClaim, OperationOutboxRepository } from "./outbox.ts";
 export { IdempotencyConflictError, publishClaimedOutbox, relayOperation } from "./outbox.ts";
+export type {
+	ScheduledFailureCode,
+	ScheduledTaskDispatchV1,
+	ScheduledTaskRepository,
+} from "./scheduler.ts";
+export {
+	PermanentScheduledTaskError,
+	PrismaScheduledTaskRepository,
+	parseScheduledTaskDispatch,
+	requireTaskPayload,
+	SCHEDULED_TASK_CHANNEL,
+	SCHEDULED_TASK_LEASE_MS,
+	SCHEDULED_TASK_MAX_ATTEMPTS,
+	scheduledRetryAt,
+} from "./scheduler.ts";
 
 export type OperationStatus = "pending" | "processing" | "retryable" | "completed" | "failed";
 export type FailureClassification = "retryable" | "permanent";

@@ -2,6 +2,7 @@ import { createCoherentCache } from "@rostra/cache";
 import type { Prisma, TicketConfig } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
+import { PermanentScheduledTaskError, requireTaskPayload } from "@rostra/operations";
 import {
 	ChannelType,
 	type Client,
@@ -11,6 +12,7 @@ import {
 	type TextChannel,
 	type User,
 } from "discord.js";
+import { isAbsentDiscordError } from "@/services/scheduler.ts";
 import {
 	type CategorySpec,
 	escalatePriority,
@@ -369,16 +371,25 @@ export async function getDashboard(guildId: string): Promise<Dashboard> {
 }
 
 /** Scheduler handler: delete an archived ticket channel once its reopen window expires - unless it was reopened. */
-export async function archiveDeleteTask(payload: unknown, client: Client): Promise<void> {
-	const { channelId } = (payload ?? {}) as { channelId?: string };
-	if (!channelId) return;
-	const ticket = await getPrisma()
-		.ticket.findUnique({ where: { channelId } })
-		.catch(() => null);
+export async function archiveDeleteTask(
+	payload: unknown,
+	client: Client,
+	guildId: string | null,
+): Promise<void> {
+	const { channelId } = requireTaskPayload(payload, ["channelId"]);
+	const ticket = await getPrisma().ticket.findUnique({ where: { channelId } });
 	if (!ticket || ticket.open) return; // reopened or already gone
+	if (ticket.guildId !== guildId) throw new PermanentScheduledTaskError();
 	const guild = client.guilds.cache.get(ticket.guildId);
-	const channel = guild?.channels.cache.get(channelId);
-	if (channel) await channel.delete("Ticket reopen window expired").catch(() => {});
+	if (!guild) throw new Error("scheduled_guild_unavailable");
+	const channel = await guild.channels.fetch(channelId).catch((error: unknown) => {
+		if (isAbsentDiscordError(error, 10003)) return null;
+		throw error;
+	});
+	if (channel)
+		await channel.delete("Ticket reopen window expired").catch((error: unknown) => {
+			if (!isAbsentDiscordError(error, 10003)) throw error;
+		});
 }
 
 /** Reopen a closed-but-not-yet-deleted ticket: unlock the opener, restore the name, mark open. */

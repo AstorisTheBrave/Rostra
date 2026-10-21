@@ -169,7 +169,6 @@ async function ok(
 
 async function execute({
 	interaction,
-	client,
 }: {
 	interaction: ChatInputCommandInteraction;
 	client: BotClient;
@@ -253,7 +252,7 @@ async function execute({
 			const cfg = await ensureConfig(guild.id);
 			if (state === "on") {
 				if (isLocked(guild.id)) return ok(interaction, "security:panic.already");
-				await triggerLockdown(guild, cfg, client, "Manual panic lockdown by an admin.", 0);
+				await triggerLockdown(guild, cfg, "Manual panic lockdown by an admin.", 0);
 				return ok(interaction, "security:panic.on");
 			}
 			if (!isLocked(guild.id)) return ok(interaction, "security:panic.notLocked");

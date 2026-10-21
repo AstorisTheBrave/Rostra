@@ -5,6 +5,7 @@ import { superviseModuleLifecycles } from "@rostra/module-sdk";
 import { Client, type ClientOptions, Collection, GatewayIntentBits, Partials } from "discord.js";
 import { ClusterClient, getInfo } from "discord-hybrid-sharding";
 import { createIpc, type Ipc } from "@/cluster/ipc.ts";
+import { GatewayScheduledTaskAdapter } from "@/services/scheduler.ts";
 import type { ComponentHandler, SlashCommand } from "@/types/module.ts";
 
 const log = getLogger("client");
@@ -55,6 +56,7 @@ export class BotClient extends Client {
 	#disposeEvents?: () => void;
 	#busSubscriptions: Subscription[] = [];
 	#modules?: ReturnType<typeof superviseModuleLifecycles>;
+	#scheduledTaskAdapter?: GatewayScheduledTaskAdapter;
 
 	constructor() {
 		super({
@@ -129,7 +131,13 @@ export class BotClient extends Client {
 		}
 	}
 
+	startScheduledTasks(): void {
+		this.#scheduledTaskAdapter ??= new GatewayScheduledTaskAdapter(this);
+	}
+
 	override async destroy(): Promise<void> {
+		await this.#scheduledTaskAdapter?.close();
+		this.#scheduledTaskAdapter = undefined;
 		for (const subscription of this.#busSubscriptions.splice(0)) subscription.dispose();
 		try {
 			this.#disposeEvents?.();

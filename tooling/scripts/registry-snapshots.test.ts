@@ -50,6 +50,22 @@ test("the current compatibility registry has no live module queue handlers to st
 	);
 });
 
+test("scheduled task names have one canonical manifest owner", async () => {
+	const { moduleRegistry } = await import("../../modules/registry.ts");
+	assert.deepEqual(
+		moduleRegistry
+			.flatMap(({ manifest }) => manifest.jobs.map((job) => `${manifest.id}:${job}`))
+			.sort(),
+		[
+			"moderation:tempban_lift",
+			"moderation:temprole_remove",
+			"security:raid_unlock",
+			"tickets:ticket_archive_delete",
+			"verification:verify_kick",
+		],
+	);
+});
+
 test("modules cannot import package-private source", () => {
 	const packages = new Map([
 		[

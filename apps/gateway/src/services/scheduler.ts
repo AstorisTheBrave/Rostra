@@ -1,154 +1,120 @@
+import { subscribe } from "@rostra/cache/bus";
 import type { Prisma, ScheduledTask } from "@rostra/database";
-import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
-import type { Client } from "discord.js";
-
-/**
- * Durable, crash-safe scheduler. Future actions are rows in `ScheduledTask`, so
- * they survive restarts; each shard re-arms the tasks it owns on boot. Modules
- * register a handler per task `type` and call `schedule(...)`; on fire the row is
- * dispatched to its handler. Only successful work is deleted; failed or
- * unknown work is retained for inspection and recovery.
- *
- * Guild-bound tasks run on the guild's owning shard. Global tasks (`guildId:
- * null`) run only on shard 0 to avoid duplicate firing across the cluster.
- */
+import {
+	PermanentScheduledTaskError,
+	PrismaScheduledTaskRepository,
+	parseScheduledTaskDispatch,
+	SCHEDULED_TASK_CHANNEL,
+	type ScheduledTaskRepository,
+} from "@rostra/operations";
+import { type Client, DiscordAPIError } from "discord.js";
 
 const log = getLogger("scheduler");
-const MAX_TIMEOUT = 2_147_483_000;
-const timers = new Map<string, NodeJS.Timeout>();
-
-export type TaskHandler = (payload: unknown, client: Client) => Promise<void> | void;
-const handlers = new Map<string, TaskHandler>();
-
-export async function dispatchScheduledTask(
-	handler: TaskHandler | undefined,
+const repository = new PrismaScheduledTaskRepository();
+export type TaskHandler = (
 	payload: unknown,
 	client: Client,
-): Promise<{ completed: true } | { completed: false; code: string; error?: unknown }> {
-	if (!handler) return { completed: false, code: "unknown_handler" };
-	try {
-		await handler(payload, client);
-		return { completed: true };
-	} catch (error) {
-		return { completed: false, code: "handler_failed", error };
-	}
-}
+	guildId: string | null,
+) => Promise<void> | void;
+const handlers = new Map<string, TaskHandler>();
 
-interface ScheduledTaskStore {
-	deleteMany(input: { where: { id: string; status: string } }): Promise<unknown>;
-	updateMany(input: {
-		where: { id: string; status: string };
-		data: { status: string; attempts: { increment: number }; lastError: string };
-	}): Promise<unknown>;
-}
-
-export async function settleScheduledTask(
-	store: ScheduledTaskStore,
-	id: string,
-	result: Awaited<ReturnType<typeof dispatchScheduledTask>>,
-): Promise<void> {
-	if (result.completed) {
-		await store.deleteMany({ where: { id, status: "pending" } });
-		return;
-	}
-	await store.updateMany({
-		where: { id, status: "pending" },
-		data: { status: "failed", attempts: { increment: 1 }, lastError: result.code },
-	});
-}
-
-/** Register the handler that runs when a task of `type` fires. */
 export function registerTaskHandler(type: string, handler: TaskHandler): void {
 	handlers.set(type, handler);
 }
 
-/** Clamp a delay to setTimeout's safe max (re-armed for longer waits). */
-export function clampDelay(ms: number): number {
-	return Math.min(Math.max(0, ms), MAX_TIMEOUT);
+export function isAbsentDiscordError(error: unknown, code: number): boolean {
+	return error instanceof DiscordAPIError && error.code === code;
 }
 
-/** Whether this shard is responsible for arming a given task. */
-export function shouldArm(
+export async function schedule(input: {
+	type: string;
+	runAt: Date;
+	guildId?: string | null;
+	payload?: Prisma.InputJsonValue;
+}): Promise<ScheduledTask> {
+	return repository.schedule(input);
+}
+
+export async function cancelTask(
+	id: string,
+): Promise<"cancelled" | "processing" | "terminal" | "missing"> {
+	return repository.cancel(id);
+}
+
+export function ownsScheduledTask(
 	task: Pick<ScheduledTask, "guildId">,
-	shardId: number,
-	ownsGuild: (guildId: string) => boolean,
+	client: Pick<Client, "guilds" | "shard" | "isReady">,
 ): boolean {
-	if (task.guildId === null) return shardId === 0;
-	return ownsGuild(task.guildId);
+	if (!client.isReady()) return false;
+	if (task.guildId === null) return client.shard?.ids.includes(0) ?? true;
+	return client.guilds.cache.has(task.guildId);
 }
 
-function arm(client: Client, task: ScheduledTask): void {
-	const existing = timers.get(task.id);
-	if (existing) clearTimeout(existing);
-	const delay = task.runAt.getTime() - Date.now();
-	if (delay <= 0) {
-		void fire(client, task.id);
-		return;
+export class GatewayScheduledTaskAdapter {
+	readonly #client: Client;
+	readonly #repository: ScheduledTaskRepository;
+	readonly #running = new Set<Promise<void>>();
+	readonly #subscription: ReturnType<typeof subscribe>;
+	#closing = false;
+
+	constructor(
+		client: Client,
+		store: ScheduledTaskRepository = repository,
+		subscribeToBus = subscribe,
+	) {
+		this.#client = client;
+		this.#repository = store;
+		this.#subscription = subscribeToBus(SCHEDULED_TASK_CHANNEL, (value) => {
+			if (this.#closing) return;
+			const message = parseScheduledTaskDispatch(value);
+			if (!message) {
+				log.warn("invalid scheduled task dispatch ignored");
+				return;
+			}
+			const work = this.#dispatch(message.taskId, message.claimVersion);
+			this.#running.add(work);
+			void work.finally(() => this.#running.delete(work));
+		});
+		void this.#subscription.ready.then((outcome) => {
+			if (outcome.status !== "published")
+				log.warn({ reason: outcome.reason }, "scheduled task subscription unavailable");
+		});
 	}
-	const timer = setTimeout(() => {
-		void getPrisma()
-			.scheduledTask.findUnique({ where: { id: task.id } })
-			.then((fresh) => {
-				if (fresh?.status !== "pending") return;
-				if (fresh.runAt.getTime() <= Date.now()) void fire(client, task.id);
-				else arm(client, fresh);
-			});
-	}, clampDelay(delay));
-	timers.set(task.id, timer);
-}
 
-async function fire(client: Client, id: string): Promise<void> {
-	timers.delete(id);
-	const task = await getPrisma().scheduledTask.findUnique({ where: { id } });
-	if (task?.status !== "pending") return;
-	const handler = handlers.get(task.type);
-	const result = await dispatchScheduledTask(handler, task.payload, client);
-	await settleScheduledTask(getPrisma().scheduledTask, id, result);
-	if (result.completed) return;
-	if (result.error)
-		log.error({ err: result.error, type: task.type, id }, "scheduled task handler failed");
-	else log.warn({ type: task.type, id }, "no handler registered for scheduled task type");
-}
-
-/** Create a durable task and arm it on this shard if it owns it. */
-export async function schedule(
-	input: { type: string; runAt: Date; guildId?: string | null; payload?: Prisma.InputJsonValue },
-	client?: Client,
-): Promise<ScheduledTask> {
-	const task = await getPrisma().scheduledTask.create({
-		data: {
-			type: input.type,
-			runAt: input.runAt,
-			guildId: input.guildId ?? null,
-			payload: input.payload ?? {},
-		},
-	});
-	if (client) arm(client, task);
-	return task;
-}
-
-/** Cancel a task: clear its local timer and delete the row. */
-export async function cancelTask(id: string): Promise<void> {
-	const timer = timers.get(id);
-	if (timer) {
-		clearTimeout(timer);
-		timers.delete(id);
-	}
-	await getPrisma().scheduledTask.deleteMany({ where: { id } });
-}
-
-/** On boot, re-arm every pending task this shard is responsible for. */
-export async function recoverScheduled(client: Client): Promise<number> {
-	const shardId = client.shard?.ids[0] ?? 0;
-	const pending = await getPrisma().scheduledTask.findMany({ where: { status: "pending" } });
-	let armed = 0;
-	for (const task of pending) {
-		if (shouldArm(task, shardId, (g) => client.guilds.cache.has(g))) {
-			arm(client, task);
-			armed++;
+	async #dispatch(id: string, claimVersion: number): Promise<void> {
+		try {
+			const task = await this.#repository.getClaim(id, claimVersion, new Date());
+			if (!task || !ownsScheduledTask(task, this.#client)) return;
+			if (!(await this.#repository.accept(id, claimVersion, new Date()))) return;
+			const handler = handlers.get(task.type);
+			if (!handler) {
+				await this.#repository.fail(id, claimVersion, "unknown_handler", true, new Date());
+				return;
+			}
+			try {
+				await handler(task.payload, this.#client, task.guildId);
+				await this.#repository.complete(id, claimVersion);
+			} catch (error) {
+				const permanent = error instanceof PermanentScheduledTaskError;
+				await this.#repository.fail(
+					id,
+					claimVersion,
+					permanent ? "invalid_payload" : "handler_failed",
+					permanent,
+					new Date(),
+				);
+				if (!permanent)
+					log.error({ err: error, id, type: task.type }, "scheduled task handler failed");
+			}
+		} catch (error) {
+			log.error({ err: error, id }, "scheduled task dispatch failed");
 		}
 	}
-	log.info({ armed, total: pending.length }, "recovered scheduled tasks");
-	return armed;
+
+	async close(): Promise<void> {
+		this.#closing = true;
+		this.#subscription.dispose();
+		await Promise.all(this.#running);
+	}
 }

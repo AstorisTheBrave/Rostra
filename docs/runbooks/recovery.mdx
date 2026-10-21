@@ -25,6 +25,20 @@ and operation attempts resume. A `claimed` row with an expired lease is automati
 Do not delete rows or manually reset claim versions; a publisher may have sent a job just before
 crashing, so replay is expected.
 
+Scheduled Discord tasks use `ScheduledTask`, independent of the operation outbox. Inspect `status`,
+`runAt`, `nextAttemptAt`, `leaseUntil`, `attempts`, `claimVersion` and `lastError`. The worker poller
+reclaims expired `claimed` and `processing` leases after a crash, while each gateway accepts only the
+current claim for its guild. Redis publication alone is not completion. Unknown handlers and malformed
+payloads retain a terminal `failed` row with a stable code. Cancellation retains a `cancelled` row if
+work has not entered `processing`; it cannot undo a Discord effect already in progress. Database
+fencing prevents a stale settlement or duplicate acceptance for one claim. A Discord request with an
+ambiguous response or a lease expiry during an external effect can still repeat that effect, so the
+handlers must treat provably absent roles, bans, members or channels as successful retries. Keep failed
+rows for diagnosis and never reset their version manually. The retry cap counts gateway-accepted
+handler executions, not worker claims or Redis delivery failures. Repeated gateway absence therefore
+does not exhaust handler attempts. A worker whose Redis publish fails may defer only its still-claimed
+version; a gateway that already accepted it keeps `processing` until fenced settlement or lease expiry.
+
 A rollback image may write a nonterminal `OperationRecord` without an outbox row after the additive
 migration has already run. On re-upgrade, the relay repairs at most 20 such rows before each claim
 poll, then publishes them through the normal fenced path. Do not expect migration deploy to repeat
@@ -59,6 +73,12 @@ directly and does not ask it to apply an older migration set.
 ```sh
 docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.vps.yml \
   stop web gateway workers realtime activity api
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.vps.yml \
+  exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+UPDATE "ScheduledTask"
+SET status = 'pending', "leaseUntil" = NULL, "nextAttemptAt" = NULL
+WHERE status IN ('claimed', 'processing', 'retryable');
+SQL
 docker compose --env-file .env \
   -f infra/compose/compose.yml \
   -f infra/compose/compose.vps.yml \
@@ -70,6 +90,11 @@ docker compose --env-file .env \
   -f infra/compose/compose.rollback.yml \
   logs -f legacy-gateway
 ```
+
+Run the scheduled-task status reset only after all new gateway and worker processes have stopped.
+The prior image reads only `pending` tasks. This reset clears their lease and retry time while leaving
+`runAt`, attempts, claim versions, payloads and terminal rows intact. An ambiguous Discord response
+before shutdown may replay.
 
 Set `ROSTRA_PREVIOUS_IMAGE` to the preserved monolithic image digest before running those commands.
 The former bot's health service remains on loopback port 3000. Point the passive reverse proxy at that

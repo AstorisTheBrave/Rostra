@@ -401,6 +401,9 @@ importers:
       '@rostra/module-sdk':
         specifier: workspace:*
         version: link:../../packages/module-sdk
+      '@rostra/operations':
+        specifier: workspace:*
+        version: link:../../packages/operations
       '@top-gg/sdk':
         specifier: ^3.1.6
         version: 3.1.6

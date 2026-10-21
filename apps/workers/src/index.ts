@@ -36,6 +36,7 @@ async function main(): Promise<void> {
 	runtime.registerReconciler(repository, (error) =>
 		log.error({ err: error }, "operation reconciliation failed"),
 	);
+	runtime.registerScheduler((error) => log.error({ err: error }, "scheduled task poll failed"));
 	// The current compatibility registry declares no module jobs. Future worker
 	// manifests register through this tracked runtime, never from a gateway shard.
 	runtime.registerJobs([]);
@@ -47,8 +48,10 @@ async function main(): Promise<void> {
 			{ signal, workers: runtime.workerCount, outbox: runtime.outboxMetrics },
 			"worker drain started",
 		);
-		const failed = await drainRuntimeAndDatabase(runtime, disconnectPrisma, (error) =>
-			log.error({ err: error }, "worker shutdown cleanup failed"),
+		const failed = await drainRuntimeAndDatabase(
+			runtime,
+			() => disconnectPrisma(),
+			(error) => log.error({ err: error }, "worker shutdown cleanup failed"),
 		);
 		if (failed) process.exitCode = 1;
 		log.info("worker drain complete");

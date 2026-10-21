@@ -11,6 +11,23 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-21 - Phase 01 durable scheduled work
+
+Moved scheduled Discord tasks from gateway timers to PostgreSQL claims and a tracked worker poller.
+The control bus carries only a strict task ID and claim version. Owning gateway processes accept the
+exact claim before running one of five validated handlers, then fence completion or coded failure.
+Retry time is capped; failed and cancelled rows remain. The migration preserves the original `runAt`
+and recognizes prior-image inserts without `nextAttemptAt`. Cancellation reports when processing has
+already started. Focused and service verification is recorded in the Task 6 report; this is a slice,
+not a Phase 01 delivery claim.
+
+Review correction counts attempts only when a gateway atomically accepts a claim, so Redis failures
+and absent gateways cannot consume handler attempts. Publication failure can defer only an unaccepted
+claim; it cannot overwrite a gateway's `processing` state. Scheduled publishing now uses a separate
+finite-failure Redis producer, leaving gateway subscriptions and the BullMQ Worker connection policy
+unchanged. Temporary role removal no longer trusts the member's role cache to skip the effect.
+
+
 ### 2026-10-20 - Phase 01 transactional operation outbox
 
 Operation creation now commits its outbox row with the operation and optional domain mutation. The

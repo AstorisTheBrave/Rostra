@@ -21,6 +21,7 @@
 		"@rostra/i18n": "workspace:*",
 		"@rostra/logger": "workspace:*",
 		"@rostra/module-sdk": "workspace:*",
+		"@rostra/operations": "workspace:*",
 		"@top-gg/sdk": "^3.1.6",
 		"bad-words": "^4.0.0",
 		"discord-hybrid-sharding": "^3.0.1",

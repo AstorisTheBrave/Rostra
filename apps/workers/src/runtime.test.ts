@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import type { ScheduledTask } from "@rostra/database";
 import type {
 	OperationFailure,
 	OperationOutboxRepository,
 	OperationRecord,
 	OperationRepository,
+	ScheduledTaskRepository,
 } from "@rostra/operations";
 import { RetryableOperationError } from "@rostra/operations";
 import Redis from "ioredis";
@@ -13,9 +15,113 @@ import {
 	drainRuntimeAndDatabase,
 	OperationReconciler,
 	OutboxRelay,
+	ScheduledTaskPublisher,
+	SchedulerPoller,
 	TrackedWorkers,
 	WorkerRuntime,
 } from "./runtime.ts";
+
+test("scheduler retries bus fallback and drains a nonoverlapping poll", async () => {
+	let claims = 0;
+	let deferred = 0;
+	const published: string[] = [];
+	let release = () => {};
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const record = { id: "task-1", claimVersion: 1 } as ScheduledTask;
+	const repository = {
+		async claimDue() {
+			claims++;
+			await gate;
+			return [record, { ...record, id: "task-2" }];
+		},
+		async deferPublication() {
+			deferred++;
+			return true;
+		},
+	} satisfies Pick<ScheduledTaskRepository, "claimDue" | "deferPublication">;
+	const errors: unknown[] = [];
+	const poller = new SchedulerPoller(
+		repository,
+		async (_channel, payload) => {
+			if (
+				payload &&
+				typeof payload === "object" &&
+				"taskId" in payload &&
+				typeof payload.taskId === "string"
+			)
+				published.push(payload.taskId);
+			return { status: "published" };
+		},
+		1,
+	);
+	poller.start((error) => errors.push(error));
+	await new Promise((resolve) => setTimeout(resolve, 10));
+	assert.equal(claims, 1);
+	let drained = false;
+	const closing = poller.close().then(() => {
+		drained = true;
+	});
+	assert.equal(drained, false);
+	release();
+	await closing;
+	assert.equal(deferred, 0);
+	assert.deepEqual(published, ["task-1", "task-2"]);
+	assert.equal(errors.length, 0);
+});
+
+test("scheduler treats TTL fallback as retryable publication failure", async () => {
+	let failure: unknown;
+	const repository = {
+		async claimDue() {
+			return [{ id: "task-1", claimVersion: 3 } as ScheduledTask];
+		},
+		async deferPublication(_id: string, version: number) {
+			failure = { version };
+			return true;
+		},
+	} satisfies Pick<ScheduledTaskRepository, "claimDue" | "deferPublication">;
+	const poller = new SchedulerPoller(repository, async () => ({
+		status: "ttl-fallback",
+		reason: "publish-failed",
+	}));
+	await assert.rejects(poller.runOnce(), AggregateError);
+	assert.deepEqual(failure, { version: 3 });
+});
+
+test("scheduler visits every claimed row when one publication defer fails", async () => {
+	const deferred: string[] = [];
+	let publications = 0;
+	const repository = {
+		async claimDue() {
+			return [
+				{ id: "task-1", claimVersion: 1 } as ScheduledTask,
+				{ id: "task-2", claimVersion: 1 } as ScheduledTask,
+			];
+		},
+		async deferPublication(id: string) {
+			deferred.push(id);
+			if (id === "task-1") throw new Error("database unavailable");
+			return true;
+		},
+	} satisfies Pick<ScheduledTaskRepository, "claimDue" | "deferPublication">;
+	const poller = new SchedulerPoller(repository, async () => {
+		publications++;
+		return { status: "ttl-fallback", reason: "publish-failed" };
+	});
+	await assert.rejects(poller.runOnce(), AggregateError);
+	assert.deepEqual(deferred, ["task-1", "task-2"]);
+	assert.equal(publications, 1);
+});
+
+test("scheduler producer refuses unavailable Redis and closes promptly", async () => {
+	const publisher = new ScheduledTaskPublisher({ host: "127.0.0.1", port: 1 });
+	const started = Date.now();
+	await assert.rejects(publisher.publish("scheduled-task-dispatch", { version: 1 }));
+	await publisher.close();
+	assert.ok(Date.now() - started < 5_000, "producer failure and drain must be finite");
+});
 
 test("outbox relay retries failed publication and drains an active claim", async () => {
 	let status = "pending";

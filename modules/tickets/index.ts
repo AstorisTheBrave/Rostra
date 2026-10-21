@@ -606,15 +606,12 @@ async function closeAndArchive(
 	await channel
 		.setName(`${channel.name.replace(/-(?:l|h|u)$/, "")}-closed`.slice(0, 95))
 		.catch(() => {});
-	await schedule(
-		{
-			type: TICKET_ARCHIVE_DELETE,
-			runAt: new Date(Date.now() + REOPEN_WINDOW_MS),
-			guildId: channel.guild.id,
-			payload: { channelId: channel.id },
-		},
-		channel.client,
-	).catch(() => {});
+	await schedule({
+		type: TICKET_ARCHIVE_DELETE,
+		runAt: new Date(Date.now() + REOPEN_WINDOW_MS),
+		guildId: channel.guild.id,
+		payload: { channelId: channel.id },
+	}).catch(() => {});
 }
 
 const ticketComponents: ComponentHandler = {

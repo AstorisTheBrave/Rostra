@@ -10,15 +10,138 @@ import {
 	BullMqOperationPublisher,
 	OPERATION_PRODUCER_OPTIONS,
 	PermanentOperationError,
+	PrismaScheduledTaskRepository,
 	parseOperationQueuePayload,
 	processOperation,
 	publishClaimedOutbox,
+	SCHEDULED_TASK_CHANNEL,
+	SCHEDULED_TASK_LEASE_MS,
+	type ScheduledTaskRepository,
 } from "@rostra/operations";
 import { type ConnectionOptions, type Job, Worker } from "bullmq";
-import type Redis from "ioredis";
+import Redis, { type RedisOptions } from "ioredis";
 
 interface DrainableWorker {
 	close(force?: boolean): Promise<void>;
+}
+
+type ScheduledDispatch = (channel: string, payload: unknown) => Promise<PublicationOutcome>;
+type PublicationOutcome = { status: "published" } | { status: "ttl-fallback"; reason: string };
+
+/** Independent finite-failure Redis producer; the BullMQ Worker connection keeps its own policy. */
+export class ScheduledTaskPublisher {
+	readonly #options: RedisOptions;
+	readonly #url: string | undefined;
+	#connection: Redis | undefined;
+	#closed = false;
+
+	constructor(connection: RedisOptions | string) {
+		this.#url = typeof connection === "string" ? connection : undefined;
+		this.#options = {
+			...(typeof connection === "string" ? {} : connection),
+			...OPERATION_PRODUCER_OPTIONS,
+			lazyConnect: true,
+		};
+	}
+
+	async publish(channel: string, payload: unknown): Promise<PublicationOutcome> {
+		if (this.#closed) throw new Error("Scheduled task publisher is closed");
+		if (!this.#connection) {
+			this.#connection = this.#url ? new Redis(this.#url, this.#options) : new Redis(this.#options);
+			this.#connection.on("error", () => {});
+		}
+		const connection = this.#connection;
+		try {
+			if (connection.status === "wait") await connection.connect();
+			if (connection.status !== "ready") throw new Error("scheduled_dispatch_unavailable");
+			await connection.publish(channel, JSON.stringify(payload));
+			return { status: "published" };
+		} catch (error) {
+			connection.disconnect();
+			if (this.#connection === connection) this.#connection = undefined;
+			throw error;
+		}
+	}
+
+	async close(): Promise<void> {
+		this.#closed = true;
+		this.#connection?.disconnect();
+		this.#connection = undefined;
+	}
+}
+
+export class SchedulerPoller implements DrainableWorker {
+	readonly #repository: Pick<ScheduledTaskRepository, "claimDue" | "deferPublication">;
+	readonly #publish: ScheduledDispatch;
+	readonly #intervalMs: number;
+	#timer: NodeJS.Timeout | undefined;
+	#inFlight: Promise<void> | undefined;
+	#closing = false;
+
+	constructor(
+		repository: Pick<ScheduledTaskRepository, "claimDue" | "deferPublication">,
+		publishDispatch: ScheduledDispatch,
+		intervalMs = 5_000,
+	) {
+		this.#repository = repository;
+		this.#publish = publishDispatch;
+		this.#intervalMs = intervalMs;
+	}
+
+	async runOnce(now = new Date()): Promise<number> {
+		if (this.#closing) return 0;
+		const claims = await this.#repository.claimDue(now, 20, SCHEDULED_TASK_LEASE_MS);
+		const failures: unknown[] = [];
+		let deliveryUnavailable = false;
+		for (const claim of claims) {
+			if (deliveryUnavailable) {
+				try {
+					await this.#repository.deferPublication(claim.id, claim.claimVersion, new Date());
+				} catch (error) {
+					failures.push(error);
+				}
+				continue;
+			}
+			try {
+				const outcome = await this.#publish(SCHEDULED_TASK_CHANNEL, {
+					version: 1,
+					taskId: claim.id,
+					claimVersion: claim.claimVersion,
+				});
+				if (outcome.status !== "published") throw new Error("scheduled_dispatch_unavailable");
+			} catch (error) {
+				deliveryUnavailable = true;
+				try {
+					await this.#repository.deferPublication(claim.id, claim.claimVersion, new Date());
+				} catch (settlementError) {
+					failures.push(settlementError);
+				}
+				failures.push(error);
+			}
+		}
+		if (failures.length) throw new AggregateError(failures, "Scheduled dispatch deferred");
+		return claims.length;
+	}
+
+	start(onError: (error: unknown) => void): void {
+		const trigger = () => {
+			if (this.#closing || this.#inFlight) return;
+			this.#inFlight = this.runOnce()
+				.then(() => undefined)
+				.catch(onError)
+				.finally(() => {
+					this.#inFlight = undefined;
+				});
+		};
+		trigger();
+		this.#timer = setInterval(trigger, this.#intervalMs);
+	}
+
+	async close(): Promise<void> {
+		this.#closing = true;
+		if (this.#timer) clearInterval(this.#timer);
+		await this.#inFlight;
+	}
 }
 
 export class OutboxRelay implements DrainableWorker {
@@ -260,6 +383,25 @@ export class WorkerRuntime {
 				}),
 			);
 		}
+	}
+
+	registerScheduler(onError: (error: unknown) => void, intervalMs = 5_000): void {
+		const publisher = new ScheduledTaskPublisher(this.#producerConnection() as RedisOptions);
+		const poller = new SchedulerPoller(
+			new PrismaScheduledTaskRepository(),
+			(channel, payload) => publisher.publish(channel, payload),
+			intervalMs,
+		);
+		this.#tracked.track({
+			async close() {
+				try {
+					await poller.close();
+				} finally {
+					await publisher.close();
+				}
+			},
+		});
+		poller.start(onError);
 	}
 
 	#producerConnection(): ConnectionOptions {

@@ -1,10 +1,13 @@
 ---
-last-updated: 2026-06-07
+last-updated: 2026-10-21
 owner: AstorisTheBrave
 status: stable
 ---
 
 ## what this is
+
+The `raid_unlock` task is claimed by workers and executed by the owning gateway. It validates the
+stored guild and restore level, and retries failed Discord verification-level updates.
 
 Antinuke: protects a server from a rogue admin or compromised account that tries to mass-delete channels,
 mass-ban members, add malicious bots, etc. When a destructive action happens, the bot figures out who

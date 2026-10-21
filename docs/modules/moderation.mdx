@@ -43,6 +43,10 @@ bypass these checks. An owner with no required guild permission receives the exi
 
 ## gotchas
 
+- Temporary role removal and ban lifting are durable scheduled tasks. The worker claims due rows;
+  the owning gateway runs the Discord effect. A missing member or ban is an idempotent success only
+  when Discord confirms it; other API failures retry with a capped delay.
+
 - Warnings and notes are rows in `ModerationCase` (`type = "warn" | "note"`), not separate tables -
   unifies the history and case numbering.
 - Case numbers are per-guild sequential via `GuildCaseCounter.count` incremented inside the same

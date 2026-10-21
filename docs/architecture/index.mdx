@@ -83,7 +83,12 @@ The API exposes detail-free health routes, the authenticated vote webhook and in
 
 The API commits an operation record and outbox row in one PostgreSQL transaction. An optional domain mutation runs in that same transaction. Idempotency keys must match the stored kind, guild and payload. After commit, the API attempts delivery through the outbox claim; a Redis failure leaves retryable intent and still returns durable acceptance. API and worker producers use separate finite-failure Redis connections so unavailable delivery cannot indefinitely hold a request or shutdown; the BullMQ Worker connection retains its required retry policy. Before each claim poll, the tracked worker relay idempotently repairs a bounded batch of nonterminal operation records missing an outbox row, including records written by a rollback image after the migration ran. It then claims pending, retryable and expired outbox rows in bounded batches, publishes the existing deterministic BullMQ job ID, and fences settlement by the version returned from the claim transaction. The outbox retains published and failed-attempt evidence, and the relay exposes claimed, published and deferred counters for shutdown diagnostics. Workers separately claim operation execution and fence completion or failure. Their reconciler republishes retryable or expired operation execution only after the outbox records publication, and shutdown drains both tracked paths before disconnecting Redis.
 
-The current module inventory has no active `JobDefinition` handlers. Future module-owned consumers must enter through explicit manifests and the tracked worker runtime rather than creating a worker in a module or gateway shard.
+The current module inventory has no active BullMQ `JobDefinition` handlers. Five scheduled Discord task
+names are declared in the moderation, verification, security and tickets manifests. PostgreSQL owns
+their due time, attempt count, lease and claim version. A tracked worker poller claims at most 20 rows
+and publishes a strict version-1 task ID and claim version on the control bus. Owning gateway processes
+atomically accept a current claim before calling a module handler and fence completion or coded failure.
+Expired `claimed` or `processing` leases are reclaimed; terminal rows remain for inspection.
 
 ## Web and optional apps
 

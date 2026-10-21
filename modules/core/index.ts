@@ -15,7 +15,6 @@ import { MessageFlags, SlashCommandBuilder } from "discord.js";
 import type { BotClient } from "@/client/BotClient.ts";
 import { defineEvent } from "@/client/defineEvent.ts";
 import { resolveLocale, setUserLocale } from "@/services/localization.ts";
-import { recoverScheduled } from "@/services/scheduler.ts";
 import type { BotModule, ComponentHandler, RegisteredEvent, SlashCommand } from "@/types/module.ts";
 import { findCategory, HELP_CATEGORIES } from "./categories.ts";
 import {
@@ -218,18 +217,16 @@ const shardsComponent: ComponentHandler = {
 	},
 };
 
-const recoverTasksEvent: RegisteredEvent = defineEvent("ready", {
+const scheduledTasksReady: RegisteredEvent = defineEvent("ready", {
 	once: true,
-	execute: async (client) => {
-		await recoverScheduled(client);
-	},
+	execute: (client) => client.startScheduledTasks(),
 });
 
 const core: BotModule = {
 	name: "core",
 	commands: [ping, help, stats, shards],
 	components: [helpComponent, shardsComponent],
-	events: [recoverTasksEvent],
+	events: [scheduledTasksReady],
 	i18n: {
 		ping: "Pong! `{ms}ms` gateway latency.",
 		"help.title": "Rostra Help",

@@ -975,7 +975,7 @@ model AutostarChannel {
 
 // ── Durable scheduler ────────────────────────────────────────────────────────
 // One row per future action (reminder, giveaway end, tempban/mute/role lift,
-// ticket auto-close, ...). Survives restart/crash; re-armed per shard on boot.
+// ticket auto-close, ...). PostgreSQL owns claims and recovery.
 
 model ScheduledTask {
   id        String   @id @default(cuid())
@@ -986,8 +986,14 @@ model ScheduledTask {
   status    String   @default("pending")
   attempts  Int      @default(0)
   lastError String?
+  nextAttemptAt DateTime?
+  leaseUntil DateTime?
+  claimVersion Int @default(0)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  @@index([status, nextAttemptAt])
+  @@index([status, leaseUntil])
   @@index([runAt])
   @@index([guildId])
 }

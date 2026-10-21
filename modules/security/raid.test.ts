@@ -1,6 +1,24 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { recordJoin } from "./raid.ts";
+import { PermanentScheduledTaskError } from "@rostra/operations";
+import type { Client } from "discord.js";
+import { raidUnlockTask, recordJoin } from "./raid.ts";
+
+test("raid unlock rejects malformed and cross-guild scheduled payloads", async () => {
+	const client = {} as Client;
+	await assert.rejects(
+		raidUnlockTask({ guildId: "nope", restoreLevel: 2 }, client, "123"),
+		PermanentScheduledTaskError,
+	);
+	await assert.rejects(
+		raidUnlockTask({ guildId: "123", restoreLevel: 9 }, client, "123"),
+		PermanentScheduledTaskError,
+	);
+	await assert.rejects(
+		raidUnlockTask({ guildId: "123", restoreLevel: 2 }, client, "456"),
+		PermanentScheduledTaskError,
+	);
+});
 
 test("recordJoin fires once the threshold is met inside the window", () => {
 	const g = "guild-burst";

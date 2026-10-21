@@ -98,7 +98,7 @@ export const securityEvents: RegisteredEvent[] = [
 		},
 	}),
 	defineEvent("guildMemberAdd", {
-		execute: async (client, member) => {
+		execute: async (_client, member) => {
 			if (await isFeatureBlocked(member.guild.id, "security")) return;
 			const config = await getConfig(member.guild.id);
 			if (!config?.antiRaid || isLocked(member.guild.id)) return;
@@ -106,7 +106,6 @@ export const securityEvents: RegisteredEvent[] = [
 			await triggerLockdown(
 				member.guild,
 				config,
-				client,
 				`Join flood detected (${config.raidThreshold}+ joins in ${config.raidWindowSec}s).`,
 			);
 		},

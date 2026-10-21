@@ -1,11 +1,15 @@
 ---
 title: Ticket module
-last-updated: 2026-10-19
+last-updated: 2026-10-21
 owner: AstorisTheBrave
 status: stable
 ---
 
 ## what this is
+
+The `ticket_archive_delete` task is claimed by workers and dispatched to the owning gateway. The
+handler checks the stored ticket's guild and open state before deletion. A confirmed absent channel
+or reopened ticket completes safely; storage and other Discord failures retry.
 
 A support ticket system: members click a button to open a private channel only they and support staff can
 see; staff can claim it and close it (which logs a summary and deletes the channel). This is the first

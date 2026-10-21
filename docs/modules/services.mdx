@@ -37,17 +37,13 @@ shared instance so the whole bot reuses one connection instead of making new one
 - `isFeatureEnabled(tenant, name)`, `getSetting(tenant, key)`, `setFeatures(guildId, flags)`,
   `evictTenantL1(guildId)`.
 
-**`apps/gateway/src/services/scheduler.ts`** - durable, crash-safe scheduler (model `ScheduledTask`). Future actions are
-rows, so they survive restart; each shard re-arms what it owns on boot (core's `ready` event calls
-`recoverScheduled`).
-- `registerTaskHandler(type, handler)` - a module registers the handler for its task `type`.
-- `schedule({ type, runAt, guildId?, payload? }, client?)` - create a durable task and arm it locally.
-- `cancelTask(id)` - clear the timer and delete the row.
-- `recoverScheduled(client)` - boot recovery; `shouldArm(task, shardId, ownsGuild)` decides ownership
-  (guild tasks on the owning shard, global `guildId:null` tasks only on shard 0). `clampDelay` caps the
-  setTimeout and re-arms for long waits. On fire the payload is dispatched to the handler and the row
-  is deleted only after success. Unknown or failed handlers retain the row with `status`, `attempts`
-  and a non-sensitive `lastError` code. Explicit cancellation still deletes the row.
+**Scheduled work** - `packages/operations/src/scheduler.ts` owns durable `ScheduledTask` claims,
+retry and settlement. The tracked worker poller publishes only task ID and claim version through
+`@rostra/cache/bus`. The gateway adapter accepts an exact claim on the guild-owning process, or on
+shard 0 for global work, then invokes the registered Discord handler. The gateway `schedule` facade
+creates a row without a timer or Client argument. `cancelTask(id)` returns `cancelled`, `processing`,
+`terminal` or `missing`; cancellation cannot reverse an effect already processing. Failed and cancelled
+rows remain for inspection. `runAt` remains the original due time while `nextAttemptAt` tracks retries.
 
 **durable operations** - `packages/operations/` owns operation records, attempts, scoped idempotency
 validation, claim fencing and failure classification. Claim acquisition increments and reads its fence

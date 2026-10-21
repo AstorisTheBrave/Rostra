@@ -1,10 +1,14 @@
 ---
-last-updated: 2026-06-07
+last-updated: 2026-10-21
 owner: AstorisTheBrave
 status: stable
 ---
 
 ## what this is
+
+The `verify_kick` task is claimed by workers and handled on the owning gateway. Its stored guild and
+member IDs are validated before use; a confirmed absent member or a member who verified is a safe
+success, while Discord and storage failures retry.
 
 A verification gate: post a panel with a Verify button, and members who click it get a "verified" role
 that unlocks the server. Adapted from YAGPDB's verification feature, button-based (no web captcha).

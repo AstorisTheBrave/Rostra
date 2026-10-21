@@ -1,8 +1,9 @@
 import { getPrisma } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
+import { PermanentScheduledTaskError, requireTaskPayload } from "@rostra/operations";
 import type { Client, Guild, GuildMember, Role, User } from "discord.js";
 import { type CaseType, recordCase } from "@/services/moderationCase.ts";
-import { schedule } from "@/services/scheduler.ts";
+import { isAbsentDiscordError, schedule } from "@/services/scheduler.ts";
 
 const log = getLogger("moderation");
 
@@ -221,7 +222,6 @@ export async function applyTempRole(opts: {
 	role: Role;
 	durationMs: number;
 	reason: string;
-	client: Client;
 }): Promise<ModResult> {
 	const me = opts.guild.members.me;
 	if (!me) return { ok: false, messageKey: "moderation:error.botNotInGuild" };
@@ -244,26 +244,33 @@ export async function applyTempRole(opts: {
 		reason: opts.reason,
 		durationMs: opts.durationMs,
 	});
-	await schedule(
-		{
-			type: "temprole_remove",
-			runAt: new Date(Date.now() + opts.durationMs),
-			guildId: opts.guild.id,
-			payload: { guildId: opts.guild.id, userId: opts.target.id, roleId: opts.role.id },
-		},
-		opts.client,
-	);
+	await schedule({
+		type: "temprole_remove",
+		runAt: new Date(Date.now() + opts.durationMs),
+		guildId: opts.guild.id,
+		payload: { guildId: opts.guild.id, userId: opts.target.id, roleId: opts.role.id },
+	});
 	return { ok: true, caseNumber };
 }
 
 /** Durable-scheduler handler: remove a temporary role when it expires. */
-export async function removeTempRoleTask(payload: unknown, client: Client): Promise<void> {
-	const p = payload as { guildId?: string; userId?: string; roleId?: string };
-	if (!p.guildId || !p.userId || !p.roleId) return;
+export async function removeTempRoleTask(
+	payload: unknown,
+	client: Client,
+	guildId: string | null,
+): Promise<void> {
+	const p = requireTaskPayload(payload, ["guildId", "userId", "roleId"]);
+	if (p.guildId !== guildId) throw new PermanentScheduledTaskError();
 	const guild = client.guilds.cache.get(p.guildId);
-	if (!guild) return;
-	const member = await guild.members.fetch(p.userId).catch(() => null);
-	await member?.roles.remove(p.roleId, "Temporary role expired").catch(() => {});
+	if (!guild) throw new Error("scheduled_guild_unavailable");
+	const member = await guild.members.fetch(p.userId).catch((error: unknown) => {
+		if (isAbsentDiscordError(error, 10007)) return null;
+		throw error;
+	});
+	if (!member) return;
+	await member.roles.remove(p.roleId, "Temporary role expired").catch((error: unknown) => {
+		if (!isAbsentDiscordError(error, 10007) && !isAbsentDiscordError(error, 10011)) throw error;
+	});
 }
 
 /** Ban a user and schedule a durable auto-unban after `durationMs`. */
@@ -274,7 +281,6 @@ export async function applyTempBan(opts: {
 	durationMs: number;
 	reason: string;
 	deleteSeconds?: number;
-	client: Client;
 }): Promise<ModResult> {
 	const member = await opts.guild.members.fetch(opts.target.id).catch(() => null);
 	if (member) {
@@ -300,25 +306,28 @@ export async function applyTempBan(opts: {
 		reason: opts.reason,
 		durationMs: opts.durationMs,
 	});
-	await schedule(
-		{
-			type: "tempban_lift",
-			runAt: new Date(Date.now() + opts.durationMs),
-			guildId: opts.guild.id,
-			payload: { guildId: opts.guild.id, userId: opts.target.id },
-		},
-		opts.client,
-	);
+	await schedule({
+		type: "tempban_lift",
+		runAt: new Date(Date.now() + opts.durationMs),
+		guildId: opts.guild.id,
+		payload: { guildId: opts.guild.id, userId: opts.target.id },
+	});
 	return { ok: true, caseNumber };
 }
 
 /** Durable-scheduler handler: unban a user when their temp-ban expires. */
-export async function liftTempBanTask(payload: unknown, client: Client): Promise<void> {
-	const p = payload as { guildId?: string; userId?: string };
-	if (!p.guildId || !p.userId) return;
+export async function liftTempBanTask(
+	payload: unknown,
+	client: Client,
+	guildId: string | null,
+): Promise<void> {
+	const p = requireTaskPayload(payload, ["guildId", "userId"]);
+	if (p.guildId !== guildId) throw new PermanentScheduledTaskError();
 	const guild = client.guilds.cache.get(p.guildId);
-	if (!guild) return;
-	await guild.members.unban(p.userId, "Temporary ban expired").catch(() => {});
+	if (!guild) throw new Error("scheduled_guild_unavailable");
+	await guild.members.unban(p.userId, "Temporary ban expired").catch((error: unknown) => {
+		if (!isAbsentDiscordError(error, 10026)) throw error;
+	});
 }
 
 /** All cases for a target (optionally filtered by type), newest first. */

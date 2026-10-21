@@ -513,7 +513,7 @@ async function execute({
 			const target = interaction.options.getUser("user", true);
 			const durationMs = parseDuration(interaction.options.getString("duration", true));
 			if (!durationMs) return void reply.error(interaction, t("moderation:error.invalidDuration"));
-			const res = await applyTempBan({ guild, target, moderator, durationMs, reason, client });
+			const res = await applyTempBan({ guild, target, moderator, durationMs, reason });
 			if (!res.ok) return void reply.error(interaction, t(res.messageKey, res.vars));
 			return ok(interaction, "moderation:success.tempban", {
 				user: target.tag,
@@ -535,7 +535,6 @@ async function execute({
 				role,
 				durationMs,
 				reason,
-				client,
 			});
 			if (!res.ok) return void reply.error(interaction, t(res.messageKey, res.vars));
 			return ok(interaction, "moderation:success.temprole", {

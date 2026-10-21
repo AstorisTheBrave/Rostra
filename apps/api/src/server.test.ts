@@ -122,6 +122,40 @@ test("public health routes expose only status", async (t) => {
 	assert.deepEqual(ready.json(), { status: "not_ready" });
 });
 
+test("internal diagnostics distinguish missing and guild credentials", async (t) => {
+	const app = await createApi({
+		authenticate,
+		guildDirectory,
+		guildCapabilities,
+		ready: async () => true,
+		repository: repository(),
+		publisher: { async publish() {} },
+		async recordVote() {},
+	});
+	t.after(() => app.close());
+	assert.equal(
+		(await app.inject({ method: "GET", url: "/internal/v1/diagnostics" })).statusCode,
+		401,
+	);
+	assert.equal(
+		(
+			await app.inject({
+				method: "GET",
+				url: "/internal/v1/diagnostics",
+				headers: { authorization: "Bearer guild-1" },
+			})
+		).statusCode,
+		403,
+	);
+	const host = await app.inject({
+		method: "GET",
+		url: "/internal/v1/diagnostics",
+		headers: { authorization: "Bearer internal-secret" },
+	});
+	assert.equal(host.statusCode, 200);
+	assert.equal(typeof host.json().cache.hits, "number");
+});
+
 test("versioned internal routes require host bearer auth", async (t) => {
 	let publishes = 0;
 	const app = await createApi({

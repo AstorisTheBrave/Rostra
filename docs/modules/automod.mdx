@@ -50,6 +50,8 @@ guard, respecting the same exempt list, and `enforce(..., rule.action)` applies 
 
 - Persisted config and custom-rule lists use versioned tenant invalidation after a committed
   write, with a five-minute local TTL if Redis delivery fails. Spam buckets remain local.
+- The setup provisioner returns its config write's publication outcome. A saved feature flag
+  and a delayed automod config invalidation produce a partial-setup warning in the wizard.
 
 - Requires the **Message Content** intent (enabled on the bot) to read message text.
 - The `bad-words` `Filter` is cached per guild and rebuilt when config changes (custom words added).

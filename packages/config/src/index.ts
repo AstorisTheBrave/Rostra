@@ -32,6 +32,7 @@ const schema = z.object({
 	HOST: z.string().default("0.0.0.0"),
 	API_PORT: z.coerce.number().int().default(3001),
 	API_BASE_URL: z.url().default("http://localhost:3001"),
+	WORKER_PORT: z.coerce.number().int().positive().default(3005),
 	INTERNAL_API_TOKEN: z.string().optional(),
 	WEB_PORT: z.coerce.number().int().default(3002),
 	WEB_PUBLIC_URL: z.url().default("http://localhost:3002"),
@@ -79,6 +80,7 @@ export type Config = {
 	redis: { url?: string };
 	web: { port: number; host: string };
 	api: { port: number; host: string; baseUrl: string; internalToken?: string };
+	workers: { port: number; host: string };
 	webApp: {
 		port: number;
 		host: string;
@@ -131,6 +133,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
 			baseUrl: e.API_BASE_URL,
 			internalToken: e.INTERNAL_API_TOKEN,
 		},
+		workers: { port: e.WORKER_PORT, host: e.HOST },
 		webApp: {
 			port: e.WEB_PORT,
 			host: e.HOST,

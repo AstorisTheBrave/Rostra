@@ -28,14 +28,24 @@ shared instance so the whole bot reuses one connection instead of making new one
   bounded local caches for persisted configuration and preferences. Misses read PostgreSQL
   directly. A write advances its revision with the data in one transaction and publishes
   the exact identity after commit. `CONFIG_TTL_MS` is 300,000 (five minutes).
+- `coherentCacheMetrics()` returns process-local aggregate hit and miss counts for internal
+  diagnostics. It has no guild, user or cache-key labels.
 
 **`apps/gateway/src/services/tenant.ts`** - the centralized per-guild config ("tenant", model `GuildTenant`).
 - `getTenant(guildId)` - bounded local cache of hot guilds, then PostgreSQL (lazily upserts
   the row). Versioned invalidations evict other processes after a committed write.
 - `updateTenant(guildId, patch)` - writes the row and publishes a versioned invalidation.
   The setup wizard writes channel/role ids and feature flags here.
+- `updateTenantWithOutcome(guildId, patch)` returns the durable value and cache publication
+  outcome for provisioning and setup responses that must distinguish delayed fleet delivery.
 - `isFeatureEnabled(tenant, name)`, `getSetting(tenant, key)`, `setFeatures(guildId, flags)`,
   `evictTenantL1(guildId)`.
+- `isFeatureBlocked` blocks on tenant read failure. `setFeatures` returns the saved tenant,
+  cache publication outcome and failed provisioner names so setup can warn after a partial save.
+  Its publication outcome includes provisioner writes even when the tenant write published.
+- Global feature declarations and database overrides are independent of guild state. Initial
+  database failure prevents default-on flags from becoming live; reload failure keeps known
+  overrides. Flag writes distinguish database failure from delayed Redis publication.
 
 **Scheduled work** - `packages/operations/src/scheduler.ts` owns durable `ScheduledTask` claims,
 retry and settlement. The tracked worker poller publishes only task ID and claim version through

@@ -377,6 +377,9 @@ importers:
       '@napi-rs/canvas':
         specifier: ^1.0.2
         version: 1.0.2
+      '@rostra/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@rostra/cache':
         specifier: workspace:*
         version: link:../../packages/cache
@@ -539,6 +542,9 @@ importers:
 
   apps/workers:
     dependencies:
+      '@rostra/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@rostra/config':
         specifier: workspace:*
         version: link:../../packages/config

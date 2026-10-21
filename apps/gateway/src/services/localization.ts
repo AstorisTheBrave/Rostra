@@ -3,7 +3,7 @@ import type { Guild, UserPreference } from "@rostra/database";
 import { getPrisma } from "@rostra/database";
 import { getTranslator, type Translator } from "@rostra/i18n";
 import { DEFAULT_LOCALE, normalizeLocale } from "@rostra/i18n/locales";
-import { getTenant, updateTenant } from "@/services/tenant.ts";
+import { getTenant, updateTenantWithOutcome } from "@/services/tenant.ts";
 
 /**
  * The localization platform service - peer to `tenant`. Resolves which language
@@ -114,8 +114,8 @@ export async function resolveLocale(opts: ResolveOpts): Promise<string> {
 }
 
 /** Set a guild's language (used by `/setup language`). */
-export function setGuildLocale(guildId: string, locale: string): Promise<unknown> {
-	return updateTenant(guildId, { locale: normalizeLocale(locale) ?? DEFAULT_LOCALE });
+export function setGuildLocale(guildId: string, locale: string) {
+	return updateTenantWithOutcome(guildId, { locale: normalizeLocale(locale) ?? DEFAULT_LOCALE });
 }
 
 // ── Multi-audience helper ────────────────────────────────────────────────────

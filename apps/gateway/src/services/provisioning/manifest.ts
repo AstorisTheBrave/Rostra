@@ -1,6 +1,7 @@
 import { commitCoherentWrite } from "@rostra/cache";
+import type { PublicationOutcome } from "@rostra/cache/bus";
 import { getPrisma, type Prisma } from "@rostra/database";
-import { updateTenant } from "@/services/tenant.ts";
+import { updateTenantWithOutcome } from "@/services/tenant.ts";
 
 // Declarative description of the channels and roles Rostra's systems need. The
 // engine (runProvision.ts) creates what is missing, idempotently, and each spec's
@@ -16,22 +17,24 @@ export interface ChannelSpec {
 	/** Deny @everyone view at creation (staff/log channels). */
 	staffOnly?: boolean;
 	/** Point the owning system's config at the resolved channel id. */
-	wire?: (guildId: string, channelId: string) => Promise<void>;
+	wire?: (guildId: string, channelId: string) => Promise<PublicationOutcome[]>;
 }
 
 export interface RoleSpec {
 	key: string;
 	name: string;
 	color?: number;
-	wire?: (guildId: string, roleId: string) => Promise<void>;
+	wire?: (guildId: string, roleId: string) => Promise<PublicationOutcome[]>;
 }
 
-function wireCachedConfig<T>(
+async function wireCachedConfig<T>(
 	owner: string,
 	guildId: string,
 	write: (tx: Prisma.TransactionClient) => Promise<T>,
-): Promise<unknown> {
-	return commitCoherentWrite({ owner, tenant: `guild:${guildId}`, key: guildId }, write, () => {});
+): Promise<PublicationOutcome> {
+	return (
+		await commitCoherentWrite({ owner, tenant: `guild:${guildId}`, key: guildId }, write, () => {})
+	).coherence;
 }
 
 export const CHANNELS: ChannelSpec[] = [
@@ -41,14 +44,15 @@ export const CHANNELS: ChannelSpec[] = [
 		topic: "Server activity and audit feed (logging module).",
 		staffOnly: true,
 		wire: async (guildId, id) => {
-			await wireCachedConfig("logging", guildId, (tx) =>
+			const logging = await wireCachedConfig("logging", guildId, (tx) =>
 				tx.loggingConfig.upsert({
 					where: { guildId },
 					create: { guildId, logChannelId: id },
 					update: { logChannelId: id },
 				}),
 			);
-			await updateTenant(guildId, { logChannelId: id });
+			const tenant = await updateTenantWithOutcome(guildId, { logChannelId: id });
+			return [logging, tenant.coherence];
 		},
 	},
 	{
@@ -57,7 +61,7 @@ export const CHANNELS: ChannelSpec[] = [
 		topic: "Moderation actions: bans, kicks, timeouts, warns.",
 		staffOnly: true,
 		wire: async (guildId, id) => {
-			await updateTenant(guildId, { modLogChannelId: id });
+			return [(await updateTenantWithOutcome(guildId, { modLogChannelId: id })).coherence];
 		},
 	},
 	{
@@ -66,13 +70,15 @@ export const CHANNELS: ChannelSpec[] = [
 		topic: "Automod deletions and escalation actions.",
 		staffOnly: true,
 		wire: async (guildId, id) => {
-			await wireCachedConfig("automod", guildId, (tx) =>
-				tx.automodConfig.upsert({
-					where: { guildId },
-					create: { guildId, logChannelId: id },
-					update: { logChannelId: id },
-				}),
-			);
+			return [
+				await wireCachedConfig("automod", guildId, (tx) =>
+					tx.automodConfig.upsert({
+						where: { guildId },
+						create: { guildId, logChannelId: id },
+						update: { logChannelId: id },
+					}),
+				),
+			];
 		},
 	},
 	{
@@ -80,14 +86,15 @@ export const CHANNELS: ChannelSpec[] = [
 		name: "welcome",
 		topic: "New member welcomes.",
 		wire: async (guildId, id) => {
-			await wireCachedConfig("welcome", guildId, (tx) =>
+			const welcome = await wireCachedConfig("welcome", guildId, (tx) =>
 				tx.welcomeConfig.upsert({
 					where: { guildId },
 					create: { guildId, welcomeChannelId: id },
 					update: { welcomeChannelId: id },
 				}),
 			);
-			await updateTenant(guildId, { welcomeChannelId: id });
+			const tenant = await updateTenantWithOutcome(guildId, { welcomeChannelId: id });
+			return [welcome, tenant.coherence];
 		},
 	},
 	{
@@ -102,12 +109,14 @@ export const CHANNELS: ChannelSpec[] = [
 		name: "starboard",
 		topic: "The best messages, voted by the community.",
 		wire: async (guildId, id) => {
-			await wireCachedConfig("starboard", guildId, async (tx) => {
-				const existing = await tx.starboard.findFirst({ where: { guildId, name: "main" } });
-				return existing
-					? tx.starboard.update({ where: { id: existing.id }, data: { channelId: id } })
-					: tx.starboard.create({ data: { guildId, name: "main", channelId: id } });
-			});
+			return [
+				await wireCachedConfig("starboard", guildId, async (tx) => {
+					const existing = await tx.starboard.findFirst({ where: { guildId, name: "main" } });
+					return existing
+						? tx.starboard.update({ where: { id: existing.id }, data: { channelId: id } })
+						: tx.starboard.create({ data: { guildId, name: "main", channelId: id } });
+				}),
+			];
 		},
 	},
 	{
@@ -116,13 +125,15 @@ export const CHANNELS: ChannelSpec[] = [
 		topic: "Staff side of modmail threads.",
 		staffOnly: true,
 		wire: async (guildId, id) => {
-			await wireCachedConfig("modmail", guildId, (tx) =>
-				tx.modmailConfig.upsert({
-					where: { guildId },
-					create: { guildId, channelId: id, enabled: true },
-					update: { channelId: id },
-				}),
-			);
+			return [
+				await wireCachedConfig("modmail", guildId, (tx) =>
+					tx.modmailConfig.upsert({
+						where: { guildId },
+						create: { guildId, channelId: id, enabled: true },
+						update: { channelId: id },
+					}),
+				),
+			];
 		},
 	},
 	{
@@ -135,6 +146,7 @@ export const CHANNELS: ChannelSpec[] = [
 				create: { guildId, channelId: id },
 				update: { channelId: id },
 			});
+			return [];
 		},
 	},
 ];
@@ -145,13 +157,15 @@ export const ROLES: RoleSpec[] = [
 		name: "Verified",
 		color: 0x57f287,
 		wire: async (guildId, id) => {
-			await wireCachedConfig("verification", guildId, (tx) =>
-				tx.verificationConfig.upsert({
-					where: { guildId },
-					create: { guildId, roleId: id, enabled: true },
-					update: { roleId: id, enabled: true },
-				}),
-			);
+			return [
+				await wireCachedConfig("verification", guildId, (tx) =>
+					tx.verificationConfig.upsert({
+						where: { guildId },
+						create: { guildId, roleId: id, enabled: true },
+						update: { roleId: id, enabled: true },
+					}),
+				),
+			];
 		},
 	},
 ];

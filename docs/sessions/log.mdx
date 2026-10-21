@@ -11,6 +11,27 @@ to see where things stand and what was decided.
 
 ## log
 
+### 2026-10-21 - Phase 01 truthful flags, provisioning and health
+
+Global flags now fail initialization on an initial database read error and retain known
+overrides on later reload errors. A flag read buffers concurrent bus updates and replays
+them after its snapshot, while concurrent reads share one load. Guild feature reads fail
+closed. Feature writes report cache delivery and provisioner outcomes, while setup and owner commands distinguish saved,
+degraded and failed states without displaying raw errors. Public health returns status only;
+host-authenticated gateway, API and worker diagnostics expose aggregate process counters.
+Worker readiness probes PostgreSQL and Redis with a bounded response and requires recent
+successful outbox and scheduler polls. Focused failure tests and the full local gate are
+recorded in the Task 7 report. The module snapshot fixture records one intentional
+security-only difference: a default-on global flag is not live before its persisted
+state has loaded. Command JSON and module inventory remain unchanged. CI service
+verification remains a separate delivery gate.
+
+Review hardening preserves publication outcomes from each provisioning wire, including
+multi-write specs and the automod provisioner. Setup language and log-channel saves now
+report delayed delivery after a durable write. Worker health uses a separate Redis
+connection with no offline command queue, and repeated readiness requests share each
+unresolved dependency probe instead of accumulating operations.
+
 ### 2026-10-21 - Phase 01 durable scheduled work
 
 Moved scheduled Discord tasks from gateway timers to PostgreSQL claims and a tracked worker poller.

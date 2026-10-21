@@ -26,6 +26,7 @@ import {
 	removeRule,
 	toggleRule,
 	upsertConfig,
+	upsertConfigWithOutcome,
 } from "./service.ts";
 
 type ModuleField = Extract<keyof AutomodConfig, `anti${string}`>;
@@ -43,9 +44,10 @@ const RECOMMENDED = {
 // Wire the setup-wizard "Auto-mod" toggle to real automod config: turning it on
 // applies the recommended filters (including profanity), turning it off disables
 // enforcement. Registered once at module load.
-registerFeatureProvisioner("automod", async (guildId, enabled) => {
-	await upsertConfig(guildId, enabled ? { ...RECOMMENDED } : { enabled: false });
-});
+export function provisionAutomod(guildId: string, enabled: boolean) {
+	return upsertConfigWithOutcome(guildId, enabled ? { ...RECOMMENDED } : { enabled: false });
+}
+registerFeatureProvisioner("automod", provisionAutomod);
 
 const MODULE_CHOICES: { name: string; value: string; field: ModuleField }[] = [
 	{ name: "Anti-invite", value: "invite", field: "antiInvite" },

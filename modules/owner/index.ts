@@ -37,12 +37,15 @@ function buildData(): SlashCommandBuilder {
 
 const isOwner = (userId: string): boolean => config.discord.ownerIds.includes(userId);
 
-async function execute({
-	interaction,
-}: {
-	interaction: ChatInputCommandInteraction;
-	client: BotClient;
-}): Promise<void> {
+export async function execute(
+	{
+		interaction,
+	}: {
+		interaction: ChatInputCommandInteraction;
+		client: BotClient;
+	},
+	write = setFeatureLive,
+): Promise<void> {
 	if (!isOwner(interaction.user.id)) return void reply.error(interaction, t("owner:notOwner"));
 	const sub = interaction.options.getSubcommand();
 
@@ -64,12 +67,18 @@ async function execute({
 	const name = interaction.options.getString("name", true);
 	const enabled = interaction.options.getBoolean("enabled", true);
 	if (!isDeclared(name)) return void reply.error(interaction, t("owner:feature.unknown", { name }));
-	await setFeatureLive(name, enabled);
-	return void reply.success(
-		interaction,
-		t(enabled ? "owner:feature.on" : "owner:feature.off", { name }),
-		true,
-	);
+	try {
+		const outcome = await write(name, enabled);
+		if (outcome.status === "ttl-fallback")
+			return void reply.error(interaction, t("owner:feature.degraded", { name }), true);
+		return void reply.success(
+			interaction,
+			t(enabled ? "owner:feature.on" : "owner:feature.off", { name }),
+			true,
+		);
+	} catch {
+		return void reply.error(interaction, t("owner:feature.failed", { name }), true);
+	}
 }
 
 const ownerCommand: SlashCommand = {
@@ -96,8 +105,11 @@ const owner: BotModule = {
 		"feature.title": "# 🎚️ Feature flags",
 		"feature.none": "No features registered yet.",
 		"feature.unknown": "No feature named **{name}**.",
-		"feature.on": "🟢 **{name}** is now **on** fleet-wide.",
-		"feature.off": "🔴 **{name}** is now **off** fleet-wide (kill-switch active).",
+		"feature.on": "🟢 **{name}** is on here. The fleet update was accepted for delivery.",
+		"feature.off": "🔴 **{name}** is off here. The fleet update was accepted for delivery.",
+		"feature.degraded":
+			"**{name}** was saved and changed here, but delivery to other shards is delayed. Check their state before relying on this switch.",
+		"feature.failed": "I couldn't save **{name}**. Its state was not changed.",
 	},
 };
 

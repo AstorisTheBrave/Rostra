@@ -77,6 +77,10 @@ export class SchedulerPoller implements DrainableWorker {
 	#timer: NodeJS.Timeout | undefined;
 	#inFlight: Promise<void> | undefined;
 	#closing = false;
+	#successes = 0;
+	#failures = 0;
+	#lastSuccessAt = 0;
+	#lastPollOk = false;
 
 	constructor(
 		repository: Pick<ScheduledTaskRepository, "claimDue" | "deferPublication">,
@@ -90,37 +94,55 @@ export class SchedulerPoller implements DrainableWorker {
 
 	async runOnce(now = new Date()): Promise<number> {
 		if (this.#closing) return 0;
-		const claims = await this.#repository.claimDue(now, 20, SCHEDULED_TASK_LEASE_MS);
-		const failures: unknown[] = [];
-		let deliveryUnavailable = false;
-		for (const claim of claims) {
-			if (deliveryUnavailable) {
+		try {
+			const claims = await this.#repository.claimDue(now, 20, SCHEDULED_TASK_LEASE_MS);
+			const failures: unknown[] = [];
+			let deliveryUnavailable = false;
+			for (const claim of claims) {
+				if (deliveryUnavailable) {
+					try {
+						await this.#repository.deferPublication(claim.id, claim.claimVersion, new Date());
+					} catch (error) {
+						failures.push(error);
+					}
+					continue;
+				}
 				try {
-					await this.#repository.deferPublication(claim.id, claim.claimVersion, new Date());
+					const outcome = await this.#publish(SCHEDULED_TASK_CHANNEL, {
+						version: 1,
+						taskId: claim.id,
+						claimVersion: claim.claimVersion,
+					});
+					if (outcome.status !== "published") throw new Error("scheduled_dispatch_unavailable");
 				} catch (error) {
+					deliveryUnavailable = true;
+					try {
+						await this.#repository.deferPublication(claim.id, claim.claimVersion, new Date());
+					} catch (settlementError) {
+						failures.push(settlementError);
+					}
 					failures.push(error);
 				}
-				continue;
 			}
-			try {
-				const outcome = await this.#publish(SCHEDULED_TASK_CHANNEL, {
-					version: 1,
-					taskId: claim.id,
-					claimVersion: claim.claimVersion,
-				});
-				if (outcome.status !== "published") throw new Error("scheduled_dispatch_unavailable");
-			} catch (error) {
-				deliveryUnavailable = true;
-				try {
-					await this.#repository.deferPublication(claim.id, claim.claimVersion, new Date());
-				} catch (settlementError) {
-					failures.push(settlementError);
-				}
-				failures.push(error);
-			}
+			if (failures.length) throw new AggregateError(failures, "Scheduled dispatch deferred");
+			this.#successes++;
+			this.#lastSuccessAt = Date.now();
+			this.#lastPollOk = true;
+			return claims.length;
+		} catch (error) {
+			this.#failures++;
+			this.#lastPollOk = false;
+			throw error;
 		}
-		if (failures.length) throw new AggregateError(failures, "Scheduled dispatch deferred");
-		return claims.length;
+	}
+
+	get health() {
+		return {
+			successes: this.#successes,
+			failures: this.#failures,
+			lastSuccessAt: this.#lastSuccessAt,
+			lastPollOk: this.#lastPollOk,
+		};
 	}
 
 	start(onError: (error: unknown) => void): void {
@@ -154,6 +176,10 @@ export class OutboxRelay implements DrainableWorker {
 	#claimed = 0;
 	#published = 0;
 	#deferred = 0;
+	#successes = 0;
+	#failures = 0;
+	#lastSuccessAt = 0;
+	#lastPollOk = false;
 
 	constructor(
 		repository: OperationOutboxRepository,
@@ -166,27 +192,45 @@ export class OutboxRelay implements DrainableWorker {
 	}
 
 	async runOnce(now = new Date()): Promise<number> {
-		const claims = await this.#repository.claimDueOutbox(now, 20, 30_000);
-		this.#claimed += claims.length;
-		const failures: unknown[] = [];
-		for (let index = 0; index < claims.length; index += 2) {
-			const results = await Promise.allSettled(
-				claims.slice(index, index + 2).map(async (claim) => {
-					if (!(await publishClaimedOutbox(this.#repository, this.#publisher, claim)))
-						throw new Error("outbox_publish_deferred");
-				}),
-			);
-			failures.push(
-				...results
-					.filter((result): result is PromiseRejectedResult => result.status === "rejected")
-					.map((result) => result.reason),
-			);
-			this.#published += results.filter((result) => result.status === "fulfilled").length;
-			this.#deferred += results.filter((result) => result.status === "rejected").length;
+		try {
+			const claims = await this.#repository.claimDueOutbox(now, 20, 30_000);
+			this.#claimed += claims.length;
+			const failures: unknown[] = [];
+			for (let index = 0; index < claims.length; index += 2) {
+				const results = await Promise.allSettled(
+					claims.slice(index, index + 2).map(async (claim) => {
+						if (!(await publishClaimedOutbox(this.#repository, this.#publisher, claim)))
+							throw new Error("outbox_publish_deferred");
+					}),
+				);
+				failures.push(
+					...results
+						.filter((result): result is PromiseRejectedResult => result.status === "rejected")
+						.map((result) => result.reason),
+				);
+				this.#published += results.filter((result) => result.status === "fulfilled").length;
+				this.#deferred += results.filter((result) => result.status === "rejected").length;
+			}
+			if (failures.length)
+				throw new AggregateError(failures, "Outbox relay deferred one or more operations");
+			this.#successes++;
+			this.#lastSuccessAt = Date.now();
+			this.#lastPollOk = true;
+			return claims.length;
+		} catch (error) {
+			this.#failures++;
+			this.#lastPollOk = false;
+			throw error;
 		}
-		if (failures.length)
-			throw new AggregateError(failures, "Outbox relay deferred one or more operations");
-		return claims.length;
+	}
+
+	get health() {
+		return {
+			successes: this.#successes,
+			failures: this.#failures,
+			lastSuccessAt: this.#lastSuccessAt,
+			lastPollOk: this.#lastPollOk,
+		};
 	}
 
 	get metrics(): { claimed: number; published: number; deferred: number } {
@@ -286,8 +330,11 @@ export class TrackedWorkers {
 export function createOperationProcessor(
 	repository: OperationRepository,
 	handlers: ReadonlyMap<string, OperationHandler>,
+	onLag: (lagMs: number) => void = () => {},
+	onRetry: (outcome: "retryable" | "busy") => void = () => {},
 ): (job: Job<unknown>) => Promise<void> {
 	return async (job) => {
+		onLag(Math.max(0, Date.now() - (Number.isFinite(job.timestamp) ? job.timestamp : Date.now())));
 		let payload: OperationQueuePayload;
 		try {
 			payload = parseOperationQueuePayload(job.data);
@@ -296,8 +343,10 @@ export function createOperationProcessor(
 			throw error;
 		}
 		const outcome = await processOperation(repository, handlers, payload);
-		if (outcome === "retryable" || outcome === "busy")
+		if (outcome === "retryable" || outcome === "busy") {
+			onRetry(outcome);
 			throw new Error(outcome === "busy" ? "operation_busy" : "retryable_operation_failure");
+		}
 	};
 }
 
@@ -305,6 +354,10 @@ export class WorkerRuntime {
 	readonly #connection: Redis;
 	readonly #tracked: TrackedWorkers;
 	#outboxRelay: OutboxRelay | undefined;
+	#scheduler: SchedulerPoller | undefined;
+	#queueLagMs = 0;
+	#operationRetries = 0;
+	#operationBusy = 0;
 
 	constructor(connection: Redis, tracked = new TrackedWorkers()) {
 		this.#connection = connection;
@@ -319,6 +372,18 @@ export class WorkerRuntime {
 		return this.#outboxRelay?.metrics;
 	}
 
+	get diagnostics() {
+		return {
+			outbox: this.#outboxRelay
+				? { ...this.#outboxRelay.metrics, ...this.#outboxRelay.health }
+				: undefined,
+			scheduler: this.#scheduler?.health,
+			queueLagMs: this.#queueLagMs,
+			operationRetries: this.#operationRetries,
+			operationBusy: this.#operationBusy,
+		};
+	}
+
 	registerOperations(
 		repository: OperationRepository,
 		handlers: ReadonlyMap<string, OperationHandler>,
@@ -326,7 +391,17 @@ export class WorkerRuntime {
 		this.#tracked.track(
 			new Worker<OperationQueuePayload>(
 				"operations",
-				createOperationProcessor(repository, handlers),
+				createOperationProcessor(
+					repository,
+					handlers,
+					(lagMs) => {
+						this.#queueLagMs = lagMs;
+					},
+					(outcome) => {
+						if (outcome === "retryable") this.#operationRetries++;
+						else this.#operationBusy++;
+					},
+				),
 				{
 					connection: this.#connection as unknown as ConnectionOptions,
 					concurrency: 2,
@@ -392,6 +467,7 @@ export class WorkerRuntime {
 			(channel, payload) => publisher.publish(channel, payload),
 			intervalMs,
 		);
+		this.#scheduler = poller;
 		this.#tracked.track({
 			async close() {
 				try {

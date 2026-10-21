@@ -10,6 +10,7 @@
 		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\" \"../../modules/**/*.test.ts\""
 	},
 	"dependencies": {
+		"@rostra/auth": "workspace:*",
 		"@fastify/rate-limit": "^11.1.0",
 		"@keyv/redis": "^5.1.6",
 		"@napi-rs/canvas": "^1.0.2",

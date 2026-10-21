@@ -25,6 +25,14 @@ and operation attempts resume. A `claimed` row with an expired lease is automati
 Do not delete rows or manually reset claim versions; a publisher may have sent a job just before
 crashing, so replay is expected.
 
+Worker `/health/ready` becomes unavailable on failed or stale outbox or scheduler polls,
+PostgreSQL or Redis probe failure, or shutdown. Host-authenticated `/internal/diagnostics`
+shows aggregate poll successes/failures, outbox claims/publications/deferrals, operation retries,
+last observed queue lag and event-loop delay. It does not identify tenants or payloads.
+An owner feature switch reports Redis publication acceptance, not confirmation from every
+gateway shard. If delivery degrades, inspect each shard and reload flags after the bus recovers;
+a persisted off switch remains off on database reload failure.
+
 Scheduled Discord tasks use `ScheduledTask`, independent of the operation outbox. Inspect `status`,
 `runAt`, `nextAttemptAt`, `leaseUntil`, `attempts`, `claimVersion` and `lastError`. The worker poller
 reclaims expired `claimed` and `processing` leases after a crash, while each gateway accepts only the

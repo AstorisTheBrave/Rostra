@@ -2,6 +2,21 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseCacheInvalidation } from "./bus.ts";
 import { createCoherentCache } from "./coherent.ts";
+import { coherentCacheMetrics } from "./index.ts";
+
+test("coherent cache exposes aggregate hit and miss counters", async () => {
+	const before = coherentCacheMetrics();
+	const cache = createCoherentCache<number>("tenant", "guild");
+	try {
+		assert.equal(await cache.get("metric-test", async () => 1), 1);
+		assert.equal(await cache.get("metric-test", async () => 2), 1);
+		const after = coherentCacheMetrics();
+		assert.equal(after.misses - before.misses, 1);
+		assert.equal(after.hits - before.hits, 1);
+	} finally {
+		cache.dispose();
+	}
+});
 
 test("two local caches converge after an invalidation and ignore older deliveries", async () => {
 	let stored = 1;

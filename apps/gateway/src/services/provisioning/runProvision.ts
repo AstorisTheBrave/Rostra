@@ -1,3 +1,5 @@
+import type { PublicationOutcome } from "@rostra/cache/bus";
+import type { GuildTenant } from "@rostra/database";
 import { getLogger } from "@rostra/logger";
 import { ChannelType, type Guild, PermissionFlagsBits } from "discord.js";
 import { getChannelMap, getTenant, setChannelMapEntries } from "@/services/tenant.ts";
@@ -13,17 +15,15 @@ export interface ProvisionItem {
 	kind: "channel" | "role";
 	status: ItemStatus;
 	id?: string;
-	error?: string;
+	coherence?: PublicationOutcome[];
 }
 
 export interface ProvisionResult {
 	ok: boolean;
 	items: ProvisionItem[];
 	missingPerms: string[];
-}
-
-function errMsg(err: unknown): string {
-	return err instanceof Error ? err.message : String(err);
+	failure?: "tenant-read" | "channel-map" | "cache-publication";
+	deliveryDelayed?: true;
 }
 
 /**
@@ -31,7 +31,18 @@ function errMsg(err: unknown): string {
  * into its owning config. Re-running only creates what is missing and re-points the
  * tenant channelMap, so it doubles as a repair pass. Never throws.
  */
-export async function runProvision(guild: Guild): Promise<ProvisionResult> {
+export async function runProvision(
+	guild: Guild,
+	deps: {
+		read: (guildId: string) => Promise<Pick<GuildTenant, "channelMap">>;
+		writeMap: (
+			guildId: string,
+			entries: Record<string, string>,
+		) => Promise<{ coherence: PublicationOutcome }>;
+		roles: readonly RoleSpec[];
+		channels: readonly ChannelSpec[];
+	} = { read: getTenant, writeMap: setChannelMapEntries, roles: ROLES, channels: CHANNELS },
+): Promise<ProvisionResult> {
 	const items: ProvisionItem[] = [];
 	const me = guild.members.me;
 	const missingPerms: string[] = [];
@@ -40,27 +51,61 @@ export async function runProvision(guild: Guild): Promise<ProvisionResult> {
 	if (!me?.permissions.has(PermissionFlagsBits.ManageRoles)) missingPerms.push("Manage Roles");
 	if (missingPerms.length) return { ok: false, items, missingPerms };
 
-	const tenant = await getTenant(guild.id);
+	let tenant: Pick<GuildTenant, "channelMap">;
+	try {
+		tenant = await deps.read(guild.id);
+	} catch (err) {
+		log.error({ err, guild: guild.id }, "provision tenant read failed");
+		return { ok: false, items, missingPerms, failure: "tenant-read" };
+	}
 	const map = getChannelMap(tenant);
 	const newEntries: Record<string, string> = {};
 
 	// Roles first: verification wiring depends on the Verified role id.
-	for (const spec of ROLES) {
+	for (const spec of deps.roles) {
 		const res = await ensureRole(guild, spec, map);
 		items.push(res);
 		if (res.id) newEntries[`role:${spec.key}`] = res.id;
 	}
-	for (const spec of CHANNELS) {
+	for (const spec of deps.channels) {
 		const res = await ensureChannel(guild, spec, map);
 		items.push(res);
 		if (res.id) newEntries[spec.key] = res.id;
 	}
+	const deliveryDelayed = items.some((item) =>
+		item.coherence?.some((outcome) => outcome.status === "ttl-fallback"),
+	);
 
 	if (Object.keys(newEntries).length > 0) {
-		await setChannelMapEntries(guild.id, newEntries).catch((err) =>
-			log.error({ err, guild: guild.id }, "channelMap save failed"),
-		);
+		try {
+			const written = await deps.writeMap(guild.id, newEntries);
+			if (written.coherence.status === "ttl-fallback")
+				return {
+					ok: false,
+					items,
+					missingPerms,
+					failure: "cache-publication",
+					deliveryDelayed: true,
+				};
+		} catch (err) {
+			log.error({ err, guild: guild.id }, "channelMap save failed");
+			return {
+				ok: false,
+				items,
+				missingPerms,
+				failure: "channel-map",
+				...(deliveryDelayed ? { deliveryDelayed: true as const } : {}),
+			};
+		}
 	}
+	if (deliveryDelayed)
+		return {
+			ok: false,
+			items,
+			missingPerms,
+			failure: "cache-publication",
+			deliveryDelayed: true,
+		};
 	return { ok: items.every((i) => i.status !== "failed"), items, missingPerms };
 }
 
@@ -75,13 +120,14 @@ async function ensureChannel(
 		const existing =
 			byId ?? guild.channels.cache.find((c) => c.name === spec.name && c.isTextBased());
 		if (existing?.isTextBased()) {
-			await spec.wire?.(guild.id, existing.id);
+			const coherence = await spec.wire?.(guild.id, existing.id);
 			return {
 				key: spec.key,
 				name: spec.name,
 				kind: "channel",
 				status: "existed",
 				id: existing.id,
+				coherence,
 			};
 		}
 		const created = await guild.channels.create({
@@ -97,8 +143,15 @@ async function ensureChannel(
 				: {}),
 			reason: "Rostra /setup provision",
 		});
-		await spec.wire?.(guild.id, created.id);
-		return { key: spec.key, name: spec.name, kind: "channel", status: "created", id: created.id };
+		const coherence = await spec.wire?.(guild.id, created.id);
+		return {
+			key: spec.key,
+			name: spec.name,
+			kind: "channel",
+			status: "created",
+			id: created.id,
+			coherence,
+		};
 	} catch (err) {
 		log.error({ err, key: spec.key, guild: guild.id }, "provision channel failed");
 		return {
@@ -106,7 +159,6 @@ async function ensureChannel(
 			name: spec.name,
 			kind: "channel",
 			status: "failed",
-			error: errMsg(err),
 		};
 	}
 }
@@ -122,18 +174,32 @@ async function ensureRole(
 			(mappedId ? guild.roles.cache.get(mappedId) : undefined) ??
 			guild.roles.cache.find((r) => r.name === spec.name);
 		if (existing) {
-			await spec.wire?.(guild.id, existing.id);
-			return { key: spec.key, name: spec.name, kind: "role", status: "existed", id: existing.id };
+			const coherence = await spec.wire?.(guild.id, existing.id);
+			return {
+				key: spec.key,
+				name: spec.name,
+				kind: "role",
+				status: "existed",
+				id: existing.id,
+				coherence,
+			};
 		}
 		const created = await guild.roles.create({
 			name: spec.name,
 			color: spec.color,
 			reason: "Rostra /setup provision",
 		});
-		await spec.wire?.(guild.id, created.id);
-		return { key: spec.key, name: spec.name, kind: "role", status: "created", id: created.id };
+		const coherence = await spec.wire?.(guild.id, created.id);
+		return {
+			key: spec.key,
+			name: spec.name,
+			kind: "role",
+			status: "created",
+			id: created.id,
+			coherence,
+		};
 	} catch (err) {
 		log.error({ err, key: spec.key, guild: guild.id }, "provision role failed");
-		return { key: spec.key, name: spec.name, kind: "role", status: "failed", error: errMsg(err) };
+		return { key: spec.key, name: spec.name, kind: "role", status: "failed" };
 	}
 }

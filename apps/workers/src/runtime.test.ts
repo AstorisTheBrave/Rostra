@@ -88,6 +88,8 @@ test("scheduler treats TTL fallback as retryable publication failure", async () 
 	}));
 	await assert.rejects(poller.runOnce(), AggregateError);
 	assert.deepEqual(failure, { version: 3 });
+	assert.equal(poller.health.failures, 1);
+	assert.equal(poller.health.lastPollOk, false);
 });
 
 test("scheduler visits every claimed row when one publication defer fails", async () => {
@@ -161,6 +163,7 @@ test("outbox relay retries failed publication and drains an active claim", async
 	await assert.rejects(relay.runOnce(), AggregateError);
 	assert.equal(status, "retryable");
 	assert.deepEqual(relay.metrics, { claimed: 1, published: 0, deferred: 1 });
+	assert.equal(relay.health.failures, 1);
 	const errors: unknown[] = [];
 	relay.start((error) => errors.push(error));
 	while (publications < 2) await new Promise((resolve) => setImmediate(resolve));
@@ -174,6 +177,8 @@ test("outbox relay retries failed publication and drains an active claim", async
 	assert.equal(status, "published");
 	assert.equal(publications, 2);
 	assert.deepEqual(relay.metrics, { claimed: 2, published: 1, deferred: 1 });
+	assert.equal(relay.health.lastPollOk, true);
+	assert.ok(relay.health.lastSuccessAt > 0);
 	assert.deepEqual(errors, []);
 });
 
@@ -278,6 +283,34 @@ test("retryable failures remain durable and cause queue retry", async () => {
 		/retryable_operation_failure/,
 	);
 	assert.equal(repository.record.status, "retryable");
+});
+
+test("operation processor records bounded queue lag and retry state", async () => {
+	const repository = new Repository();
+	const lags: number[] = [];
+	const retries: string[] = [];
+	const processor = createOperationProcessor(
+		repository,
+		new Map([
+			[
+				"smoke",
+				async () => {
+					throw new RetryableOperationError("busy");
+				},
+			],
+		]),
+		(lag) => lags.push(lag),
+		(outcome) => retries.push(outcome),
+	);
+	await assert.rejects(
+		processor({
+			data: { version: 1, operationId: "operation-1" },
+			timestamp: Date.now() - 8,
+		} as never),
+	);
+	assert.equal(lags.length, 1);
+	assert.ok((lags[0] ?? -1) >= 0 && Number.isFinite(lags[0]));
+	assert.deepEqual(retries, ["retryable"]);
 });
 
 test("a retry before an unsettled lease expires stays retryable instead of looking terminal", async () => {

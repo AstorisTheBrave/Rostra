@@ -38,6 +38,16 @@ loopback by the base profile so a local reverse proxy can serve it. The API is b
 `http://127.0.0.1:3001/votes/topgg`; keep all other API paths off public ingress. No database or Redis
 port is published by the VPS profile.
 
+Worker port `3005` is exposed only inside the Compose network. Its `/health/live` and
+`/health/ready` routes return status only. Readiness requires working PostgreSQL and Redis
+probes and recent successful outbox and scheduled-task polls. The gateway's `/health` and API
+`/health/live` and `/health/ready` routes are also detail-free. Send the configured
+`INTERNAL_API_TOKEN` as a bearer token only over the private host network to read gateway
+`/internal/health/shards` and `/internal/metrics`, API `/internal/v1/diagnostics`, or worker
+`/internal/diagnostics`. Worker diagnostics include the process event-loop delay p95 in
+milliseconds, sampled from Node's event-loop histogram since worker start, plus the last
+observed operation queue lag. Do not route these paths through public ingress.
+
 ## VPS deployment
 
 Use the reviewed commit's full SHA tag from the image workflow, and set the image prefix to the

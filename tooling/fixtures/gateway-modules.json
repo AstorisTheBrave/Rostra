@@ -18,7 +18,7 @@
 		{
 			"name": "ai",
 			"default": true,
-			"live": true
+			"live": false
 		}
 	],
 	"modules": [

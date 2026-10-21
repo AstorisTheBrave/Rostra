@@ -11,6 +11,8 @@ import { CONFIG_TTL_MS } from "./index.ts";
 
 const CHANNEL = "rostra:cache:v1";
 const log = getLogger("cache:coherent");
+const metrics = { hits: 0, misses: 0 };
+export const coherentCacheMetrics = () => ({ ...metrics });
 type Scope = "guild" | "user";
 type CacheIdentity = Pick<CacheInvalidationV1, "owner" | "tenant" | "key">;
 
@@ -90,7 +92,11 @@ export function createCoherentCache<T>(
 		ready: subscription.ready,
 		async get(id, load) {
 			const hit = entries.get(id);
-			if (hit && hit.expires > now()) return hit.value;
+			if (hit && hit.expires > now()) {
+				metrics.hits++;
+				return hit.value;
+			}
+			metrics.misses++;
 			for (let attempt = 0; attempt < 2; attempt++) {
 				const before = versions.get(id) ?? 0n;
 				const value = await load();

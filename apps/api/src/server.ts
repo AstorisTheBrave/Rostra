@@ -10,6 +10,7 @@ import {
 	resolveGuildCapabilities,
 	verifySecret,
 } from "@rostra/auth";
+import { coherentCacheMetrics } from "@rostra/cache";
 import { getLogger } from "@rostra/logger";
 import type {
 	NewOperation,
@@ -79,6 +80,21 @@ export async function createApi(deps: ApiDependencies): Promise<FastifyInstance>
 		const ready = await deps.ready().catch(() => false);
 		if (!ready) reply.code(503);
 		return { status: ready ? "ready" : "not_ready" };
+	});
+
+	app.get("/internal/v1/diagnostics", async (request, reply) => {
+		const principal = await principalFor(request, deps);
+		if (!principal) return reply.code(401).send({ error: "unauthorized" });
+		try {
+			requireHost(principal);
+		} catch (error) {
+			if (!(error instanceof AuthorizationError)) throw error;
+			return reply.code(403).send({ error: "forbidden" });
+		}
+		return {
+			status: (await deps.ready().catch(() => false)) ? "ready" : "not_ready",
+			cache: coherentCacheMetrics(),
+		};
 	});
 
 	app.get<{ Params: { guildId: string } }>(

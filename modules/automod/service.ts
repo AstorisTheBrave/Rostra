@@ -36,14 +36,20 @@ export async function upsertConfig(
 	guildId: string,
 	data: Partial<Omit<AutomodConfig, "guildId" | "createdAt" | "updatedAt">>,
 ): Promise<AutomodConfig> {
-	const { value: cfg } = await configCache.write(guildId, (tx) =>
+	return (await upsertConfigWithOutcome(guildId, data)).value;
+}
+
+export function upsertConfigWithOutcome(
+	guildId: string,
+	data: Partial<Omit<AutomodConfig, "guildId" | "createdAt" | "updatedAt">>,
+) {
+	return configCache.write(guildId, (tx) =>
 		tx.automodConfig.upsert({
 			where: { guildId },
 			create: { guildId, ...data },
 			update: data,
 		}),
 	);
-	return cfg;
 }
 
 export function invalidate(guildId: string): void {

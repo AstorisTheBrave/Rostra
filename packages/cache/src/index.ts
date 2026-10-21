@@ -5,7 +5,7 @@ import Redis from "ioredis";
 import Keyv from "keyv";
 
 export type { CoherentCache } from "./coherent.ts";
-export { commitCoherentWrite, createCoherentCache } from "./coherent.ts";
+export { coherentCacheMetrics, commitCoherentWrite, createCoherentCache } from "./coherent.ts";
 
 const log = getLogger("cache");
 

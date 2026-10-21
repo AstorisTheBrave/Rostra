@@ -101,6 +101,11 @@ not use the alias. Never import another package's private files, including throu
     the exact tenant invalidation after commit. Persisted configuration and preference reads
     use a bounded local cache with direct PostgreSQL misses; local entries must expire within
     five minutes when Redis delivery fails. Process-owned runtime maps stay local.
+17. Public health routes return status only. Gateway, API and worker process diagnostics use
+    the host bearer boundary; worker readiness requires bounded dependency probes and recent
+    successful durable-work polls. Health probes must not queue commands on the retry-forever
+    BullMQ connection or multiply unresolved dependency operations under repeated requests.
+    Redis publication alone does not prove shard receipt.
 
 ## Discord entrypoints and boundaries
 

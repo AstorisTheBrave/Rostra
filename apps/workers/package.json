@@ -11,6 +11,7 @@
 		"test:integration": "node --import tsx --test --test-concurrency=1 \"src/**/*.service.ts\""
 	},
 	"dependencies": {
+		"@rostra/auth": "workspace:*",
 		"@rostra/config": "workspace:*",
 		"@rostra/contracts": "workspace:*",
 		"@rostra/database": "workspace:*",

@@ -14,6 +14,7 @@ test("loadConfig parses required vars and applies defaults", async () => {
 	assert.deepEqual(cfg.discord.ownerIds, ["1", "2", "3"]);
 	assert.equal(cfg.web.port, 3000);
 	assert.equal(cfg.api.port, 3001);
+	assert.equal(cfg.workers.port, 3005);
 	assert.equal(cfg.webApp.port, 3002);
 	assert.equal(cfg.webApp.authMode, "discord");
 	assert.equal(cfg.realtime.enabled, false);

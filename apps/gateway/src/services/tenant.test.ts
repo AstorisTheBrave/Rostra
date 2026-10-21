@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { GuildTenant } from "@rostra/database";
-import { evictTenantL1, getSetting, isFeatureEnabled, tenantFeature } from "./tenant.ts";
+import { isFeatureLive, loadFeatureFlags, registerFeature } from "./featureFlags.ts";
+import {
+	evictTenantL1,
+	getSetting,
+	isFeatureBlocked,
+	isFeatureEnabled,
+	setFeatures,
+	tenantFeature,
+} from "./tenant.ts";
 
 const tenant = (over: Partial<GuildTenant>): GuildTenant =>
 	({
@@ -41,4 +49,65 @@ test("getSetting reads free-form settings", () => {
 
 test("evictTenantL1 does not throw for unknown guild", () => {
 	assert.doesNotThrow(() => evictTenantL1("unknown"));
+});
+
+test("guild feature reads fail closed when tenant storage fails", async () => {
+	assert.equal(
+		await isFeatureBlocked("g1", "automod", async () => tenant({ features: { automod: false } })),
+		true,
+	);
+	assert.equal(
+		await isFeatureBlocked("g1", "automod", async () => {
+			throw new Error("database unavailable");
+		}),
+		true,
+	);
+});
+
+test("global declarations and guild switches remain independent", async () => {
+	registerFeature("independent", true);
+	await loadFeatureFlags(async () => []);
+	assert.equal(isFeatureLive("independent"), true);
+	assert.equal(tenantFeature(tenant({ features: { independent: false } }), "independent"), false);
+	assert.equal(isFeatureLive("independent"), true);
+});
+
+test("feature writes report committed cache fallback and provisioner failures", async () => {
+	const result = await setFeatures(
+		"g1",
+		{ automod: true },
+		{
+			read: async () => tenant({ features: {} }),
+			write: async () => ({
+				value: tenant({ features: { automod: true } }),
+				coherence: { status: "ttl-fallback", reason: "publish-failed" },
+			}),
+			provision: async () => {
+				throw new Error("private database detail");
+			},
+		},
+	);
+	assert.equal(result.coherence.status, "ttl-fallback");
+	assert.deepEqual(result.failedProvisioners, ["automod"]);
+});
+
+test("feature writes retain a provisioner's publication fallback after tenant publication succeeds", async () => {
+	const result = await setFeatures(
+		"g1",
+		{ automod: true },
+		{
+			read: async () => tenant({ features: {} }),
+			write: async () => ({
+				value: tenant({ features: { automod: true } }),
+				coherence: { status: "published" },
+			}),
+			provision: async () => ({ coherence: { status: "ttl-fallback", reason: "publish-failed" } }),
+		},
+	);
+	assert.equal(result.coherence.status, "ttl-fallback");
+	assert.equal(
+		result.value.features && (result.value.features as Record<string, boolean>).automod,
+		true,
+	);
+	assert.deepEqual(result.failedProvisioners, []);
 });

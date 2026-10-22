@@ -32,6 +32,11 @@ report delayed delivery after a durable write. Worker health uses a separate Red
 connection with no offline command queue, and repeated readiness requests share each
 unresolved dependency probe instead of accumulating operations.
 
+Exact-head Advanced Security alert 16 was dismissed as a false positive with evidence.
+The fixed `/internal/diagnostics` route verifies the host bearer before reading metrics;
+only status-only liveness and readiness routes are public, and focused tests verify that
+unauthenticated diagnostics receives `401` without exposing process details.
+
 ### 2026-10-21 - Phase 01 durable scheduled work
 
 Moved scheduled Discord tasks from gateway timers to PostgreSQL claims and a tracked worker poller.

@@ -24,10 +24,7 @@ import {
 import type { BotClient } from "@/client/BotClient.ts";
 import { setGuildLocale } from "@/services/localization.ts";
 import { probeProvision } from "@/services/provisioning/probe.ts";
-import {
-	runProvision,
-	type ProvisionResult,
-} from "@/services/provisioning/runProvision.ts";
+import { type ProvisionResult, runProvision } from "@/services/provisioning/runProvision.ts";
 import {
 	getTenant,
 	isFeatureEnabled,

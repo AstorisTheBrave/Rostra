@@ -2,7 +2,7 @@
 title: Phase 01 migration evidence
 last-updated: 2026-10-22
 owner: AstorisTheBrave
-status: pending
+status: stable
 ---
 
 # Phase 01 migration evidence
@@ -22,9 +22,9 @@ continue operating. No destructive down migration is used.
 
 | Rehearsal | Result |
 | --- | --- |
-| Apply all 15 migrations to disposable PostgreSQL | Passed locally; exact-candidate CI pending |
-| Inject an unfinished failed migration row, run the real `infra/start-app.sh`, and prove the application command is not executed | Passed locally with Prisma `P3009`; exact-candidate CI pending |
-| Start the prior image against the forward-migrated database with outbound adapters blocked | Passed in service/image run `39815818477` at Task 7 head; exact-candidate rerun pending |
+| Apply all 15 migrations to disposable PostgreSQL | Passed locally and in exact-candidate CI run `39824618196` |
+| Inject an unfinished failed migration row, run the real `infra/start-app.sh`, and prove the application command is not executed | Passed locally and in CI run `39824618196` with Prisma `P3009` |
+| Start the prior image against the forward-migrated database with outbound adapters blocked | Passed in exact-candidate service/image run `39824617943` |
 | Create a nonterminal operation from rollback-image semantics without an outbox row, then repair it in a bounded relay poll | Passed in worker service integration |
 
 Rollback means returning to the prior image while retaining the forward schema, or restoring a tested

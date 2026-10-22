@@ -2,7 +2,7 @@
 title: Phase 01 test evidence
 last-updated: 2026-10-22
 owner: AstorisTheBrave
-status: pending
+status: stable
 ---
 
 # Phase 01 test evidence
@@ -33,3 +33,11 @@ root test gate included 241 gateway tests, 47 tooling tests and the five focused
 The service gate also passed the six-operation PostgreSQL suite, the real local Redis
 outage/replacement proof and a real failed-migration startup refusal with Prisma `P3009`. Biome and
 `git diff --check` passed. Browser, image, prior-image and security matrices remain GitHub-owned.
+
+## Exact-candidate remote gate
+
+Implementation snapshot `e337827e624e5bb544b57ca2da7bc27e2b8d8fb0` passed all 17 pull-request
+checks. CI run `39824618196` passed the root gate, all three browser engines and service integration.
+CodeQL run `39824617962`, security and software inventory run `39824617932`, and service/image run
+`39824617943` also passed. The latter covered the Compose smoke, prior-image rehearsal and all six
+immutable image targets.

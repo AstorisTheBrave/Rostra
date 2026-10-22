@@ -2,7 +2,7 @@
 title: Phase 01 security evidence
 last-updated: 2026-10-22
 owner: AstorisTheBrave
-status: pending
+status: stable
 ---
 
 # Phase 01 security evidence
@@ -29,8 +29,8 @@ ignored.
 
 ## Review state
 
-At Task 7 head `c98643f`, all nine pull-request review threads were resolved and no open code-scanning
-alert remained. Alert 16 was dismissed as a false positive because the fixed diagnostics route checks
-the host bearer before reading process metrics; focused tests prove an unauthenticated request receives
-401. The final Phase 01 decision requires the same review, conversation, inline-thread and Advanced
-Security sweep after the Task 8 push.
+At exact implementation snapshot `e337827`, all 17 pull-request checks passed and all nine review
+threads were resolved. No new conversation or review finding appeared. Code scanning, secret scanning
+and Dependabot each reported zero open alerts. Alert 16 remains dismissed as a false positive because
+the fixed diagnostics route checks the host bearer before reading process metrics; focused tests prove
+an unauthenticated request receives 401.

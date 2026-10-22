@@ -25,8 +25,14 @@ Prisma `P3009` and proves the application command never runs.
 
 Added the Phase 01 architecture, migration, test, measurement, security and recovery evidence pages,
 linked them in `docs/docs.json`, and refreshed stale Phase 00 language in the product documentation.
-The decision remains pending until the Task 8 candidate passes every exact-head workflow and the final
+The decision remained pending until the Task 8 candidate passed every exact-head workflow and the final
 pull-request conversation, inline-review and Advanced Security sweep.
+
+Implementation snapshot `e337827e624e5bb544b57ca2da7bc27e2b8d8fb0` then passed all 17 remote
+checks. CI run `39824618196`, CodeQL run `39824617962`, security run `39824617932`, and service/image
+run `39824617943` were green. The exact hosted artifact recorded one request for each of 20 prompts.
+All nine review threads were resolved, no new review finding appeared, and code scanning, secret
+scanning and Dependabot each had zero open alerts. Phase 01 therefore passed.
 
 ### 2026-10-21 - Phase 01 truthful flags, provisioning and health
 

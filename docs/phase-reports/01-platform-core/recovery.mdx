@@ -2,7 +2,7 @@
 title: Phase 01 recovery evidence
 last-updated: 2026-10-22
 owner: AstorisTheBrave
-status: pending
+status: stable
 ---
 
 # Phase 01 recovery evidence
@@ -23,3 +23,6 @@ Redis delivery remains at least once. Idempotent handlers, deterministic job IDs
 make repeated delivery safe for the tested effects. The evidence does not claim exactly-once Discord
 side effects. Recovery retains forward migration history and supports a prior image only where the
 additive schema remains compatible.
+
+Exact-candidate CI run `39824618196` passed the real failed-migration and Redis replacement rehearsals.
+Service/image run `39824617943` passed the prior-image rollback rehearsal on the same source snapshot.

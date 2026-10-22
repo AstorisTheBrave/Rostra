@@ -2,7 +2,7 @@
 title: Phase 01 measurements
 last-updated: 2026-10-22
 owner: AstorisTheBrave
-status: pending
+status: stable
 ---
 
 # Phase 01 measurements
@@ -13,20 +13,21 @@ operation from API acceptance to worker start, event-loop delay, and one credent
 prompt against an in-process fake endpoint. The request counter proves how many upstream calls one
 prompt produces without sending credentials or external traffic.
 
-## Hosted observations before the Task 8 candidate
+## Hosted observations
 
-| Metric | Task 1 run `39319245310` | Task 7 run `39815818478` |
-| --- | ---: | ---: |
-| Authorization GET p95 | 2.001639 ms | 2.382290 ms |
-| Authorization database queries | 1.0 | 1.0 |
-| Event-loop delay p95 | 11.214847 ms | 10.960895 ms |
-| Tenant cold mean | 3.036164 ms | 1.814329 ms |
-| Tenant warm mean | 0.170972 ms | 0.002585 ms |
-| Queue lag p95 | 1 ms | 1 ms |
-| Provider requests per prompt | 1.0 in a credential-free Task 1 replay | not collected in the hosted artifact |
+| Metric | Task 1 run `39319245310` | Task 7 run `39815818478` | Candidate run `39824618196` |
+| --- | ---: | ---: | ---: |
+| Authorization GET p95 | 2.001639 ms | 2.382290 ms | 2.954114 ms |
+| Authorization database queries | 1.0 | 1.0 | 1.0 |
+| Event-loop delay p95 | 11.214847 ms | 10.960895 ms | 11.444223 ms |
+| Tenant cold mean | 3.036164 ms | 1.814329 ms | 3.081671 ms |
+| Tenant warm mean | 0.170972 ms | 0.002585 ms | 0.004240 ms |
+| Queue lag p95 | 1 ms | 1 ms | 1 ms |
+| Provider requests per prompt | 1.0 in a credential-free Task 1 replay | not collected in the hosted artifact | 1.0 |
 
-Both artifacts used Node 22.23.3 on Linux x64 with 20 iterations and four logical CPUs, but the CPU
-models differ. The validator correctly rejects a direct comparison when full host metadata differs.
+The hosted artifacts used Node 22.23.3 on Linux x64 with 20 iterations and four logical CPUs, but host
+metadata is not identical across all runs. The validator correctly rejects a direct comparison when
+full host metadata differs.
 The table is therefore descriptive, not a claimed speedup or regression.
 
 Task 4 changed the warm cache from Redis L2 to process-local L1. The warm values are not like for like.
@@ -34,9 +35,9 @@ The cold path remains a direct PostgreSQL miss. Task 8 extends schema version 1 
 request-count series so historical artifacts still validate while comparisons reject one-sided provider
 samples. A detached replay of Task 1 revision `5814840` ran its assistant service for 20 prompts against
 the same in-process fake endpoint and measured exactly one request per prompt. A local Task 8 candidate
-run also recorded exactly one request for each of 20 prompts. Provider request frequency therefore
-remained 1.0 per prompt across the measured revisions. The final hosted request-count evidence remains
-pending until exact-candidate CI uploads it.
+run also recorded exactly one request for each of 20 prompts. Exact-candidate run `39824618196`
+repeated that result on its hosted artifact. Provider request frequency therefore remained 1.0 per
+prompt across the measured revisions.
 
 These figures do not establish concurrency limits, production capacity, Discord latency or third-party
 service performance.

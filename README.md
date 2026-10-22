@@ -18,7 +18,7 @@ The command and module move has parity fixtures for 47 commands, 42 modules and 
 
 The gateway is the working Discord runtime. The API and workers have authenticated boundaries and durable queue contracts. The web app has a Discord login flow and persisted, read-only guild summaries. Realtime and Activity are authenticated scaffolds and are disabled in the default runtime.
 
-The workspace boundary has passed Linux CI, the browser matrix, service integration, prior-image rollback, six image builds, dependency review, secret scanning, SBOM generation and CodeQL. Phase 01 adds tenant-scoped authorization, deterministic module loading, coherent cache invalidation, transactional outbox delivery, durable scheduling and truthful health diagnostics. Its implementation is complete in the branch; the [Phase 01 evidence index](docs/phase-reports/01-platform-core/index.mdx) tracks the final exact-candidate gate without turning a test result into a production-capacity claim.
+The workspace boundary has passed Linux CI, the browser matrix, service integration, prior-image rollback, six image builds, dependency review, secret scanning, SBOM generation and CodeQL. Phase 01 adds tenant-scoped authorization, deterministic module loading, coherent cache invalidation, transactional outbox delivery, durable scheduling and truthful health diagnostics. Its exact implementation snapshot passed the full remote gate; the [Phase 01 evidence index](docs/phase-reports/01-platform-core/index.mdx) records the proof without turning a test result into a production-capacity claim.
 
 There is no published product screenshot yet. I am leaving the README image-free until there is a suitable capture from the implemented app with deterministic fake data.
 

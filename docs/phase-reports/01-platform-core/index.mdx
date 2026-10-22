@@ -2,19 +2,17 @@
 title: Phase 01 platform core evidence
 last-updated: 2026-10-22
 owner: AstorisTheBrave
-status: pending
+status: stable
 ---
 
 # Phase 01 platform core evidence
 
-## Decision: PENDING exact-candidate CI
+## Decision: PASS
 
-The seven implementation slices are complete in the branch. The local Task 8 gate now covers the
-remaining real-service gaps: atomic outbox and scheduled-task retention against PostgreSQL, retained
-intent across a stopped and replaced Redis server, and refusal to start against a database containing
-a real failed migration row. The phase remains pending until the Task 8 candidate is pushed, every
-exact-head workflow passes, and the final pull-request and Advanced Security sweep has no actionable
-finding.
+The seven implementation slices and final evidence gate are complete. Task 8 closed the remaining
+real-service gaps: atomic outbox and scheduled-task retention against PostgreSQL, retained intent
+across a stopped and replaced Redis server, and refusal to start against a database containing a real
+failed migration row.
 
 The compatibility baseline remains 42 modules, 47 normalized command definitions and 48 Discord
 event registrations. No migration check logs into Discord or publishes commands.
@@ -31,14 +29,10 @@ event registrations. No migration check logs into Discord or publishes commands.
 
 ## Evidence snapshots
 
-Task 7 source and documentation snapshot `c98643ffb89bc1b700295b5aa801b68bc4fc05cb` matched the remote
-branch. CI run `39815818478`, CodeQL run `39815818656`, security run `39815818426`, and service/image
-run `39815818477` passed. All nine review threads were resolved and the code-scanning alert list was
-empty after alert 16 was dismissed with route-authentication evidence.
-
-Those runs establish the Task 7 head, not the final Phase 01 candidate. The final source hash,
-workflow IDs, matching local and remote hashes, and fresh review state will replace this pending
-paragraph after the candidate finishes GitHub verification.
+Implementation snapshot `e337827e624e5bb544b57ca2da7bc27e2b8d8fb0` matched the remote branch.
+CI run `39824618196`, CodeQL run `39824617962`, security run `39824617932`, and service/image run
+`39824617943` passed all 17 exact-head checks. All nine review threads were resolved, no new review
+finding appeared, and the code-scanning, secret-scanning and Dependabot open-alert lists were empty.
 
 ## Limits
 

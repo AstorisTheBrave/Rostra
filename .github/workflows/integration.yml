@@ -1,0 +1,98 @@
+name: Service and image integration
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  compose-smoke:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: rostra
+      POSTGRES_PASSWORD: ci-compose-password
+      POSTGRES_DB: rostra
+      DATABASE_URL: postgresql://rostra:ci-compose-password@localhost:5432/rostra
+      REDIS_URL: redis://localhost:6379
+      NODE_ENV: test
+      LOG_LEVEL: fatal
+      INTERNAL_API_TOKEN: ci-placeholder-internal-token
+      WEB_SESSION_SECRET: ci-placeholder-web-session-secret-32-chars
+      DISCORD_TOKEN: fake-token-never-used
+      DISCORD_CLIENT_ID: "0"
+      DISCORD_CLIENT_SECRET: fake-secret-never-used
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate bounded default Compose profile
+        run: docker compose -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml config --quiet
+      - name: Start only disposable database and queue services
+        run: |
+          project="rostra-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "COMPOSE_PROJECT_NAME=$project" >> "$GITHUB_ENV"
+          docker compose -p "$project" -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml up -d postgres redis
+      - name: Wait for bounded services
+        run: |
+          for attempt in $(seq 1 30); do
+            if docker compose -p "$COMPOSE_PROJECT_NAME" -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml exec -T postgres pg_isready -U rostra -d rostra && docker compose -p "$COMPOSE_PROJECT_NAME" -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml exec -T redis redis-cli ping | grep -q PONG; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Run fail-closed migration and API-worker-web smoke inside the Linux API image
+        run: docker compose -p "$COMPOSE_PROJECT_NAME" -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml run --build --rm --no-deps api node --import tsx --test --test-concurrency=1 tooling/smoke/cross-service.service.ts
+      - name: Confirm the Linux image applied the forward migrations
+        run: docker compose -p "$COMPOSE_PROJECT_NAME" -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml run --rm --no-deps api pnpm exec prisma migrate status
+      - name: Build pre-revamp gateway image from the preserved baseline
+        run: |
+          image="rostra-pre-revamp:${GITHUB_RUN_ID}"
+          git archive 6a7e5ecf03be068c3f3cb3cc4b14a45dae543925 | docker build --tag "$image" -
+          echo "ROSTRA_PREVIOUS_IMAGE=$image" >> "$GITHUB_ENV"
+      - name: Start pre-revamp gateway against the migrated database with outbound network blocked
+        run: |
+          docker compose -p "$COMPOSE_PROJECT_NAME" -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml -f infra/compose/compose.rollback.yml up -d legacy-gateway
+          for attempt in $(seq 1 30); do
+            if docker compose -p "$COMPOSE_PROJECT_NAME" -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml -f infra/compose/compose.rollback.yml exec -T legacy-gateway node --input-type=module -e 'const response = await fetch("http://127.0.0.1:3000/health"); if (!response.ok) process.exit(1)' 2>/dev/null; then
+              echo "Pre-revamp image served health after forward migrations."
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -p "$COMPOSE_PROJECT_NAME" -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml -f infra/compose/compose.rollback.yml logs legacy-gateway
+          exit 1
+      - name: Capture service logs on failure
+        if: failure()
+        run: |
+          docker compose -p "$COMPOSE_PROJECT_NAME" -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml -f infra/compose/compose.rollback.yml logs --no-color > compose-logs.txt
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: compose-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: compose-logs.txt
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Remove smoke containers, network and volumes
+        if: always()
+        run: |
+          docker compose -p "rostra-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" -f infra/compose/compose.yml -f infra/compose/compose.dev.yml -f infra/compose/compose.smoke.yml -f infra/compose/compose.rollback.yml down --volumes --remove-orphans
+
+  image-targets:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        target: [gateway, api, workers, web, realtime, activity]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Build immutable app target
+        run: docker buildx build --load --target "${{ matrix.target }}" --tag "rostra-${{ matrix.target }}:${GITHUB_SHA}" .

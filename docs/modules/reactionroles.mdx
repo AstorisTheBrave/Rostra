@@ -13,9 +13,9 @@ Self-assignable roles: staff build a panel of roles and post it as buttons (`pos
 ## technical map
 
 **file paths**
-- command + button handler: `src/modules/reactionroles/index.ts`
-- panel persistence + JSON parsing: `src/modules/reactionroles/service.ts` (+ `service.test.ts`)
-- model: `prisma/schema.prisma` → `ReactionRolePanel` (roles stored as a JSON array)
+- command + button handler: `modules/reactionroles/index.ts`
+- panel persistence + JSON parsing: `modules/reactionroles/service.ts` (+ `service.test.ts`)
+- model: `packages/database/prisma/schema.prisma` → `ReactionRolePanel` (roles stored as a JSON array)
 
 **command** - `/reactionrole` (Manage Roles): `create <title> [mode]`, `addrole <panel> <role> <label>
 [emoji]`, `removerole <panel> <role>`, `post <panel>`, `postmenu <panel>`, `list`, `delete <panel>`.
@@ -24,7 +24,7 @@ Self-assignable roles: staff build a panel of roles and post it as buttons (`pos
 in `single` mode it removes the panel's other roles first.
 
 **dropdown (ComponentHandler `prefix: "rrs"`)** - `rrs:<panelId>` posted via `postmenu` (a `stringSelect`
-from `@/ui`, min 0, max 1 for single / all for multiple). On submit, pure `reconcileRoles(panelRoleIds,
+from `@rostra/discord-ui`, min 0, max 1 for single / all for multiple). On submit, pure `reconcileRoles(panelRoleIds,
 currentRoleIds, selectedIds)` computes the add/remove diff *within the panel's roles only* (roles outside the
 panel are never touched), then the handler applies the editable ones.
 

@@ -1,208 +1,83 @@
 # Rostra
 
-**Rostra** is an all-in-one Discord bot that unifies moderation, server security, auto-moderation,
-tickets, applications, economy, leveling, giveaways, music, trivia, games, and more into one fast,
-sharded application - built to scale to millions of users.
+Rostra is my open-source Discord bot for communities that would rather manage one capable bot than a stack of smaller ones. It brings moderation, server safety, tickets, member engagement, games, music and everyday utilities together behind slash commands.
 
-[![CI](https://github.com/AstorisTheBrave/Rostra/actions/workflows/ci.yml/badge.svg)](https://github.com/AstorisTheBrave/Rostra/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/AstorisTheBrave/Rostra?style=flat-square&logo=github)](https://github.com/AstorisTheBrave/Rostra/releases/latest)
-[![GHCR image](https://img.shields.io/badge/ghcr.io-rostra-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/AstorisTheBrave/Rostra/pkgs/container/rostra)
+I am building Rostra in public. The Discord bot is the established product. The workspace also contains API routes, a web login with read-only guild summaries, and durable workers; their tested boundaries and limits are listed in the [capability status](docs/product/capability-status.mdx).
 
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white)
-![discord.js](https://img.shields.io/badge/discord.js-v14-5865F2?style=flat-square&logo=discord&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Prisma-336791?style=flat-square&logo=postgresql&logoColor=white)
-![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
+## What Rostra can do
 
-> Contributions welcome - this is an open project. See [CONTRIBUTING.md](CONTRIBUTING.md).
+- **Moderate and protect:** moderation cases, audit logging, anti-raid controls and configurable automoderation.
+- **Support members:** tickets, modmail, applications, welcome flows and verification.
+- **Keep a community active:** leveling, economy, giveaways, polls, suggestions, trivia, games and music.
+- **Handle the everyday work:** role menus, feeds, reminders, server information and other utilities.
+- **Run across shards:** native sharding is the default. Optional hybrid process-mode code exists, but live Discord behavior and production capacity have not been verified.
 
-## Table of contents
+The command and module move has parity fixtures for 47 commands, 42 modules and 48 events. That proves the extracted registry still matches its recorded baseline; it does not mean every optional app or planned capability is production-ready. See [what works today](docs/product/capability-status.mdx) and [the roadmap](docs/product/roadmap.mdx).
 
-- [Features](#features)
-- [Tech stack](#tech-stack)
-- [Quick start](#quick-start)
-- [Docker](#docker)
-- [Configuration](#configuration)
-- [Commands](#commands)
-- [Architecture](#architecture)
-- [Contributing](#contributing)
-- [Security](#security)
-- [License](#license)
+## Current status
 
-## Features
+The gateway is the working Discord runtime. The API and workers have authenticated boundaries and durable queue contracts. The web app has a Discord login flow and persisted, read-only guild summaries. Realtime and Activity are authenticated scaffolds and are disabled in the default runtime.
 
-<table>
-<tr><td width="50%" valign="top">
+The workspace boundary has passed Linux CI, the browser matrix, service integration, prior-image rollback, six image builds, dependency review, secret scanning, SBOM generation and CodeQL. Phase 01 adds tenant-scoped authorization, deterministic module loading, coherent cache invalidation, transactional outbox delivery, durable scheduling and truthful health diagnostics. Its exact implementation snapshot passed the full remote gate; the [Phase 01 evidence index](docs/phase-reports/01-platform-core/index.mdx) records the proof without turning a test result into a production-capacity claim.
 
-### Moderation
-- Ban / kick / timeout / warn / purge
-- Numbered case history, warnings & notes
-- Lock / unlock / slowmode / nickname
+There is no published product screenshot yet. I am leaving the README image-free until there is a suitable capture from the implemented app with deterministic fake data.
 
-### Security (Antinuke)
-- Audit-log attribution of destructive actions
-- Auto-punish untrusted actors (ban/kick/strip)
-- Whitelist + extra owners, per-event toggles
+## Architecture
 
-### Auto-moderation
-- Anti-invite / link / spam / mass-mention / caps
-- Profanity filter with custom word lists
-- Exempt roles & channels
+The Discord gateway owns sharding and interaction routing. Features live in `modules/`; shared contracts and services live in `packages/`. The API handles authenticated domain and webhook requests. Workers process durable work recorded in PostgreSQL and delivered at least once through Redis. The web app uses a typed API client and does not connect to the database directly.
 
-### Tickets
-- Button panel → private channels
-- Claim, add users, close with logging
+PostgreSQL is required. Redis is used for shared cache, coordination and queue delivery; a local in-memory fallback exists for some non-production paths, but it is not a production substitute for the shared queue. Web sessions currently live in process memory, so multiple web replicas are not supported. See the [architecture map](docs/architecture/index.mdx) for boundaries and [recovery guide](docs/runbooks/recovery.mdx) for data and rollback limits.
 
-### Modmail
-- Members DM the bot to reach staff privately
-- Each user gets a thread in a staff channel; replies relay back to their DMs (`//` lines stay internal)
+## Run the bot locally
 
-### Economy
-- Daily / work / crime / rob / beg / gamble
-- Wallet & bank, pay, leaderboard
-
-### Leveling
-- XP per message, level-up announcements
-- Role rewards, rank & leaderboard
-
-</td><td width="50%" valign="top">
-
-### Giveaways
-- Button entry, timed auto-end, reroll
-
-### Welcome & Logging
-- Welcome/goodbye messages + auto-roles
-- Configurable audit logging
-
-### Engagement
-- Birthdays, reaction-role panels, join-to-create voice, voice roles
-- Trivia, tic-tac-toe, rock-paper-scissors
-- Reputation points with a leaderboard
-
-### Utility & Extras
-- avatar / userinfo / serverinfo
-- AFK, snipe, autoresponder, tags
-- Keyword highlights (DM on a watched word)
-- Sticky messages (keep a note at the bottom of a channel)
-- Bulk role add/remove across the whole server
-- Server stats voice channels (live member/online/boost counts)
-- Notification feeds: YouTube, Twitch, Reddit, RSS/Atom
-- Vanity status-roles, feedback
-
-### Assistant
-- Ask Rostra questions in natural language
-
-### Built for scale
-- Native sharding by default, optional hybrid clustering for very large fleets
-- Redis-backed leaderboards, caching, and a control bus for zero-restart changes
-- Components V2 UI throughout (no legacy embeds)
-
-</td></tr>
-</table>
-
-## Tech stack
-
-Node.js 20+ (ESM) · TypeScript (strict, no `any`) · discord.js v14 · Prisma + PostgreSQL ·
-Redis (cache, leaderboards, queues) · BullMQ · Fastify (health + webhooks) · Pino · Zod · Biome.
-
-## Quick start
+You need Node.js `22.22.2+` or `24.15.0+` (or a supported later major), Corepack 0.35.0, PostgreSQL, and a Discord application. Redis is recommended for local development and required for shared queue behavior. Detailed setup and checks are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```bash
 git clone https://github.com/AstorisTheBrave/Rostra.git
 cd Rostra
-npm install
-cp .env.example .env          # fill in your values
-npm run prisma:generate
-npm run prisma:migrate        # create the database schema
-npm run deploy:commands       # register slash commands
-npm start
+corepack enable
+pnpm install --frozen-lockfile
+cp .env.example .env
 ```
 
-Requirements: Node.js 20+, a PostgreSQL database, and (recommended for production) Redis. Without Redis,
-an in-memory fallback is used for cache and queues.
-
-## Docker
+Set `DATABASE_URL`, `DISCORD_TOKEN` and `DISCORD_CLIENT_ID` in `.env`; set `REDIS_URL` when using Redis. Then:
 
 ```bash
-# set DISCORD_TOKEN and DISCORD_CLIENT_ID in a .env file first
-docker compose up -d --build
+pnpm prisma:generate
+pnpm prisma:migrate
+pnpm deploy:commands
+pnpm start
 ```
 
-Brings up the bot, PostgreSQL, pgBouncer (transaction pooling), and Redis. The container applies database
-migrations on start and the bot auto-registers its slash commands, so this is turnkey. Not a developer? The
-beginner friendly walkthrough is in the wiki: [Self-Hosting](https://github.com/AstorisTheBrave/Rostra/wiki/Self-Hosting).
+`pnpm deploy:commands` publishes slash-command definitions to Discord. Use a development application or guild when setting up; do not run it as part of migration or verification checks. Database migrations use a direct PostgreSQL connection. For disposable local services, profiles, and production image pinning, follow the [deployment runbook](docs/runbooks/deployment.mdx).
 
-A prebuilt image is published to the GitHub Container Registry on every push to `main` (tagged `latest`,
-`main`, and the commit sha) and, on a release, the version tags:
+## Configuration and operations
 
-```bash
-docker pull ghcr.io/astoristhebrave/rostra:latest
-```
+Configuration is validated centrally. Start with [`.env.example`](.env.example) and the [environment reference](docs/infrastructure/env.mdx). Do not commit `.env` or production credentials.
 
-## Configuration
+Compose deployment, upgrade, shutdown and passive reverse-proxy guidance is in the [deployment runbook](docs/runbooks/deployment.mdx). Backup, forward-migration rollback and restore limits are in the [recovery runbook](docs/runbooks/recovery.mdx). These guides do not provision hosting, storage, TLS or ingress resources.
 
-All settings come from environment variables (see [`.env.example`](.env.example)):
+## Documentation
 
-| Variable | Purpose |
-|---|---|
-| `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | bot credentials (required) |
-| `DATABASE_URL` | PostgreSQL connection (required) |
-| `REDIS_URL` | shared cache, leaderboards, job queues |
-| `OWNER_IDS`, `DEV_GUILD_ID` | owner commands + dev command registration |
-| `TOTAL_SHARDS`, `SHARDING_MODE` | total shard count / `native` (default) or `hybrid` |
-| `SHARDS_PER_CLUSTER` | hybrid clustering only: shards per cluster process |
-| `LAVALINK_NODES` | JSON array of music nodes (multi-node failover) |
-| `TOPGG_TOKEN`, `TOPGG_WEBHOOK_AUTH` | bot-list stats + vote webhook |
-| `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | assistant backend (a standard chat-completions endpoint) |
-| `TRANSLATE_API_KEY`, `TRANSLATE_BASE_URL`, `TRANSLATE_MODEL` | optional, for `npm run i18n:draft` translation drafts |
-
-### Required intents
-
-Enable these for the bot in the Discord Developer Portal: Server Members, Message Content, and Presence
-(Presence is only needed for vanity status-roles).
-
-### Sharding and clustering
-
-Rostra runs in **native sharding** by default, which is all most bots need. As you grow past what a single
-host can hold, switch to **hybrid clustering** (several cluster processes, optionally across machines) by
-setting `SHARDING_MODE=hybrid` with `REDIS_URL` configured. Everything else stays the same. Full setup
-guide: [docs/infrastructure/hybrid-sharding.mdx](docs/infrastructure/hybrid-sharding.mdx).
-
-Most changes ship without a full restart: translations (`npm run i18n:push`), feature flags and
-kill-switches (`/owner feature set ...`), and per-server settings apply live across every cluster over the
-Redis control bus. Code changes use a blue-green or rolling deploy (see
-[docs/infrastructure/scaling.mdx](docs/infrastructure/scaling.mdx)).
-
-## Commands
-
-Commands are slash-only and grouped under top-level commands with subcommands (well under Discord's
-100-command limit):
-
-`/setup` · `/mod` · `/security` · `/automod` · `/verification` · `/logging` · `/welcome` · `/ticket` · `/modmail` · `/economy` · `/level` ·
-`/giveaway` · `/starboard` · `/rep` · `/voicehub` · `/voicerole` · `/role` · `/serverstats` · `/reactionrole` · `/birthday` · `/tag` · `/vanityrole` · `/feedback` ·
-`/trivia` · `/game` · `/roleplay` · `/profile` · `/music` · `/ask` · `/afk` · `/snipe` · `/steal` ·
-`/reminder` · `/feeds` · `/highlight` · `/sticky` · `/counting` · `/poll` · `/suggest` · `/autoresponder` · `/preferences` · `/util` · `/help` · `/stats` · `/shards` · `/ping`
-
-## Architecture
-
-Each feature is a self-contained module under `src/modules/<name>/` exporting
-`{ commands, events, interactions, jobs, i18n }`; modules are auto-discovered at boot. Shared
-infrastructure lives in `src/services` (database, cache, logger), `src/ui` (the Components-V2 UI library),
-`src/pipeline` (permission/cooldown/error handling), and `src/cluster` (sharding). See
-[`docs/overview.mdx`](docs/overview.mdx) for the full map.
-
-## Contributing
-
-PRs and issues are very welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) - it covers the module
-pattern, the UI library, coding conventions, and how to run the checks. By participating you agree to the
-[Code of Conduct](CODE_OF_CONDUCT.md).
+- [Capability status](docs/product/capability-status.mdx) and [roadmap](docs/product/roadmap.mdx)
+- [Architecture map](docs/architecture/index.mdx) and [workspace overview](docs/overview.mdx)
+- [Phase 00 evidence](docs/phase-reports/phase-00/index.mdx)
+- [Phase 01 platform evidence](docs/phase-reports/01-platform-core/index.mdx)
+- [Module guides](docs/modules/)
+- [Deployment](docs/runbooks/deployment.mdx), [recovery](docs/runbooks/recovery.mdx) and [environment variables](docs/infrastructure/env.mdx)
+- [Contributing](CONTRIBUTING.md), [security policy](SECURITY.md) and [changelog](CHANGELOG.md)
 
 ## Security
 
-Found a vulnerability? Please report it privately - see [SECURITY.md](SECURITY.md). Do not open a public
-issue for security problems.
+Please report vulnerabilities privately using the instructions in [SECURITY.md](SECURITY.md), rather than in a public issue. Guild permissions are checked within the guild boundary; a host operator does not get automatic access to guild moderation or private member data.
 
-Working with an AI coding assistant? See [AGENTS.md](AGENTS.md).
-Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
+## Contributing
+
+Issues, documentation fixes and focused code contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. Changes go through a pull request and the required checks. A local pass is useful evidence, but a phase is complete only after its exact remote snapshot, review and security gates pass.
+
+## Roadmap
+
+Rostra's next work is tracked in the [roadmap](docs/product/roadmap.mdx). The next dedicated cross-cutting slice covers Rostra-wide admission, retry and backpressure policy. Later product work will deepen feature ownership and web operations. Planned work is not described as shipped.
 
 ## License
 

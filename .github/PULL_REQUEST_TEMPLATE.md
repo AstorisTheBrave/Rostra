@@ -11,9 +11,10 @@
 
 ## Checklist
 
-- [ ] `npm run typecheck` passes
-- [ ] `npm run lint` passes
-- [ ] `npm run test:env` passes (added/updated tests for new logic)
+- [ ] `pnpm check:boundaries` passes
+- [ ] `pnpm typecheck` passes
+- [ ] `pnpm lint` passes
+- [ ] `pnpm test:env` passes (added/updated tests for new logic)
 - [ ] UI is built via `@/ui` (no raw discord.js component builders in modules)
 - [ ] Components V2 only (no `EmbedBuilder`), slash-only commands
 - [ ] User-facing strings go through `t()`

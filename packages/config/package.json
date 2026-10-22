@@ -1,0 +1,23 @@
+{
+	"name": "@rostra/config",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"build": "tsc --noEmit",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check src package.json tsconfig.json",
+		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\""
+	},
+	"dependencies": {
+		"zod": "^4.4.3"
+	},
+	"devDependencies": {
+		"@types/node": "^26.1.0",
+		"tsx": "^4.23.0",
+		"typescript": "^7.0.2"
+	}
+}

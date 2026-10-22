@@ -1,0 +1,19 @@
+services:
+  legacy-gateway:
+    image: ${ROSTRA_PREVIOUS_IMAGE:?set immutable prior gateway image}
+    entrypoint: [node, --import, tsx, src/cluster.ts]
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-rostra}:${POSTGRES_PASSWORD:-rostra-dev-only}@postgres:5432/${POSTGRES_DB:-rostra}
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      DISCORD_TOKEN: ${DISCORD_TOKEN:?set DISCORD_TOKEN}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?set DISCORD_CLIENT_ID}
+    ports: ["127.0.0.1:3000:3000"]
+    deploy:
+      resources:
+        limits: { cpus: "1.00", memory: 768M }

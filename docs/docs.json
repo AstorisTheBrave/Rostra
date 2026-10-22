@@ -1,0 +1,92 @@
+{
+	"$schema": "https://mintlify.com/docs.json",
+	"theme": "maple",
+	"name": "Rostra",
+	"description": "Product, architecture, operations, and evidence for the Rostra open-source Discord app.",
+	"colors": {
+		"primary": "#8B5CF6",
+		"light": "#7C3AED",
+		"dark": "#A78BFA"
+	},
+	"appearance": {
+		"default": "dark"
+	},
+	"navigation": {
+		"global": {
+			"anchors": [
+				{
+					"anchor": "GitHub",
+					"href": "https://github.com/AstorisTheBrave/Rostra"
+				}
+			]
+		},
+		"tabs": [
+			{
+				"tab": "Start",
+				"groups": [
+					{
+						"group": "Rostra",
+						"pages": ["overview", "product/capability-status", "product/roadmap"]
+					}
+				]
+			},
+			{
+				"tab": "Operations",
+				"groups": [
+					{
+						"group": "Runbooks and configuration",
+						"pages": ["runbooks/deployment", "runbooks/recovery", "infrastructure/env"]
+					}
+				]
+			},
+			{
+				"tab": "Reference",
+				"groups": [
+					{
+						"group": "Architecture and modules",
+						"pages": [
+							"architecture/index",
+							"modules/moderation",
+							"modules/automod",
+							"modules/tickets",
+							"modules/ipc"
+						]
+					}
+				]
+			},
+			{
+				"tab": "Phase 00 evidence",
+				"groups": [
+					{
+						"group": "Implementation evidence",
+						"pages": [
+							"phase-reports/phase-00/index",
+							"phase-reports/phase-00/baseline",
+							"phase-reports/phase-00/security-review",
+							"phase-reports/phase-00/performance",
+							"phase-reports/phase-00/rollback"
+						]
+					}
+				]
+			},
+			{
+				"tab": "Phase 01 evidence",
+				"groups": [
+					{
+						"group": "Platform core",
+						"pages": [
+							"phase-reports/01-platform-core/index",
+							"phase-reports/01-platform-core/baseline",
+							"phase-reports/01-platform-core/architecture",
+							"phase-reports/01-platform-core/migration",
+							"phase-reports/01-platform-core/tests",
+							"phase-reports/01-platform-core/measurements",
+							"phase-reports/01-platform-core/security",
+							"phase-reports/01-platform-core/recovery"
+						]
+					}
+				]
+			}
+		]
+	}
+}

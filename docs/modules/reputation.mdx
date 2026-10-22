@@ -12,8 +12,8 @@ Reputation points: members thank each other and climb a leaderboard. `/rep give 
 ## technical map
 
 **file paths**
-- command: `src/modules/reputation/index.ts`
-- service: `src/modules/reputation/service.ts` (+ `service.test.ts`)
+- command: `modules/reputation/index.ts`
+- service: `modules/reputation/service.ts` (+ `service.test.ts`)
 - model: `RepUser` (composite id `guildId+userId`; `points` received, `lastGiven` for the giver cooldown)
 - leaderboard: Redis sorted set `lb:rep:<guildId>` (DB fallback), same shape as economy/leveling
 

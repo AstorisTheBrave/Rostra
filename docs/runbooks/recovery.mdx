@@ -1,0 +1,134 @@
+---
+title: Recovery and rollback
+last-updated: 2026-10-18
+owner: AstorisTheBrave
+status: in-flux
+---
+
+# Backup and rollback
+
+PostgreSQL is the durable source of operation and delivery intent. An operation, its outbox row and an
+optional domain mutation commit together. Redis is an at-least-once delivery queue with append-only
+persistence. The tracked outbox relay retries pending, failed and expired claims after Redis recovers.
+API and worker publication use finite-failure producer connections, so a Redis outage defers delivery
+without indefinitely holding an accepted request or worker drain.
+An API request may return `202` while delivery is deferred; this means intent is durable, not that the
+effect completed. The operation reconciler republishes retryable execution only after outbox publication.
+A Redis restore may redeliver work, and handlers must remain idempotent. PostgreSQL loss beyond the last
+verified backup can lose durable intent and application data. Redis AOF `everysec` can lose roughly the
+last second of queue writes, but PostgreSQL intent is reconcilable.
+
+For a delivery incident, inspect `OperationOutbox` status, `nextAttemptAt`, `leaseUntil`, `attempts`,
+`claimVersion` and `lastErrorCode` alongside the operation status. `publish_failed` is a coded failure,
+not raw exception text. Restart Redis and the workers, then confirm due rows progress to `published`
+and operation attempts resume. A `claimed` row with an expired lease is automatically reclaimable.
+Do not delete rows or manually reset claim versions; a publisher may have sent a job just before
+crashing, so replay is expected.
+
+Worker `/health/ready` becomes unavailable on failed or stale outbox or scheduler polls,
+PostgreSQL or Redis probe failure, or shutdown. Host-authenticated `/internal/diagnostics`
+shows aggregate poll successes/failures, outbox claims/publications/deferrals, operation retries,
+last observed queue lag and event-loop delay. It does not identify tenants or payloads.
+An owner feature switch reports Redis publication acceptance, not confirmation from every
+gateway shard. If delivery degrades, inspect each shard and reload flags after the bus recovers;
+a persisted off switch remains off on database reload failure.
+
+Scheduled Discord tasks use `ScheduledTask`, independent of the operation outbox. Inspect `status`,
+`runAt`, `nextAttemptAt`, `leaseUntil`, `attempts`, `claimVersion` and `lastError`. The worker poller
+reclaims expired `claimed` and `processing` leases after a crash, while each gateway accepts only the
+current claim for its guild. Redis publication alone is not completion. Unknown handlers and malformed
+payloads retain a terminal `failed` row with a stable code. Cancellation retains a `cancelled` row if
+work has not entered `processing`; it cannot undo a Discord effect already in progress. Database
+fencing prevents a stale settlement or duplicate acceptance for one claim. A Discord request with an
+ambiguous response or a lease expiry during an external effect can still repeat that effect, so the
+handlers must treat provably absent roles, bans, members or channels as successful retries. Keep failed
+rows for diagnosis and never reset their version manually. The retry cap counts gateway-accepted
+handler executions, not worker claims or Redis delivery failures. Repeated gateway absence therefore
+does not exhaust handler attempts. A worker whose Redis publish fails may defer only its still-claimed
+version; a gateway that already accepted it keeps `processing` until fenced settlement or lease expiry.
+
+A rollback image may write a nonterminal `OperationRecord` without an outbox row after the additive
+migration has already run. On re-upgrade, the relay repairs at most 20 such rows before each claim
+poll, then publishes them through the normal fenced path. Do not expect migration deploy to repeat
+its one-time backfill. Check for missing rows if delivery has not resumed after Redis and workers recover.
+
+## Before deployment
+
+1. Confirm the latest PostgreSQL backup can be restored to a disposable database. Keep the backup
+   outside the Compose volumes and restrict access to it.
+2. Record the current image tags or digests and the PostgreSQL migration status.
+3. Confirm free disk space for the database backup, PostgreSQL WAL and Redis AOF rewrite.
+4. Keep the previous immutable gateway image available. A rollback needs the legacy monolithic image
+   reference in `ROSTRA_PREVIOUS_IMAGE`, preferably by registry digest.
+
+For a host-local encrypted backup destination, stream a custom-format dump without writing the dump
+inside a container:
+
+```sh
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.vps.yml \
+  exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom > /secure-backups/rostra-$(date -u +%Y%m%dT%H%M%SZ).dump
+```
+
+The destination and encryption are operator-owned. This command does not back up Redis AOF or prove a
+restore; test restores separately.
+
+## Roll back the application image
+
+Stop all new applications first, keep PostgreSQL/Redis and their volumes, and start the prior gateway
+against the forward-migrated database. The rollback Compose entrypoint runs the prior gateway source
+directly and does not ask it to apply an older migration set.
+
+```sh
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.vps.yml \
+  stop web gateway workers realtime activity api
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.vps.yml \
+  exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+UPDATE "ScheduledTask"
+SET status = 'pending', "leaseUntil" = NULL, "nextAttemptAt" = NULL
+WHERE status IN ('claimed', 'processing', 'retryable');
+SQL
+docker compose --env-file .env \
+  -f infra/compose/compose.yml \
+  -f infra/compose/compose.vps.yml \
+  -f infra/compose/compose.rollback.yml \
+  up -d legacy-gateway
+docker compose --env-file .env \
+  -f infra/compose/compose.yml \
+  -f infra/compose/compose.vps.yml \
+  -f infra/compose/compose.rollback.yml \
+  logs -f legacy-gateway
+```
+
+Run the scheduled-task status reset only after all new gateway and worker processes have stopped.
+The prior image reads only `pending` tasks. This reset clears their lease and retry time while leaving
+`runAt`, attempts, claim versions, payloads and terminal rows intact. An ambiguous Discord response
+before shutdown may replay.
+
+Set `ROSTRA_PREVIOUS_IMAGE` to the preserved monolithic image digest before running those commands.
+The former bot's health service remains on loopback port 3000. Point the passive reverse proxy at that
+port while rolled back. The separate API, worker and web surfaces remain stopped; this rollback
+restores the pre-revamp bot runtime, not the new web experience.
+
+All Phase 00 schema changes are forward-only and additive. Never run a destructive down migration to
+roll back code. The prior image rehearsal builds the recorded pre-revamp Git commit, starts it only
+after the current smoke has drained and closed its API/worker processes, then checks its health route
+against the database with the unchanged migration history. Its test network blocks outbound traffic
+and uses fake Discord credentials, so it cannot publish commands or contact Discord.
+
+## Restore data
+
+Restore only after stopping every app process. Do not restore a backup over a live Postgres volume.
+Restoring PostgreSQL rolls durable application state back to the backup timestamp and can lose every
+later user change, operation intent and audit row. Restore Redis only when needed for queue recovery;
+database reconciliation can republish retained intent after Redis starts. Never run `docker compose
+down --volumes` as a recovery step. Keep the failed database volume until the restored deployment has
+passed health and data checks.
+
+## Limits
+
+- The current Compose migration path uses direct PostgreSQL connections; pooled migration URLs are
+  unsupported.
+- Web sessions are in-memory. Multiple web replicas do not share sessions and are not supported yet.
+- A rollback can use the prior bot image only while its schema usage remains compatible with the
+  additive forward migrations. Preserve and test the prior image before deployment.
+- These runbooks do not provision storage, backups, TLS, DNS, reverse proxies or tunnels.

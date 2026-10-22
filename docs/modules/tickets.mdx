@@ -1,10 +1,15 @@
 ---
-last-updated: 2026-06-05
+title: Ticket module
+last-updated: 2026-10-21
 owner: AstorisTheBrave
 status: stable
 ---
 
 ## what this is
+
+The `ticket_archive_delete` task is claimed by workers and dispatched to the owning gateway. The
+handler checks the stored ticket's guild and open state before deletion. A confirmed absent channel
+or reopened ticket completes safely; storage and other Discord failures retry.
 
 A support ticket system: members click a button to open a private channel only they and support staff can
 see; staff can claim it and close it (which logs a summary and deletes the channel). This is the first
@@ -13,9 +18,9 @@ module that uses interactive **buttons**.
 ## technical map
 
 **file paths**
-- command + button handlers: `src/modules/tickets/index.ts`
-- channel creation + persistence: `src/modules/tickets/service.ts`
-- models: `prisma/schema.prisma` → `TicketConfig`, `Ticket`, `GuildTicketCounter`
+- command + button handlers: `modules/tickets/index.ts`
+- channel creation + persistence: `modules/tickets/service.ts`
+- models: `packages/database/prisma/schema.prisma` → `TicketConfig`, `Ticket`, `GuildTicketCounter`
 
 **command** - `/ticket` (Manage Server): `enable`, `disable`, `status`, `panel`, `category`,
 `logchannel`, `close`, `claim`, `add <user>`, group `supportrole add|remove`.
@@ -31,11 +36,16 @@ module that uses interactive **buttons**.
 
 ## gotchas
 
+- Cached ticket configuration receives versioned tenant invalidation and a five-minute
+  local TTL. Active ticket state and event bookkeeping are separate.
+
 - This module is the reference for **component interactions**: export `components: ComponentHandler[]`,
   build buttons with `customId` `prefix:action`, and the router handles dispatch.
 - One open ticket per user per guild is enforced (`Ticket` query before create).
 - Ticket channels get explicit permission overwrites: deny `@everyone`, allow opener + support roles +
   the bot. The bot needs Manage Channels.
+- Ticket staff checks require the current member to have Manage Server or a configured support role.
+  Configured bot owner IDs do not grant ticket support access. The ticket opener may still close their own ticket.
 - Close logs to the configured channel then deletes the channel after a 5s delay. No HTML transcript yet
   (future enhancement; `discord-html-transcripts` was used by the legacy bots).
 - Requires `prisma migrate` for `TicketConfig`, `Ticket`, `GuildTicketCounter`.

@@ -7,23 +7,25 @@ status: stable
 ## what this is
 
 The translation system. Every word the bot shows a user comes from a named key (like `common:ping.pong`)
-instead of being typed inline. Right now there's only English, but this design means the whole bot can be
-translated later without touching any feature code.
+instead of being typed inline. English module bundles are the fallback for bundled translations and
+live database overlays. See `localization.mdx` for locale selection and the translation workflow.
 
 ## technical map
 
 **file paths**
-- primary: `src/i18n/index.ts`
-- strings: `src/i18n/locales/en/common.json`
-- test: `src/i18n/index.test.ts`
+- primary: `packages/i18n/src/index.ts`
+- strings: `packages/i18n/src/locales/en/common.json`
+- test: `packages/i18n/src/index.test.ts`
 
 **exports**
+- Public package: `@rostra/i18n`; optional `/bundled`, `/commandLocalizations`, `/live`, `/locales`
+  and `/validate` exports. Consumers never import package source paths.
 - `t(key, vars?, locale='en'): string` - resolve `namespace:key`, interpolate `{var}` placeholders;
   returns the key itself if missing (so gaps are visible, not crashes).
 - `registerLocale(locale, namespace, strings)` - modules register their own string bundles at boot.
 
 **depends on**
-- `src/i18n/locales/en/common.json` (core strings)
+- `packages/i18n/src/locales/en/common.json` (core strings)
 
 **imported by**
 - (later) every command/interaction handler; each feature module calls `registerLocale` for its namespace
@@ -33,3 +35,5 @@ translated later without touching any feature code.
 - Keys are `namespace:dotted.path`. The core namespace is `common`; each module uses its own namespace.
 - Unknown keys return the key string - useful for spotting untranslated text in output.
 - New modules must `registerLocale('en', '<module>', {...})` during load before their commands run.
+- Live locale bus subscriptions are disposable; publication failures are logged and remote
+  overlays recover on the next successful reload or process boot.

@@ -14,10 +14,10 @@ types to log, and which channels to ignore.
 ## technical map
 
 **file paths**
-- command + module wiring: `src/modules/logging/index.ts`
-- event handlers: `src/modules/logging/events.ts`
-- config + dispatch: `src/modules/logging/service.ts` (+ `service.test.ts`)
-- model: `prisma/schema.prisma` → `LoggingConfig`
+- command + module wiring: `modules/logging/index.ts`
+- event handlers: `modules/logging/events.ts`
+- config + dispatch: `modules/logging/service.ts` (+ `service.test.ts`)
+- model: `packages/database/prisma/schema.prisma` → `LoggingConfig`
 
 **command** - `/logging` (Manage Server): `channel <channel>`, `toggle <type> <bool>`, `status`, and
 group `ignore add|remove <channel>`.
@@ -37,6 +37,9 @@ memberBan, memberUnban, roleChanges, channelChanges, bulkDelete, voiceMoves, nic
 - `@/client/defineEvent`, `@/services/database`, `@/utils/components`
 
 ## gotchas
+
+- Cached per-guild configuration receives versioned invalidation after a committed write;
+  missed delivery expires within five minutes.
 
 - Message delete/edit events require the **Message Content** intent; old (pre-cache) messages arrive as
   partials with no `content`, so the log shows "-".

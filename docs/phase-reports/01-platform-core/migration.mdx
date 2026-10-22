@@ -1,0 +1,32 @@
+---
+title: Phase 01 migration evidence
+last-updated: 2026-10-22
+owner: AstorisTheBrave
+status: stable
+---
+
+# Phase 01 migration evidence
+
+Phase 01 adds four forward-only migrations after the preserved Phase 00 history:
+
+- `20261019010000_guild_capabilities`
+- `20261020120000_cache_revision`
+- `20261020130000_transactional_outbox`
+- `20261021120000_scheduled_task_claims`
+
+The repository integrity check verifies every historical migration directory and byte snapshot. The
+schema keeps earlier rows readable and adds nullable or defaulted state where a rollback image must
+continue operating. No destructive down migration is used.
+
+## Rehearsals
+
+| Rehearsal | Result |
+| --- | --- |
+| Apply all 15 migrations to disposable PostgreSQL | Passed locally and in exact-candidate CI run `39824618196` |
+| Inject an unfinished failed migration row, run the real `infra/start-app.sh`, and prove the application command is not executed | Passed locally and in CI run `39824618196` with Prisma `P3009` |
+| Start the prior image against the forward-migrated database with outbound adapters blocked | Passed in exact-candidate service/image run `39824617943` |
+| Create a nonterminal operation from rollback-image semantics without an outbox row, then repair it in a bounded relay poll | Passed in worker service integration |
+
+Rollback means returning to the prior image while retaining the forward schema, or restoring a tested
+backup when the prior image cannot operate on the new schema. It never means deleting migration
+history or running an unreviewed down migration.

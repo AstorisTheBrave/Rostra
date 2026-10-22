@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-10-22
 owner: AstorisTheBrave
 status: stable
 ---
@@ -10,6 +10,343 @@ The running history of structural changes to Rostra, one entry per working sessi
 to see where things stand and what was decided.
 
 ## log
+
+### 2026-10-22 - Phase 01 final evidence candidate
+
+Closed the three gaps found by the independent Phase 01 acceptance audit. The measurement schema now
+records credential-free provider request counts and rejects one-sided comparisons; the collector uses
+an in-process fake endpoint and recorded one request for each of 20 local prompts. A detached replay of
+Task 1 revision `5814840` measured the same one request per prompt, closing the before/after frequency
+comparison without external traffic. The CI service job
+now runs the operations PostgreSQL suite, stops and replaces the real Redis service around retained
+PostgreSQL intent, and proves the recovered operation completes with one durable effect. A separate
+disposable database receives a real unfinished migration row; the production startup wrapper receives
+Prisma `P3009` and proves the application command never runs.
+
+Added the Phase 01 architecture, migration, test, measurement, security and recovery evidence pages,
+linked them in `docs/docs.json`, and refreshed stale Phase 00 language in the product documentation.
+The decision remained pending until the Task 8 candidate passed every exact-head workflow and the final
+pull-request conversation, inline-review and Advanced Security sweep.
+
+Implementation snapshot `e337827e624e5bb544b57ca2da7bc27e2b8d8fb0` then passed all 17 remote
+checks. CI run `39824618196`, CodeQL run `39824617962`, security run `39824617932`, and service/image
+run `39824617943` were green. The exact hosted artifact recorded one request for each of 20 prompts.
+All nine review threads were resolved, no new review finding appeared, and code scanning, secret
+scanning and Dependabot each had zero open alerts. Phase 01 therefore passed.
+
+### 2026-10-21 - Phase 01 truthful flags, provisioning and health
+
+Global flags now fail initialization on an initial database read error and retain known
+overrides on later reload errors. A flag read buffers concurrent bus updates and replays
+them after its snapshot, while concurrent reads share one load. Guild feature reads fail
+closed. Feature writes report cache delivery and provisioner outcomes, while setup and owner commands distinguish saved,
+degraded and failed states without displaying raw errors. Public health returns status only;
+host-authenticated gateway, API and worker diagnostics expose aggregate process counters.
+Worker readiness probes PostgreSQL and Redis with a bounded response and requires recent
+successful outbox and scheduler polls. Focused failure tests and the full local gate are
+recorded in the Task 7 report. The module snapshot fixture records one intentional
+security-only difference: a default-on global flag is not live before its persisted
+state has loaded. Command JSON and module inventory remain unchanged. CI service
+verification remains a separate delivery gate.
+
+Review hardening preserves publication outcomes from each provisioning wire, including
+multi-write specs and the automod provisioner. Setup language and log-channel saves now
+report delayed delivery after a durable write. Worker health uses a separate Redis
+connection with no offline command queue, and repeated readiness requests share each
+unresolved dependency probe instead of accumulating operations.
+
+Exact-head Advanced Security alert 16 was dismissed as a false positive with evidence.
+The fixed `/internal/diagnostics` route verifies the host bearer before reading metrics;
+only status-only liveness and readiness routes are public, and focused tests verify that
+unauthenticated diagnostics receives `401` without exposing process details.
+
+### 2026-10-21 - Phase 01 durable scheduled work
+
+Moved scheduled Discord tasks from gateway timers to PostgreSQL claims and a tracked worker poller.
+The control bus carries only a strict task ID and claim version. Owning gateway processes accept the
+exact claim before running one of five validated handlers, then fence completion or coded failure.
+Retry time is capped; failed and cancelled rows remain. The migration preserves the original `runAt`
+and recognizes prior-image inserts without `nextAttemptAt`. Cancellation reports when processing has
+already started. Focused and service verification is recorded in the Task 6 report; this is a slice,
+not a Phase 01 delivery claim.
+
+Review correction counts attempts only when a gateway atomically accepts a claim, so Redis failures
+and absent gateways cannot consume handler attempts. Publication failure can defer only an unaccepted
+claim; it cannot overwrite a gateway's `processing` state. Scheduled publishing now uses a separate
+finite-failure Redis producer, leaving gateway subscriptions and the BullMQ Worker connection policy
+unchanged. Temporary role removal no longer trusts the member's role cache to skip the effect.
+
+
+### 2026-10-20 - Phase 01 transactional operation outbox
+
+Operation creation now commits its outbox row with the operation and optional domain mutation. The
+API returns durable `202` after commit when immediate Redis delivery fails. A tracked worker relay
+claims bounded due rows, fences publication settlement by claim version and retries coded failures or
+expired leases. The existing operation reconciler handles execution retries only after outbox
+publication. Duplicate idempotency keys now require matching kind, guild and payload.
+Review correction separated finite-failure API and worker producer connections from the BullMQ Worker
+connection, so a Redis outage fails publication and drains promptly. Every relay poll also repairs a
+bounded, idempotent batch of nonterminal operations missing outbox rows after a prior-image rollback.
+
+**evidence**: Focused unit and disposable PostgreSQL/Redis service tests prove atomic rollback,
+concurrent same-key creation, post-commit publication, failed publish retry, expired claim takeover,
+stale settlement rejection, duplicate BullMQ job identity and one durable effect. The full local gate
+and remote review status are recorded in the task report; this entry does not claim a Phase 01 pass.
+An unreachable-Redis regression proves API publish and relay drain terminate promptly. A disposable
+PostgreSQL/Redis regression creates a prior-image operation after migration, then proves repair,
+publication and one outbox identity on redeployment.
+
+### 2026-10-19 - Phase 00 web image build
+
+The web Docker target now runs the `@rostra/web` production build before starting Vite preview. The
+bundle is generated inside the image, so `.dockerignore` can continue excluding host build output.
+The Docker context now includes the root TypeScript base config required by that build. Updated the
+deployment runbook to describe this image behavior.
+
+**evidence**: The Linux web image target built successfully with Docker Buildx. Frozen dependency
+installation, Prisma client generation, Vite client and server bundles, and TypeScript checking passed.
+The temporary local review image tag was removed after the build.
+
+### 2026-10-19 (web session expiry cleanup)
+
+**changed**: The in-memory web session store now prunes expired sessions whenever a new session is
+stored, while reads retain their existing per-session expiry check. Added a focused test proving a new
+login removes expired sessions and retains active sessions without a background timer.
+
+**evidence**: The new test failed before the cleanup implementation because an expired session remained
+readable at its original clock value after a newer session was stored. The focused auth test file passes
+all five tests after the change. Broader web checks are recorded with the task result.
+
+**files touched**: `apps/web/src/server/auth.server.ts`, its focused test, the architecture map and this log.
+
+### 2026-10-18 (Phase 00: deployment, CI, and correlated service smoke)
+
+**changed**: Added a bounded default Compose topology for PostgreSQL, Redis, gateway, API, workers
+and web, with loopback-only development ports, an immutable-tag VPS overlay, and explicit disabled
+profiles for realtime and Activity. Redis persists queue state with AOF and `noeviction`. Replaced
+the root startup wrapper and Compose file with `infra/start-app.sh` and bounded `infra/migrate.sh`;
+every app image applies the unchanged migration history over a direct database connection before
+starting, and a terminal migration error prevents app launch. A shared Dockerfile exposes targets for
+all six apps. CI now includes build, service and browser gates; CodeQL, secret scan, dependency review,
+SBOM retention and image coverage use immutable action pins. New runbooks describe deployment,
+backup, rollback and recovery without controlling external ingress.
+
+Added startup tests for three failed migration attempts and successful handoff. The cross-service
+smoke invokes the gateway-owned internal API fanout adapter, the API and worker runtimes, PostgreSQL,
+Redis and the typed web client. It checks duplicate API idempotency, at-least-once queue delivery,
+exactly one persisted effect, correlation propagation across the gateway adapter into the API and
+worker effect, and denial of a swapped guild token. All external Discord access is blocked by the
+internal-only Compose test network; only fake credentials are used and command publication is disabled.
+
+**evidence**: Frozen install, boundaries, typecheck, lint, full unit suite and all workspace builds
+passed with placeholder configuration. Compose configuration validated. A disposable Linux API image
+applied all 11 preserved migrations against the internal Compose hostname; the correlated smoke passed
+with one effect and a swapped-guild denial, then migration status reported no pending migrations.
+The migration-failure test passed with three attempts and confirmed the app marker was never created.
+All disposable containers, networks and volumes were removed.
+Review follow-up added a gateway-owned internal API fanout adapter and a focused request-forwarding test.
+The Linux API-image smoke now submits the correlated operation through that adapter and verifies the
+same id in API acceptance, response headers and the durable worker effect. The VPS overlay now defaults
+to the lowercase GHCR owner. A fresh disposable image run applied all 11 migrations, passed the
+adapter-to-API/worker/web flow and reported no pending migrations; its containers, volumes and network
+were removed.
+
+GitHub workflow definitions include
+the prior-image rollback rehearsal, but that workflow and the six-target remote image matrix have not
+yet run; no remote rollback verification, push or release is claimed. The Windows-host Prisma schema
+engine returned an empty error with a host-mapped database, so service migrations and smoke were
+verified from the Linux app image instead.
+
+**files touched**: `infra/`, root `Dockerfile` and Compose replacements, `tooling/smoke/`, CI/security/
+image workflows, the root workspace dependency map, deployment/recovery/architecture docs and this
+log.
+
+### 2026-10-18 (Phase 00: API and durable worker application seams)
+
+**changed**: Added independently bootable `@rostra/api` and `@rostra/workers` applications plus the
+public `@rostra/auth` and `@rostra/operations` packages. The API exposes detail-free live/ready probes,
+preserves the authenticated vote webhook and provides bearer-protected versioned smoke routes. Durable
+operation intent is written to PostgreSQL before Redis publication. Workers own all BullMQ consumers,
+track every handle and wait for drain. Retryable, permanent and unknown-handler outcomes remain in the
+operation record; duplicate deliveries use one durable effect per operation. API and workers can load
+without Discord credentials, while every Discord caller now fails explicitly if gateway credentials
+are absent.
+
+Removed BullMQ worker creation from gateway shards. Scheduled Discord tasks now delete only after a
+successful handler and retain failed or unknown work with a non-sensitive failure code. Added a
+forward-only migration for operation intent, attempts, effects and scheduled-task failure state.
+Logger redaction now explicitly covers authorization headers. CI gained bounded PostgreSQL 16 and
+Redis 7 service-container proof for retry, worker drain, restart and exactly-once durable effect.
+
+**evidence**: Frozen install, repository boundaries, strict typecheck, lint, build, full unit tests and
+`git diff --check` passed. The workspace test graph completed 25 of 25 tasks, including 204 gateway,
+4 API, 4 worker and 6 operation tests; all 37 repository tooling tests also passed. Offline parity
+remains 47 commands, 42 modules and 48 events with zero network attempts, and migration integrity
+confirms that every earlier migration path and byte is unchanged. A local disposable PostgreSQL 16
+and Redis 7 run applied all ten migrations and passed the real worker-restart integration test with one
+operation effect and two recorded attempts. The two task-scoped containers were removed afterward.
+No Discord process, command publication, deployment or push occurred.
+
+**files touched**: `apps/{api,workers,gateway}/`, `packages/{auth,operations,config,database,logger}/`,
+the forward migration, workspace/Docker/CI callers, relevant architecture/operations/deployment docs
+and this log.
+
+**fix round 1**: Separated terminal duplicate delivery from an active lease so a busy delivery retries
+instead of disappearing. Added claim-version fencing, deterministic BullMQ job IDs and a worker-owned
+reconciler for pending, retryable and expired processing records. The reconciler retries retained failed
+or completed jobs, closing both publish-failure and retry-exhaustion gaps. Idempotency-key reuse now
+rejects a different operation kind or guild. Internal operation reads authorize against the stored
+scope: guild principals need the matching guild and permission, and host principals can read only
+host-scoped records. Worker shutdown disconnects Redis in all cases, attempts Prisma cleanup after an
+aggregate drain failure, logs that failure and sets a failing exit code. A second forward-only migration
+adds the claim version; the first Task 5 migration remains unchanged.
+
+The disposable PostgreSQL 16 and Redis 7 proof now retains the original failed BullMQ job, drains the
+first runtime, starts a replacement runtime and lets the automatic reconciler retry that same job. No
+manual second enqueue is used. It also exercises the real Prisma idempotency conflict and proves that a
+stale claim cannot settle after lease takeover. Focused tests cover busy lease retry, scope denial,
+recoverable-status publication, continued reconciliation after one publish failure and cleanup after
+one worker close fails.
+
+**fix round 2**: Closed an interleaving race between claim update and claim read. The Prisma repository
+now increments the claim version and reads the claimed row in one PostgreSQL transaction, retaining the
+row lock until the exact fence is captured. A real PostgreSQL barrier test pauses the first claimant
+after its update, proves a takeover remains blocked, then verifies the two claimants receive versions
+one and two respectively. The existing replacement-worker and reconciler service proof remains green.
+
+**fix round 3**: Made the concurrent fencing proof deterministic. The service test captures claimant
+B's PostgreSQL backend PID from its public repository claim transaction and bounded-polls
+`pg_stat_activity` plus `pg_locks` until that exact backend is waiting on a non-granted lock held by
+claimant A, whose backend PID is confirmed through `pg_blocking_pids`. Only that database evidence
+releases A; elapsed time is no longer the proof condition.
+
+**fix round 4**: Removed the interleaving hook from the exported Prisma repository constructor. The
+production repository again has a no-argument constructor and calls the atomic claim path without test
+instrumentation. Same-package service tests use a package-private wrapper around that exact transaction;
+the explicit package export regression proves consumers cannot import the private claim module.
+
+### 2026-10-17 (Phase 00: gateway and legacy module compatibility migration)
+
+**changed**: Moved the Discord runtime into `apps/gateway/src/` and all current feature modules into
+`modules/`. Added the `@rostra/module-sdk` public contract with validated manifests, cancellable
+lifecycle hooks and a compatibility adapter for the existing module objects. The gateway package now
+owns runtime build, typecheck, lint and test tasks; root commands, container inputs, panel startup,
+CI guards, aliases and active documentation point at the workspace paths. Added stable command and
+module registry fixtures plus offline snapshot tools covering intents, partials and feature flags.
+
+**evidence**: Frozen installation, workspace boundaries, root build/typecheck/lint and the full root
+test suite pass with placeholder credentials and at most two test files running concurrently. All 287
+tests passed. The focused compatibility suite proves duplicate module IDs fail, abort signals stop
+legacy lifecycles, package-private imports fail and a fake-token registry boot performs no Discord
+login or REST request.
+Normalized snapshots match the Task 3 baseline exactly: 47 commands, 42 modules and 48 events, with
+component/job inventories preserved and zero network attempts. Of 223 moved TypeScript files, 208 are
+byte-identical; the other 15 contain the adapter/snapshot seams or required path and documentation
+updates. All database schema and migration bytes remain unchanged. No Discord publication, external
+service, container or deployment was run. This is a local Task 4 slice, not completed Phase 00 delivery.
+
+**files touched**: `apps/gateway/`, `modules/`, `packages/module-sdk/`, registry tooling and fixtures,
+root workspace/runtime configuration, CI guards, active architecture/module/hosting documentation and
+this log.
+
+### 2026-10-17 (Phase 00: shared packages and preserved database history)
+
+**changed**: Extracted `@rostra/config`, `@rostra/contracts`, `@rostra/database`, `@rostra/cache`,
+`@rostra/logger`, `@rostra/i18n`, `@rostra/discord-ui` and `@rostra/testing`, each with explicit ESM
+exports, strict typechecking and tests. All moved runtime callers now use public package imports.
+Redis control pub/sub moved with cache; i18n live overlays consume that public subpath. Discord
+components and safe acknowledgement moved together. Gateway-specific module types and card rendering
+remain under `src/` for their owning slices; only `JobDefinition` keeps a temporary type re-export.
+
+Moved the schema and nine migration directories plus lock file to `packages/database/prisma/` with
+unchanged bytes. Added historical SHA-256 regressions and disabled migration checkout line-ending
+conversion. Root migration configuration preserves URL/dotenv behavior. The database package declares
+the existing Prisma CLI alongside its client dependency, which Prisma requires for workspace client
+resolution. Updated frozen-lockfile importers, Docker manifest/schema inputs, translation/emoji tooling
+paths, documentation and CI source guard coverage. Package boundaries reject private imports,
+undeclared shared dependencies, manifest cycles and duplicate config/database ownership. Root tests
+serialize workspace tasks to keep total test-file concurrency at two; source builds declare no outputs.
+
+**evidence**: Package/import, boundary and migration tests failed before extraction. Focused package
+tests passed, followed by credential-free client generation, package/root typechecks, root lint and
+the full root test suite (280 passing tests) with placeholder credentials. All 162 module TypeScript
+files are unchanged after normalizing imports; all eleven schema/history files match the pre-move Git
+bytes. An offline comparison against the baseline matched 47 command definitions, 42 modules and 48
+events, including component/job inventories, with zero network attempts and no gateway constructed.
+No Discord command publication, external service, container or deployment was run. Task 4 still owns
+the permanent registry regression harness; Task 7 owns migration startup/rollback service proof.
+This is a local Task 3 slice, not completed Phase 00 delivery.
+
+### 2026-10-17 (Phase 00: complete active installation guidance migration)
+
+**changed**: Updated wiki getting-started/contributing, infrastructure deployment and Ori Host setup
+instructions to use Corepack and `pnpm install --frozen-lockfile`, preserving the reviewed lockfile and
+workspace security overrides. Linked canonical setup and made a configurable frozen pnpm installer an
+explicit panel-host prerequisite; current Ori panel installation remains unverified. Added a focused
+regression scanning active root, wiki and infrastructure guides for stale dependency installation
+commands. Historical changelog/session entries remain intact.
+
+**evidence**: The new regression failed on all four affected guides before edits; the complete workspace
+verifier tests then passed 7/7. Repository/workspace boundary checks, targeted Biome and diff checks pass.
+README's separate runtime-version wording remains deferred for final triage.
+
+**files touched**: `docs/wiki/{Getting-Started,Contributing,Hosting-on-Ori-Host}.md`,
+`docs/infrastructure/deployment.mdx`, `tooling/scripts/verify-workspace.test.ts` and this log.
+
+### 2026-10-17 (Phase 00: workspace control plane)
+
+**changed**: Pinned stable pnpm 12.14.0 and Turbo 2.11.9, imported the existing npm dependency
+resolutions into the sole pnpm lockfile, and moved security overrides into workspace settings.
+Added six explicit workspace roots, private/generated exclusions, reviewed dependency build permissions,
+and disabled dependency-provided agent skills. Added shared TypeScript/Biome configs, root Turbo aliases
+with temporary legacy root tasks, and an offline workspace verifier. Prisma client generation now uses
+a schema-only config and runs before build/typecheck/test consumers without deployment credentials.
+Updated CI, Docker and active contributor/setup instructions for the single lockfile. Runtime source,
+command registration and every Prisma migration remain unchanged.
+Recorded the delivery requirement in the tracked Phase 0 plan, agent and contributing guidance:
+every completed phase is pushed to GitHub as a rollback snapshot after its full gate and review pass,
+with matching local/remote commit hashes recorded. Task 2 does not push a partial Phase 0 snapshot.
+
+**evidence**: The workspace tests failed first with the absent verifier/control files, then passed
+6/6; combined repository/workspace tests passed 16/16. Frozen install, root build/typecheck/lint and
+265/265 tests passed locally on Node 24.19.0, with test-file concurrency two and fake Discord/database
+credentials. Lint checked 302 files without warnings. Turbo's dry graph resolved only the root and
+`@rostra/biome`, with generation preceding the legacy build. The integration entrypoint and clean ran
+successfully, but integration currently contains no service tests. No gateway or container was booted.
+Official release/support rationale and the Dependabot pnpm 12 support limitation are recorded in
+decision 011. Corepack 0.35.0 requires Node 22.22.2+ or 24.15.0+; CI/Docker remain on Node 22.
+This completes only the local control-plane slice, not Phase 00 or remote CI/image verification.
+
+**files touched**: root workspace/lock/task/TypeScript/Biome configuration, `tooling/{typescript,biome}`,
+`tooling/prisma-generate.config.ts`, `tooling/scripts/verify-workspace.*`, `.gitignore`,
+`.github/{dependabot.yml,workflows/ci.yml,PULL_REQUEST_TEMPLATE.md}`, `Dockerfile`,
+`docker-entrypoint.sh`, `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, `MIGRATION.md`, decision 011 and this log.
+Also updated `docs/superpowers/plans/2026-10-17-phase-00-monorepo.md` for phase delivery evidence.
+
+### 2026-10-17 (Phase 00: include executable shell source in boundary checks)
+
+**changed**: Extended source neutrality checks to `.sh`, the repository's container script format.
+Added a regression covering both untracked and tracked shell scripts while proving private archive,
+generated build output and binary assets stay outside source scans. Recorded the executable-format
+extension rule in agent guidance and the architecture/shared-services docs.
+
+**files touched**: `tooling/scripts/check-repository-boundaries.mjs`,
+`tooling/scripts/check-repository-boundaries.test.ts`, `AGENTS.md`,
+`docs/architecture/decisions/011-revamp-contract.mdx`, `docs/modules/services.mdx` and this log.
+
+### 2026-10-17 (Phase 00: repository boundaries and revamp contract)
+
+**changed**: Added explicit lowercase archive and scratch exclusions to Git/Biome, a Docker input
+denylist, and an offline repository boundary checker with regression tests. Added the compatibility
+`npm run check:boundaries` command and production Phase 00 implementation plan. Replaced agent guidance
+with workspace ownership and tenant/security/recovery priorities; decision 011 binds automation naming,
+scoped Discord entrypoints, unchanged migrations, fake-token verification and optional app build gates.
+No runtime permissions or database history changed. Existing owner bypass remains a documented security
+debt for its owning slice.
+
+**files touched**: `.gitignore`, `.dockerignore`, `biome.json`, `package.json`, `AGENTS.md`,
+`tooling/scripts/check-repository-boundaries.*`, `docs/architecture/decisions/011-revamp-contract.mdx`,
+`docs/modules/services.mdx`, `docs/superpowers/plans/2026-10-17-phase-00-monorepo.md` and this log.
 
 ### 2026-06-09 (deps: merge Dependabot PRs + patch undici)
 
@@ -1974,3 +2311,232 @@ at it. Reference docs are in `Archive/` (yagpdb-docs, arcane-docs, zyn-bot). No 
 
 **files touched**: `docs/superpowers/plans/2026-06-07-remaining-features-backlog.md`, `memory.md` (local),
 this log.
+
+### 2026-10-18 - Phase 00 Task 6 web, realtime and Activity seams
+
+Added `apps/web/` with public login and policy routes, member home/profile/server routes, and admin/operator route
+groups. Discord OAuth uses validated state, PKCE, an opaque server-side session id and HttpOnly SameSite=Lax
+cookies. Typed API reads authorize the exact guild principal at the API endpoint and return read-only guild
+configuration summaries. Shared web UI implements the accepted dark shell, desktop rail, mobile navigation,
+account menu, server list and explicit loading/empty/degraded/unauthorized/callback failure states. Tests cover
+landmarks, skip navigation, keyboard use, axe, reduced motion, 390px layout and the 640px effective viewport used
+to represent 200% zoom.
+
+Added optional `apps/realtime/` and `apps/activity/` authenticated seams, pure game-core session/result types and
+fixtures, and shared typed web client/UI packages. Realtime and Activity remain disabled in the default runtime;
+these contracts do not claim multiplayer or device verification. OAuth sessions are currently process-local and
+require shared durable storage before multi-instance deployment.
+
+### 2026-10-18 - Phase 00 Task 6 visual review
+
+Browser/IAB launch did not return within the tool timeout. Local Playwright Chromium was used for desktop 1440x900
+and mobile 390x844 screenshots in ignored `.superpowers/sdd/2026-10-17-phase-00-monorepo/task-6-rendered/` scratch.
+Compared with the accepted concepts: (1) deep navy page and near-black rail/surfaces match; (2) white headings,
+muted blue-gray copy and violet actions match; (3) desktop rail, account menu and open list hierarchy match; (4) the
+mobile bottom navigation and compact server rows match, with the count above the fixed bar; (5) login and guild
+selector copy match exactly. The login flow uses small code-native outline icons and simple straight lines instead
+of curved decorative connectors. Above-fold copy diff: none. Concept and rendered screenshots are scratch only.
+
+### 2026-10-18 - Phase 00 Task 6 review fixes
+
+Bound signed web principals to a required service audience. The web issues `api` tokens; API, Realtime and Activity
+verifiers each require their own exact audience, with cross-audience rejection coverage. Removed the fixture-only
+web guild client. Browser smoke now starts the real API, applies migrations and seeds a disposable PostgreSQL
+database, then uses fixture OAuth and the typed HTTP client. The fixture includes one OAuth-visible unconfigured
+guild, and the browser test proves only the three persisted guild rows render. In-memory web sessions remain a
+single-process limitation. The database-backed browser proof passed locally against temporary PostgreSQL/Redis
+containers and is configured for the GitHub browser matrix.
+
+### 2026-10-18 - Phase 00 Task 8 product docs and local evidence
+
+Rewrote the README for community owners and self-hosters, refreshed the workspace and architecture maps, and aligned
+the contributor, environment, deployment and stack guides with the current pnpm workspace. Added a capability-status
+page, roadmap and Phase 00 baseline, security, performance and rollback reports. Updated active module and wiki paths
+that still pointed at the pre-move Prisma or locale directories. No screenshot was published because the implemented
+web app did not yet have an approved deterministic public capture.
+
+The final local pass used Node.js 24.19.0 and Docker Engine 29.7.2. Frozen install, Prisma client generation,
+repository/package boundaries, typecheck, lint, unit tests with CI placeholders, build, Chromium browser smoke,
+registry parity, migration status and `git diff --check` passed. Lint retains six existing warnings. Registry parity
+reported 47 commands, 42 modules and 48 events with zero network attempts. Linux Compose applied all 11 migrations,
+then the correlated smoke passed with ID `91b89fc2-8862-45d6-8c0d-f598afec888d`, one PostgreSQL effect after duplicate
+delivery, and a denied swapped-guild read. Separate Linux service tests passed the PostgreSQL claim-fencing proof
+and worker restart proof, one each.
+
+The root `pnpm test:integration` command failed on the Windows host in the claim-fencing service test during Prisma
+row creation, with no detailed Prisma error body; the same test passed inside a Linux container. Reported elapsed times and the configured Compose
+resource limits are in `docs/phase-reports/phase-00/performance.mdx`. Peak resource utilization was not captured.
+
+Phase 00 decision remains PENDING. Independent review, remote CI, prior-image rollback rehearsal, browser matrix,
+six image targets, secret/dependency scans, SBOM, CodeQL and local/remote SHA equality remain unverified until the
+final branch snapshot runs on GitHub.
+
+### 2026-10-18 - Phase 00 upstream dependency reconciliation
+
+Merged `origin/main` at `d325d03` into the revamp branch before its first remote snapshot. Kept the pnpm-only
+control plane and deleted npm lockfile intact while carrying the upstream Fastify and Prisma CLI updates into each
+workspace owner. Moved the upstream transitive security updates into the pnpm workspace overrides: Undici resolved
+to 6.29.1, fast-copy is pinned to 4.1.2, and fast-uri is pinned to 3.1.8. Adopted the upstream pinned Buildx v4.4.1
+and build-push v7.4.0 actions without changing the six-target image matrix.
+
+Frozen install, Prisma generation, repository and package boundaries, typecheck, lint, the full serialized unit
+suite, build and `git diff --check` passed after reconciliation. Lint retains the same six existing warnings. The
+first unit invocation omitted the documented CI placeholder environment and stopped in config loading; rerunning
+with the workflow placeholders passed. Browser, service, image, rollback and security matrices remain assigned to
+GitHub CI, and the Phase 00 decision remains PENDING until they pass.
+
+### 2026-10-18 - Phase 00 secret-scan workflow repair
+
+The first pull-request security run reached Gitleaks but stopped before scanning because the pinned action now
+requires the workflow token in its environment for pull-request events. Passed the existing read-only automatic
+`GITHUB_TOKEN` to that one step. Fresh review also found that the pinned v2 action used the Node 20 runtime removed
+from GitHub-hosted runners in September 2026, so the action moved to immutable v3.0.0. Its upstream release keeps
+inputs, outputs and behavior unchanged while moving to Node 24 and refreshing the runtime dependency and build.
+No permissions were broadened and checkout credentials remain disabled. Static
+repository boundaries, lint and diff checks passed; the replacement GitHub run owns the actual scan result.
+
+### 2026-10-19 - Phase 00 browser-smoke runtime correction
+
+The pull-request browser matrix passed Chromium and Firefox but exposed a WebKit-only race in the mobile case.
+Trace evidence showed the test clicking the server-rendered OAuth link while the Vite development server was still
+delivering its hydration module graph. Late hydration of the original `/` document then replaced the in-flight
+fixture callback navigation. Browser smoke now builds and serves the production web artifact, which is the runtime
+the matrix is intended to validate and avoids development-only HMR and module-waterfall behavior. The existing
+mobile OAuth test remains the regression proof; the replacement WebKit run owns the cross-browser result.
+
+### 2026-10-19 - Compose integration forwarding and vote webhook ingress
+
+Compose now explicitly forwards supported gateway integration and sharding settings from the caller's
+environment file, while keeping the top.gg webhook credential in the API service that owns its route.
+The API is published on loopback for an externally managed reverse proxy or tunnel to route only
+`POST /votes/topgg`; the runbook documents the endpoint and keeps the ingress control plane outside Rostra.
+The rendered VPS Compose model confirmed the gateway receives the configured settings, only the API receives
+the webhook secret, and the API host binding is `127.0.0.1:3001`.
+
+These image, deployment and session corrections address all four findings from the second pull-request review.
+The frozen install, boundaries, typecheck, lint, 33 workspace test tasks, 39 tooling tests, full build and diff
+check passed locally. The replacement GitHub runs own the cross-platform, browser, service, image and security
+evidence.
+
+### 2026-10-19 - Phase 00 security review and resilience planning
+
+The first GitHub Advanced Security review left four inline threads. Added route-specific Fastify limits to the
+Activity session and Realtime connection authorization endpoints while leaving their health routes unthrottled.
+Replaced the locale registry's prototype-bearing object writes with nested maps after a regression proved that a
+`__proto__` locale could write into `Object.prototype`. The OAuth finding is under false-positive triage because
+the reported operation is HMAC-SHA256 cookie authentication with a server signing key, not password hashing.
+
+Added a binding phase-completion rule requiring every PR review, unresolved thread and security finding to be
+triaged again after each corrective push. Heavy independent work now uses fast, high-reasoning subagents when
+available, with primary-task review before a snapshot. Added a dedicated Phase R plan for Rostra-wide admission,
+tenant fairness, bounded concurrency, retry classification, jittered backoff and durable retry scheduling. Fastify
+inbound limits and upstream SDK bucket handling remain separate owners. The plan explicitly classifies work that
+should not be retried rather than applying retries indiscriminately.
+
+### 2026-10-19 - Phase 00 reduced-motion browser determinism
+
+The production web server made the loading state short enough for the reduced-motion browser check to race the
+unauthorized redirect. The check now holds only its guild request, waits for the real loading skeleton and releases
+the request after reading the computed animation duration. This keeps the accessibility assertion on the production
+artifact without adding timing retries or changing application behavior.
+
+### 2026-10-19 - Phase 00 pass decision
+
+Source snapshot `fa2b3472432869e0402e941de190fdd45eccff42` matched the remote `sd/revamp` branch and passed the
+complete GitHub gate. CI run 39288879824 passed the root check, PostgreSQL/Redis service integration and Chromium,
+Firefox and WebKit browser smoke. Service and image integration run 39288879890 passed Compose migration,
+correlated smoke, prior-image rollback and all six application image targets. Security run 39288879807 passed
+dependency review, secret scan and SBOM generation; CodeQL run 39288879859 passed JavaScript and TypeScript
+analysis.
+
+The pull request had eight review threads across two passes. Every actionable finding was corrected with focused
+evidence; the OAuth cookie HMAC finding was documented as a false positive. A final thread sweep found no unresolved
+review. Phase 00 is PASS, subject to the evidence-only commit receiving the same final CI and review check before
+Phase 01 work begins.
+
+### 2026-10-19 - Phase 01 platform-core plan
+
+Reconciled the short roadmap label with the original Platform Core dossier. The executable Phase 01 plan now covers
+tenant capability tables and stale-authorization denial, configured-owner bypass removal, deterministic module
+manifests and lifecycle supervision, versioned events and cross-process cache invalidation, transactional outbox
+delivery, fenced durable scheduling, truthful feature/provisioning failures and measured operational health.
+
+The plan is split into eight test-first rollback snapshots. Deep independent work uses a capable high-reasoning
+workhorse while lightweight mechanical tasks use a fast high-reasoning agent. Shared schema and public contracts remain primary-owned and every contribution receives primary review. Phase
+completion requires the full local gate, failure-injection evidence, review and Advanced Security rechecks, green
+exact-head GitHub workflows and matching local/remote commit hashes.
+
+### 2026-10-19 - Phase 01 Task 1 baseline harness
+
+Added a dependency-free JSON measurement validator and before/after summarizer with focused rejection tests for
+missing runtime/iteration metadata, non-finite samples, incompatible workloads and host differences. Workload keys
+are emitted in a prototype-free record. A 20-iteration service collector exercises the real API authorization and
+durable-operation routes, PostgreSQL, Redis L1/L2 cache path and worker settlement. Authorization latency and
+database calls are measured only around the authorization GET, with the query count incremented in
+`guildDirectory.get`. A local disposable PostgreSQL 16 and Redis 7 run produced valid samples; its Windows 10.0.26300
+host results are recorded in the Phase 01 baseline.
+CI repeats the collector in the service-integration job and uploads the raw JSON plus Phase 01 evidence pages.
+Browser and process-interruption work remain on GitHub runners. These measurements do not claim production capacity.
+
+The exact-head CI run `39319245310` passed check, service integration and all three browser jobs. Its service job
+uploaded and revalidated a 20-iteration Linux runner artifact: authorization GET p95 2.001639 ms, one authorization
+query per request, event-loop delay p95 11.214847 ms, tenant cold/warm cache means 3.036164/0.170972 ms and queue-lag
+p95 1 ms. Delegation guidance now assigns deep design, security, concurrency and multi-file coding to a capable
+workhorse at high reasoning, while lightweight mechanical work uses a fast model at high reasoning.
+
+### 2026-10-19 - Phase 01 Task 2 tenant authorization
+
+Added a closed guild capability contract and tenant-scoped role, grant and member assignment tables.
+Current persisted membership and role grants supply private and admin capabilities. The API intersects
+private operation requests with persisted capabilities for the exact subject and guild. The read-only
+configured-status summary retains its signed exact-guild `guilds:read` check because no production
+`GuildMember` synchronizer exists yet; missing rows must not take down the existing web read path.
+The web requests read only regardless of OAuth administrator or manager snapshots. Removed configured
+bot-owner bypasses from moderation, ticket support and the shared Discord member permission helper.
+Focused negative tests cover revoked membership and grants, host and swapped-guild denial, unknown
+capabilities and configured-owner denial. The migration is additive and preserves historical bytes.
+
+### 2026-10-20 - Phase 01 Task 3 deterministic module registry
+
+Replaced gateway filesystem discovery with checked-in lazy imports for the 42 canonical modules. The
+module SDK now validates version-1 manifests, checks dependency compatibility and cycles, and orders
+independent IDs deterministically. A single temporary adapter retains current `BotModule` behavior.
+Lifecycle supervision owns abort, drain, stop and dispose, and repeated Discord event registration
+replaces prior listeners and returns a shutdown disposer. The existing 47-command and 48-event
+snapshots remain the parity gate, with import and load network access blocked. Versioned transport,
+cache coherence and durable scheduling remain in their later Phase 01 tasks.
+Review corrections keep manifests on checked-in entries, preserve abort to drain to stop ordering,
+wait for in-flight starts before shutdown, and clean up events and modules after a late gateway
+initialization failure. Focused regressions cover each path.
+
+### 2026-10-20 - Phase 01 Task 4 versioned cache and event coherence
+
+Added a forward-only cache revision table and transaction-bound revision increment for
+persisted configuration and preference writes. The cache bus validates version-1 tenant
+invalidations, exposes publication and subscription outcomes, resubscribes after reconnect,
+and returns idempotent disposers. Tenant, user preference, verification and persisted module
+configuration/list caches now use bounded local TTLs and exact-tenant invalidation after
+commit. Gateway provisioning writes use the same owner identities. Derived automod filters
+follow their config object; runtime maps remain local. The module SDK now validates a
+version-1 tenant-scoped event envelope without a new transport. Live locales and global
+flags retain their existing messages while logging failed fleet delivery.
+
+Focused tests started red for the missing cache and event contracts. Unit checks cover
+schema/scope rejection, duplicate and stale delivery, TTL fallback, disposal, reconnect,
+and absent or failed Redis publication. A disposable PostgreSQL 16 and Redis 7 proof applied
+all thirteen migrations and started a second Node process: it observed committed updates,
+while an aborted or not-yet-committed write emitted no invalidation. Full gate results and
+remaining limits are recorded in the Task 4 report.
+
+Task 4 review found that a direct cache-aside read could refill Redis after the writer's
+deletion, and stacking the shared and local TTLs could exceed the intended five-minute
+fallback. Removed the redundant shared config layer from tenant, user preference and
+verification and deleted the now-unused generic config cache path. Persisted misses now
+read PostgreSQL directly. A service regression holds a pre-write PostgreSQL result until
+after the committed invalidation and checks that the local cache retries the read. The
+Phase 01 collector now measures a PostgreSQL cold miss and L1 warm hit. Its cache numbers
+must be qualified against the earlier Redis-warm baseline; cold-read database load remains
+an exact-head measurement limit. A disposable local run recorded 20 corrected collector
+iterations with PostgreSQL cold mean 8.393 ms and L1 warm mean 0.006 ms; the collector
+now closes its bus subscription on exit. Feature-flag and live-locale subscriptions now
+log an unavailable bus while keeping their disposable handles.

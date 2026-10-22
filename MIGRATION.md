@@ -8,11 +8,16 @@ this guide maps each old bot to its Rostra replacement and gives a safe cutover 
 1. Provision **PostgreSQL** and (for production) **Redis**.
 2. `cp .env.example .env` and fill in: `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `OWNER_IDS`, `DATABASE_URL`,
    `REDIS_URL`, and optional integrations (`LAVALINK_NODES`, `TOPGG_*`, `AI_*`).
-3. `npm install && npm run prisma:generate`
-4. `npm run prisma:migrate` - creates every table (moderation, security, automod, logging, welcome,
+3. `corepack enable`, `pnpm install --frozen-lockfile`, then `pnpm prisma:generate`
+4. `pnpm prisma:migrate` - creates every table (moderation, security, automod, logging, welcome,
    tickets, economy, leveling, giveaways, joinToCreate, reactionroles, birthday, extras, trivia, plus core).
-5. `npm run deploy:commands` - registers the slash commands globally.
-6. `npm start` (or `docker compose up --build`).
+5. `pnpm deploy:commands` - registers the slash commands globally.
+6. `pnpm start` or follow the [container deployment runbook](docs/runbooks/deployment.mdx).
+
+The Phase 00 control plane replaces the old npm install workflow with pinned pnpm and one
+`pnpm-lock.yaml`. Remove an old local npm dependency tree before reinstalling if pnpm requests it.
+Runtime source remains at the repository root until the gateway extraction; existing script names
+remain available through pnpm. Do not create a second lockfile.
 
 ## 2. Bot → Rostra feature map
 

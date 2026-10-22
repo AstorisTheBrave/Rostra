@@ -1,0 +1,59 @@
+---
+title: Versioned cache and event coherence
+last-updated: 2026-10-20
+owner: AstorisTheBrave
+status: in-flux
+---
+
+# Versioned cache and event coherence
+
+PostgreSQL owns configuration and preference data. A `CacheRevision` row identified by
+`(owner, tenant, key)` is incremented in the same transaction as each cached write. Its
+positive decimal version is comparable across processes and survives Redis restarts. Redis
+pub/sub carries only a version-1 invalidation envelope with that identity. The writer updates
+its local cache after commit and publishes afterward.
+Receivers validate the envelope, match their exact owner and tenant key, and evict only when
+the incoming version exceeds their local high-water mark. Duplicate or older messages cannot
+evict a newer local write.
+
+`@rostra/cache` exposes `createCoherentCache` for bounded local caches and
+`commitCoherentWrite` for another owner that writes the same cached identity, such as
+gateway provisioning. `CoherentCache.write` returns the durable value plus a typed
+`published` or `ttl-fallback` outcome. Guild feature writes return that outcome and any
+provisioner failures and combine publication outcomes from their provisioners. Provisioning
+retains every wired owner's outcome as well as the channel-map outcome, so any fallback
+reports partial setup while preserving created and existing resources. Setup language and
+log-channel saves also show delivery warnings. The cache owner
+also records degraded delivery in structured logs. Failed transactions publish
+nothing. The generic control bus returns a disposable subscription with a readiness outcome;
+it resubscribes once per channel after reconnect and stops all handlers at shutdown.
+
+Local entries expire after 300,000 ms. A miss loads directly from PostgreSQL. When Redis is
+absent or publish or subscription fails, the outcome and log identify TTL fallback. A missed
+invalidation can leave a reader stale until its local entry expires. Redis operations are
+bounded to two seconds before fallback. A read already in flight when an invalidation arrives
+retries its direct PostgreSQL load instead of caching the earlier result. There is no shared
+config L2 to refill after a commit. Fleet convergence is prompt on a healthy bus, but pub/sub
+is not a durable delivery guarantee. Cold misses now cost a PostgreSQL read per process; this
+must be measured in the Phase 01 performance gate. The cache owner exposes aggregate hit and
+miss counters without tenant labels for authenticated diagnostics.
+
+The coherent identities are:
+
+| Owner | Persisted cache |
+| --- | --- |
+| `tenant`, `userpref`, `verification` | Guild tenant, user preference and verification config, each with bounded local cache and direct PostgreSQL misses |
+| `welcome`, `security`, `logging`, `tickets`, `leveling`, `modmail`, `birthday`, `joinToCreate`, `vanityroles`, `suggest`, `voicerole` | Per-guild configuration rows |
+| `automod`, `automodRules`, `starboard`, `autostar`, `highlight`, `sticky`, `responders` | Per-guild configuration or rule/list rows |
+
+The derived profanity filter follows the loaded automod configuration object. Cooldowns,
+spam buckets, ticket event state, AFK presence, counting progress, active games, sessions,
+timers, leader election and transient event data remain process-owned. These do not use the
+fleet cache bus. Global feature flags use separate declared defaults and persisted overrides.
+They stay unavailable until their initial database load succeeds; a later failed reload keeps
+the last known overrides. Global flag publication reports Redis acceptance only, not shard
+acknowledgement. Guild feature reads block the feature when tenant state cannot be read.
+
+`@rostra/module-sdk` defines a version-1 module event envelope and validates the exact
+tenant, descriptor owner/name and payload before a consumer may use it. Discord listeners
+remain gateway edge adapters. No second module event transport is introduced.

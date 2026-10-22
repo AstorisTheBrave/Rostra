@@ -1,0 +1,31 @@
+{
+	"name": "@rostra/api",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "tsc --noEmit",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check src package.json tsconfig.json",
+		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\"",
+		"seed:browser-fixture": "node --import tsx src/browser-fixture.ts"
+	},
+	"dependencies": {
+		"@fastify/rate-limit": "^11.1.0",
+		"@rostra/auth": "workspace:*",
+		"@rostra/cache": "workspace:*",
+		"@rostra/config": "workspace:*",
+		"@rostra/database": "workspace:*",
+		"@rostra/logger": "workspace:*",
+		"@rostra/operations": "workspace:*",
+		"@rostra/web-client": "workspace:*",
+		"bullmq": "^5.79.2",
+		"fastify": "^5.12.5",
+		"ioredis": "^5.4.1"
+	},
+	"devDependencies": {
+		"@types/node": "^26.1.0",
+		"tsx": "^4.23.0",
+		"typescript": "^7.0.2"
+	}
+}

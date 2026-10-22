@@ -1,101 +1,76 @@
 # Contributing to Rostra
 
-Thanks for helping improve Rostra! This guide gets you productive fast and keeps the codebase consistent.
+Thanks for helping with Rostra. This guide gets a contributor from a fresh checkout to the current workspace conventions.
 
-## Getting set up
+## Set up
 
-```bash
-npm install
-cp .env.example .env          # placeholder values are fine for tests
-npm run prisma:generate
-```
-
-Run the checks (everything must pass before a PR):
+Use Node.js `22.22.2+` or `24.15.0+`, or a supported later major, with Corepack 0.35.0. pnpm is pinned in `package.json`; keep the single reviewed `pnpm-lock.yaml`.
 
 ```bash
-npm run typecheck     # tsc --noEmit (strict, no `any`)
-npm run lint          # Biome (run `npm run lint:fix` to autofix)
-npm run test:env      # node:test via tsx, with .env loaded
+corepack enable
+pnpm install --frozen-lockfile
+cp .env.example .env
+pnpm prisma:generate
 ```
 
-## How the codebase is organized
+`pnpm test` supplies placeholders through the caller or CI. `pnpm test:env` reads the local `.env`. Do not put production credentials in a development environment. Integration and browser checks need disposable PostgreSQL and Redis services; the CI jobs provide those services.
 
-Each feature is a self-contained **module** in `src/modules/<name>/` that default-exports a `BotModule`:
+## Useful checks
 
-```ts
-const myModule: BotModule = {
-  name: "mymodule",
-  commands: [/* SlashCommand[] */],
-  events:   [/* RegisteredEvent[] via defineEvent() */],
-  components:[/* ComponentHandler[] (buttons/selects/modals) */],
-  jobs:     [/* JobDefinition[] */],
-  i18n:     { "key": "string {var}" },
-};
-export default myModule;
+```bash
+pnpm check:boundaries
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm test:integration
+pnpm build
+git diff --check
 ```
 
-Modules are auto-discovered at boot - drop a folder in and it loads. Use `src/modules/core` (simple) and
-`src/modules/moderation` / `src/modules/tickets` (richer) as references.
+The unit-test graph serializes workspace tasks and caps test-file concurrency at two. The service integration task uses PostgreSQL and Redis. Browser verification is available with `pnpm test:browser --project=chromium` after generating the database client and starting disposable services. Never use a real Discord token or publish commands in migration, parity or browser verification.
 
-Shared code (import these; don't reinvent them):
-- `getPrisma()` - database (`src/services/database.ts`)
-- `config` - validated env (`src/config.ts`)
-- `getCache()` / `getRedis()` - cache & leaderboards (`src/services/cache.ts`)
-- `getLogger(scope)` - logging (`src/services/logger.ts`)
-- `@/ui` - all UI building blocks (buttons, selects, modals, layout, patterns)
-- `t(key, vars)` - i18n (`src/i18n`)
+## Workspace map
 
-## Non-negotiable conventions (the CI enforces these)
+- `apps/gateway/` owns Discord sharding, interactions and event fanout.
+- `apps/api/` owns authenticated domain routes and webhook boundaries.
+- `apps/web/` uses the typed API; it does not connect directly to the database.
+- `apps/workers/` owns durable queue consumers and graceful drain.
+- `apps/realtime/` and `apps/activity/` are optional authenticated apps.
+- `modules/<name>/` contains the current feature modules and their tests.
+- `packages/` contains shared services and explicit public contracts.
+- `games/`, `integrations/`, `infra/` and `tooling/` own their corresponding implementations and checks.
 
-1. **ESM + TypeScript strict.** No `require()`, no `any` (use `unknown` + narrow).
-2. **No raw env / DB.** Never read `process.env` outside `src/config.ts`; never `new PrismaClient()`
-   outside `src/services/database.ts`.
-3. **UI comes from `@/ui` only.** Never instantiate discord.js component builders (`ButtonBuilder`,
-   `ActionRowBuilder`, `ContainerBuilder`, `StringSelectMenuBuilder`, `ModalBuilder`, `TextInputBuilder`)
-   in a module. If `@/ui` lacks something you need, **add it to `@/ui` (with a test) first**, then use it.
-4. **Components V2 only** - never `EmbedBuilder` / legacy embeds.
-5. **Slash-only commands**, namespaced under a top-level command via subcommands/groups.
-6. **Every user-facing string** goes through the i18n `t()` helper.
-7. **Modules are isolated** - don't import another module's internals; only shared `services/`, `utils/`,
-   `ui/`, `types/`, `i18n/`.
-8. **Wrap I/O in try/catch** with structured Pino logs; handle missing permissions and API errors
-   gracefully.
+See the [workspace overview](docs/overview.mdx), [architecture map](docs/architecture/index.mdx), and relevant [module guide](docs/modules/).
 
-9. **Document every change.** Add a `docs/sessions/log.mdx` entry and update the relevant
-   `docs/modules/<name>.mdx` as part of the change.
-10. **No em dashes** in user-facing text, docs, or commit/PR text. Use a normal hyphen or reword.
-11. **Stable dependencies only** - no beta/alpha/RC/`-dev` versions unless that is the package's only
-    stable channel.
+## Conventions
 
-When trade-offs conflict, prioritize in this order: **structure, then modularity, then futureproofing.**
-Never sacrifice clear structure or module isolation for a futureproofing win, and never pull in an
-unstable release to chase one.
+1. Use strict TypeScript and ESM. Avoid `any`; narrow `unknown` at trust boundaries.
+2. Runtime environment access belongs only in `@rostra/config`. Prisma construction belongs only in `@rostra/database`; use its public `getPrisma()` export.
+3. Use `@rostra/discord-ui` for all Discord components. Components V2 only; do not build legacy embeds in a module.
+4. User-facing strings use the shared localization contract. Wrap I/O in error boundaries and structured logs with credential redaction.
+5. The public assistant identity is Rostra. Use only neutral configuration names and do not name its implementation in code, documentation, metadata, errors or commits.
+6. Modules do not import one another's internals or package-private source. Use explicit public `@rostra/*` exports. The `@/` alias is limited to the gateway and existing module compatibility window.
+7. Guild actions and private reads require explicit tenant-scoped authorization. Host access does not bypass guild permissions. Add tests for guessed or swapped object IDs and stale authorization where relevant.
+8. PostgreSQL owns durable intent. Redis delivery is at least once; consumers must be idempotent, fence settlement with the claim version, and drain on shutdown.
+9. Preserve migration directories and bytes. A failed migration must stop startup; never use destructive down migrations for code rollback.
+10. Stable dependencies only. Check the required platform support before adding tooling.
+11. Update `docs/sessions/log.mdx` and relevant module or architecture docs with each change. Keep `AGENTS.md` current when a new contributor-facing constraint appears.
+12. Do not use em dashes in source, docs, user text, issues, pull requests or commits.
 
-> Note: this project ships an AI assistant whose underlying provider is intentionally a hidden
-> implementation detail. Do not reference any AI provider or model name anywhere in code, comments,
-> strings, or commits, and do not add AI co-author trailers to commits. The assistant only ever presents
-> as "Rostra". The CI checks for this.
+## Module changes
 
-## Adding a feature module (checklist)
+The current compatibility module exports its `BotModule` from the module entrypoint, with commands, events, interactions, components, jobs and translations as needed. Add its ID and lazy import to `modules/registry.ts`; the gateway no longer discovers folders. Follow nearby modules and the compatibility types in `apps/gateway/src/types/module.ts`. The registry supplies the version-1 manifest, validates dependencies and orders modules before loading. See the [module registry contract](docs/architecture/module-registry.mdx). Durable queue consumers belong to `apps/workers/`, not to a gateway shard. Keep modules isolated and put shared behavior behind an owning package's public export.
 
-1. Add any Prisma models to `prisma/schema.prisma`, then `npm run prisma:generate`.
-2. Create `src/modules/<name>/` with `service.ts` (logic, cached config) and `index.ts` (the `BotModule`).
-3. Build all UI via `@/ui`; route component clicks with the `module:action:arg` customId convention.
-4. Add a unit test for the pure logic (`*.test.ts` beside the source).
-5. Run `typecheck` + `lint` + `test:env`; make sure the loader picks it up.
-6. Add a short `docs/modules/<name>.mdx` and a line to `docs/sessions/log.mdx`.
+For schema changes, edit `packages/database/prisma/schema.prisma`, generate the client with `pnpm prisma:generate`, and add a forward-only migration. Preserve all existing migration directories and checksums. Add focused tests for new logic and update the module guide.
 
-## Branching & PRs
+For a persisted value cached across gateway processes, use `createCoherentCache` and write
+through its transaction method. An owner outside that module may use
+`commitCoherentWrite` with the same owner, tenant and key. Read PostgreSQL directly on
+local cache misses and publish only after commit;
+keep process-owned timers, sessions and event state out of the fleet cache. Handle the typed
+TTL fallback outcome or rely on its structured warning, and document the five-minute
+staleness bound.
 
-`main` is protected by a branch ruleset: changes land through a **pull request with passing CI**, and
-force-pushes/deletions are blocked. So:
+## Pull requests
 
-1. Branch off `main` (`git switch -c feat/my-thing`).
-2. Make your change with tests + docs, run the checks locally.
-3. Open a PR. CI (typecheck, lint, tests, and the embed/undercover/`@/ui` guards) must be green to merge.
-
-- Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `build:`, `ci:`.
-- Keep PRs focused; describe what changed and how you tested it.
-- No em dashes and no AI co-author trailers in commit or PR text.
-
-Happy hacking!
+Use a focused branch and pull request. `main` is protected and needs the required CI checks. Use a conventional commit subject such as `feat:`, `fix:`, `docs:` or `test:`. Do not add attribution trailers. A local green gate does not prove remote CI, independent review, image/security matrices or phase delivery; record outstanding evidence accurately.

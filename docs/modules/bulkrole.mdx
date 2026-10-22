@@ -12,8 +12,8 @@ Bulk role tools: add or remove a role across the whole server in one command. `/
 ## technical map
 
 **file paths**
-- command: `src/modules/bulkrole/index.ts` (subcommand group `all` -> `add`/`remove`)
-- worker: `src/modules/bulkrole/service.ts` (+ `service.test.ts`)
+- command: `modules/bulkrole/index.ts` (subcommand group `all` -> `add`/`remove`)
+- worker: `modules/bulkrole/service.ts` (+ `service.test.ts`)
 
 **how it works** - `applyRoleToAll(guild, roleId, action, filter)` fetches all members once, filters with
 pure `matchesFilter`, skips members already in the desired state, and adds/removes the role with a 750ms

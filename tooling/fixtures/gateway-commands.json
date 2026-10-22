@@ -1,0 +1,4472 @@
+[
+	{
+		"options": [
+			{
+				"type": 3,
+				"name": "reason",
+				"description": "Reason",
+				"required": false
+			}
+		],
+		"name": "afk",
+		"description": "Mark yourself as away",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 3,
+				"name": "question",
+				"description": "Your question",
+				"required": true
+			}
+		],
+		"name": "ask",
+		"description": "Ask Rostra a question",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "setup",
+				"description": "One-click recommended automod setup",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "enable",
+				"description": "Enable automod",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "disable",
+				"description": "Disable automod",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show automod settings",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "action",
+				"description": "What to do on a violation",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Delete only",
+								"value": "delete"
+							},
+							{
+								"name": "Delete + warn",
+								"value": "warn"
+							},
+							{
+								"name": "Delete + timeout",
+								"value": "timeout"
+							}
+						],
+						"name": "type",
+						"description": "Action",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "module",
+				"description": "Toggle a filter",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Anti-invite",
+								"value": "invite"
+							},
+							{
+								"name": "Anti-link",
+								"value": "link"
+							},
+							{
+								"name": "Anti-spam",
+								"value": "spam"
+							},
+							{
+								"name": "Anti-mass-mention",
+								"value": "massmention"
+							},
+							{
+								"name": "Anti-profanity",
+								"value": "profanity"
+							},
+							{
+								"name": "Anti-caps",
+								"value": "caps"
+							}
+						],
+						"name": "name",
+						"description": "Filter",
+						"required": true
+					},
+					{
+						"name": "enabled",
+						"description": "On or off",
+						"required": true,
+						"type": 5
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "limits",
+				"description": "Tune thresholds",
+				"options": [
+					{
+						"max_value": 20,
+						"min_value": 2,
+						"type": 4,
+						"name": "spam_count",
+						"description": "Messages per window",
+						"required": false
+					},
+					{
+						"max_value": 20,
+						"min_value": 2,
+						"type": 4,
+						"name": "mention_limit",
+						"description": "Max mentions",
+						"required": false
+					},
+					{
+						"max_value": 100,
+						"min_value": 40,
+						"type": 4,
+						"name": "caps_percent",
+						"description": "Caps %",
+						"required": false
+					},
+					{
+						"max_value": 1440,
+						"min_value": 1,
+						"type": 4,
+						"name": "timeout_minutes",
+						"description": "Timeout length",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "logchannel",
+				"description": "Set the automod log channel",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Log channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 2,
+				"name": "exempt",
+				"description": "Roles/channels exempt from automod",
+				"options": [
+					{
+						"type": 1,
+						"name": "addrole",
+						"description": "Exempt a role",
+						"options": [
+							{
+								"name": "role",
+								"description": "Role",
+								"required": true,
+								"type": 8
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "removerole",
+						"description": "Unexempt a role",
+						"options": [
+							{
+								"name": "role",
+								"description": "Role",
+								"required": true,
+								"type": 8
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "addchannel",
+						"description": "Exempt a channel",
+						"options": [
+							{
+								"name": "channel",
+								"description": "Channel",
+								"required": true,
+								"type": 7
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "removechannel",
+						"description": "Unexempt a channel",
+						"options": [
+							{
+								"name": "channel",
+								"description": "Channel",
+								"required": true,
+								"type": 7
+							}
+						]
+					}
+				]
+			},
+			{
+				"type": 2,
+				"name": "rule",
+				"description": "Custom content rules (keyword / wildcard / regex)",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Add or update a custom rule",
+						"options": [
+							{
+								"type": 3,
+								"name": "name",
+								"description": "Rule name",
+								"required": true
+							},
+							{
+								"type": 3,
+								"choices": [
+									{
+										"name": "keyword",
+										"value": "keyword"
+									},
+									{
+										"name": "wildcard",
+										"value": "wildcard"
+									},
+									{
+										"name": "regex",
+										"value": "regex"
+									}
+								],
+								"name": "trigger",
+								"description": "Match type",
+								"required": true
+							},
+							{
+								"type": 3,
+								"name": "pattern",
+								"description": "Word, wildcard, or regex",
+								"required": true
+							},
+							{
+								"type": 3,
+								"choices": [
+									{
+										"name": "delete",
+										"value": "delete"
+									},
+									{
+										"name": "warn",
+										"value": "warn"
+									},
+									{
+										"name": "timeout",
+										"value": "timeout"
+									}
+								],
+								"name": "action",
+								"description": "What to do on a match (default delete)",
+								"required": false
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Delete a custom rule",
+						"options": [
+							{
+								"type": 3,
+								"name": "name",
+								"description": "Rule name",
+								"required": true
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "toggle",
+						"description": "Enable or disable a custom rule",
+						"options": [
+							{
+								"type": 3,
+								"name": "name",
+								"description": "Rule name",
+								"required": true
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "list",
+						"description": "List custom rules",
+						"options": []
+					}
+				]
+			},
+			{
+				"type": 2,
+				"name": "word",
+				"description": "Custom profanity words",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Add a filtered word",
+						"options": [
+							{
+								"type": 3,
+								"name": "word",
+								"description": "Word",
+								"required": true
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Remove a filtered word",
+						"options": [
+							{
+								"type": 3,
+								"name": "word",
+								"description": "Word",
+								"required": true
+							}
+						]
+					}
+				]
+			}
+		],
+		"name": "automod",
+		"description": "Automatic moderation filters",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "add",
+				"description": "Add a trigger → response",
+				"options": [
+					{
+						"type": 3,
+						"name": "trigger",
+						"description": "Phrase to match",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "response",
+						"description": "Reply text",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "remove",
+				"description": "Remove a trigger",
+				"options": [
+					{
+						"type": 3,
+						"name": "trigger",
+						"description": "Phrase",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "list",
+				"description": "List autoresponders",
+				"options": []
+			}
+		],
+		"name": "autoresponder",
+		"description": "Automatic replies to trigger phrases",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "set",
+				"description": "Set your birthday",
+				"options": [
+					{
+						"max_value": 31,
+						"min_value": 1,
+						"type": 4,
+						"name": "day",
+						"description": "Day",
+						"required": true
+					},
+					{
+						"max_value": 12,
+						"min_value": 1,
+						"type": 4,
+						"name": "month",
+						"description": "Month",
+						"required": true
+					},
+					{
+						"max_value": 2025,
+						"min_value": 1900,
+						"type": 4,
+						"name": "year",
+						"description": "Year (optional)",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "remove",
+				"description": "Remove your birthday",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "view",
+				"description": "View a birthday",
+				"options": [
+					{
+						"name": "user",
+						"description": "User (defaults to you)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "next",
+				"description": "Upcoming birthdays",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "channel",
+				"description": "Announcement channel (Manage Server)",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "role",
+				"description": "Temporary birthday role (Manage Server)",
+				"options": [
+					{
+						"name": "role",
+						"description": "Role",
+						"required": true,
+						"type": 8
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "message",
+				"description": "Announcement message; {user} = mention (Manage Server)",
+				"options": [
+					{
+						"type": 3,
+						"name": "text",
+						"description": "Message",
+						"required": true
+					}
+				]
+			}
+		],
+		"name": "birthday",
+		"description": "Birthday announcements",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "setup",
+				"description": "Turn a channel into the counting channel",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "disable",
+				"description": "Stop counting in a channel",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show the current count",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			}
+		],
+		"name": "counting",
+		"description": "A channel where members count up together",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "balance",
+				"description": "Check a balance",
+				"options": [
+					{
+						"name": "user",
+						"description": "User (defaults to you)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "daily",
+				"description": "Claim your daily reward",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "work",
+				"description": "Work for coins",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "beg",
+				"description": "Beg for spare coins",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "crime",
+				"description": "Commit a crime for a risky payout",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "rob",
+				"description": "Attempt to rob a user",
+				"options": [
+					{
+						"name": "user",
+						"description": "Target",
+						"required": true,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "pay",
+				"description": "Pay another user",
+				"options": [
+					{
+						"name": "user",
+						"description": "Recipient",
+						"required": true,
+						"type": 6
+					},
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "amount",
+						"description": "Amount",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "deposit",
+				"description": "Deposit coins into the bank",
+				"options": [
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "amount",
+						"description": "Amount",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "withdraw",
+				"description": "Withdraw coins from the bank",
+				"options": [
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "amount",
+						"description": "Amount",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "gamble",
+				"description": "Gamble coins on a coin flip",
+				"options": [
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "amount",
+						"description": "Bet",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "leaderboard",
+				"description": "Richest members",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "shop",
+				"description": "Browse the server shop",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "buy",
+				"description": "Buy an item from the shop",
+				"options": [
+					{
+						"type": 3,
+						"name": "item",
+						"description": "Item name",
+						"required": true
+					},
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "quantity",
+						"description": "How many (non-role items)",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "inventory",
+				"description": "Show owned items",
+				"options": [
+					{
+						"name": "user",
+						"description": "User (defaults to you)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "use",
+				"description": "Use an item from your inventory",
+				"options": [
+					{
+						"type": 3,
+						"name": "item",
+						"description": "Item name",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "additem",
+				"description": "Add or update a shop item (Manage Server)",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Item name",
+						"required": true
+					},
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "price",
+						"description": "Price in coins",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "description",
+						"description": "Short description",
+						"required": false
+					},
+					{
+						"name": "role",
+						"description": "Make it a buyable role (granted on purchase)",
+						"required": false,
+						"type": 8
+					},
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "stock",
+						"description": "Limited stock (omit for unlimited)",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "removeitem",
+				"description": "Remove a shop item (Manage Server)",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Item name",
+						"required": true
+					}
+				]
+			}
+		],
+		"name": "economy",
+		"description": "Server economy",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "send",
+				"description": "Send feedback",
+				"options": [
+					{
+						"type": 3,
+						"name": "message",
+						"description": "Your feedback",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "setup",
+				"description": "Set the feedback channel (Manage Server)",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": true,
+						"type": 7
+					},
+					{
+						"name": "anonymous",
+						"description": "Hide who sent feedback",
+						"required": false,
+						"type": 5
+					}
+				]
+			}
+		],
+		"name": "feedback",
+		"description": "Send feedback to the staff",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "youtube",
+				"description": "Announce a YouTube channel's new videos",
+				"options": [
+					{
+						"type": 3,
+						"name": "channel",
+						"description": "Channel id, URL, or @handle",
+						"required": true
+					},
+					{
+						"name": "post_to",
+						"description": "Where to announce",
+						"required": true,
+						"type": 7
+					},
+					{
+						"name": "mention",
+						"description": "Role to ping (optional)",
+						"required": false,
+						"type": 8
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "twitch",
+				"description": "Announce a Twitch streamer going live",
+				"options": [
+					{
+						"type": 3,
+						"name": "streamer",
+						"description": "Twitch username",
+						"required": true
+					},
+					{
+						"name": "post_to",
+						"description": "Where to announce",
+						"required": true,
+						"type": 7
+					},
+					{
+						"name": "mention",
+						"description": "Role to ping (optional)",
+						"required": false,
+						"type": 8
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "reddit",
+				"description": "Announce a subreddit's new posts",
+				"options": [
+					{
+						"type": 3,
+						"name": "subreddit",
+						"description": "Subreddit name (without r/)",
+						"required": true
+					},
+					{
+						"name": "post_to",
+						"description": "Where to announce",
+						"required": true,
+						"type": 7
+					},
+					{
+						"name": "mention",
+						"description": "Role to ping (optional)",
+						"required": false,
+						"type": 8
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "rss",
+				"description": "Announce new items from any RSS or Atom feed",
+				"options": [
+					{
+						"type": 3,
+						"name": "url",
+						"description": "Feed URL",
+						"required": true
+					},
+					{
+						"name": "post_to",
+						"description": "Where to announce",
+						"required": true,
+						"type": 7
+					},
+					{
+						"name": "mention",
+						"description": "Role to ping (optional)",
+						"required": false,
+						"type": 8
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "list",
+				"description": "List this server's feeds",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "remove",
+				"description": "Remove a feed",
+				"options": [
+					{
+						"type": 3,
+						"name": "id",
+						"description": "Feed ID",
+						"required": true
+					}
+				]
+			}
+		],
+		"name": "feeds",
+		"description": "Announce new YouTube videos and Twitch streams",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "tictactoe",
+				"description": "Challenge someone to tic-tac-toe",
+				"options": [
+					{
+						"name": "opponent",
+						"description": "Who to play against",
+						"required": true,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "rps",
+				"description": "Play rock-paper-scissors vs the bot",
+				"options": []
+			}
+		],
+		"name": "game",
+		"description": "Mini-games",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "start",
+				"description": "Start a giveaway (Manage Server)",
+				"options": [
+					{
+						"type": 3,
+						"name": "duration",
+						"description": "e.g. 1h, 2d, 30m",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "prize",
+						"description": "Prize",
+						"required": true
+					},
+					{
+						"max_value": 20,
+						"min_value": 1,
+						"type": 4,
+						"name": "winners",
+						"description": "Number of winners",
+						"required": false
+					},
+					{
+						"name": "required_role",
+						"description": "Members must have this role to enter",
+						"required": false,
+						"type": 8
+					},
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "required_level",
+						"description": "Minimum leveling level to enter",
+						"required": false
+					},
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "min_account_days",
+						"description": "Minimum account age in days to enter",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "end",
+				"description": "End a giveaway now (Manage Server)",
+				"options": [
+					{
+						"type": 3,
+						"name": "id",
+						"description": "Giveaway ID",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "reroll",
+				"description": "Reroll winners (Manage Server)",
+				"options": [
+					{
+						"type": 3,
+						"name": "id",
+						"description": "Giveaway ID",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "list",
+				"description": "List active giveaways",
+				"options": []
+			}
+		],
+		"name": "giveaway",
+		"description": "Run giveaways",
+		"type": 1
+	},
+	{
+		"options": [],
+		"name": "help",
+		"description": "Browse commands by category",
+		"description_localizations": {
+			"fr": "Parcourir les commandes par catégorie",
+			"de": "Befehle nach Kategorie durchsuchen",
+			"es-ES": "Explora los comandos por categoría",
+			"pt-BR": "Navegue pelos comandos por categoria",
+			"ru": "Просмотр команд по категориям",
+			"zh-CN": "按类别浏览命令"
+		},
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "add",
+				"description": "Start watching a word",
+				"options": [
+					{
+						"type": 3,
+						"name": "word",
+						"description": "Word to watch",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "remove",
+				"description": "Stop watching a word",
+				"options": [
+					{
+						"type": 3,
+						"name": "word",
+						"description": "Word to drop",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "list",
+				"description": "Show the words you watch",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "clear",
+				"description": "Stop watching all words",
+				"options": []
+			}
+		],
+		"name": "highlight",
+		"description": "Get a DM when someone mentions a word you care about",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "rank",
+				"description": "Show a member's rank",
+				"options": [
+					{
+						"name": "user",
+						"description": "User (defaults to you)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "leaderboard",
+				"description": "Top members by XP",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "enable",
+				"description": "Enable leveling (Manage Server)",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "disable",
+				"description": "Disable leveling (Manage Server)",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "announcechannel",
+				"description": "Channel for level-up messages (Manage Server)",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "set",
+				"description": "Set a member's level (Manage Server)",
+				"options": [
+					{
+						"name": "user",
+						"description": "User",
+						"required": true,
+						"type": 6
+					},
+					{
+						"max_value": 1000,
+						"min_value": 0,
+						"type": 4,
+						"name": "level",
+						"description": "Level",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 2,
+				"name": "reward",
+				"description": "Role rewards per level (Manage Server)",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Add a role reward",
+						"options": [
+							{
+								"min_value": 1,
+								"type": 4,
+								"name": "level",
+								"description": "Level",
+								"required": true
+							},
+							{
+								"name": "role",
+								"description": "Role",
+								"required": true,
+								"type": 8
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Remove a role reward",
+						"options": [
+							{
+								"min_value": 1,
+								"type": 4,
+								"name": "level",
+								"description": "Level",
+								"required": true
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "list",
+						"description": "List role rewards",
+						"options": []
+					}
+				]
+			}
+		],
+		"name": "level",
+		"description": "Leveling and XP",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "channel",
+				"description": "Set the log channel",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Log channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "toggle",
+				"description": "Turn a log type on or off",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Message deletes",
+								"value": "messageDelete"
+							},
+							{
+								"name": "Message edits",
+								"value": "messageEdit"
+							},
+							{
+								"name": "Member joins",
+								"value": "memberJoin"
+							},
+							{
+								"name": "Member leaves",
+								"value": "memberLeave"
+							},
+							{
+								"name": "Member bans",
+								"value": "memberBan"
+							},
+							{
+								"name": "Member unbans",
+								"value": "memberUnban"
+							},
+							{
+								"name": "Role changes",
+								"value": "roleChanges"
+							},
+							{
+								"name": "Channel changes",
+								"value": "channelChanges"
+							},
+							{
+								"name": "Bulk deletes",
+								"value": "bulkDelete"
+							},
+							{
+								"name": "Voice activity",
+								"value": "voiceMoves"
+							},
+							{
+								"name": "Nickname changes",
+								"value": "nicknameChanges"
+							}
+						],
+						"name": "type",
+						"description": "Event type",
+						"required": true
+					},
+					{
+						"name": "enabled",
+						"description": "On or off",
+						"required": true,
+						"type": 5
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "setup",
+				"description": "One-click logging setup (uses this channel)",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show logging settings",
+				"options": []
+			},
+			{
+				"type": 2,
+				"name": "ignore",
+				"description": "Channels excluded from logging",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Ignore a channel",
+						"options": [
+							{
+								"name": "channel",
+								"description": "Channel",
+								"required": true,
+								"type": 7
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Stop ignoring a channel",
+						"options": [
+							{
+								"name": "channel",
+								"description": "Channel",
+								"required": true,
+								"type": 7
+							}
+						]
+					}
+				]
+			}
+		],
+		"name": "logging",
+		"description": "Server audit logging",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "ban",
+				"description": "Ban a user from the server",
+				"options": [
+					{
+						"name": "user",
+						"description": "User to ban",
+						"required": true,
+						"type": 6
+					},
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Reason",
+						"required": false
+					},
+					{
+						"max_value": 7,
+						"min_value": 0,
+						"type": 4,
+						"name": "delete_days",
+						"description": "Days of messages to delete (0-7)",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "unban",
+				"description": "Unban a user",
+				"options": [
+					{
+						"type": 3,
+						"name": "user_id",
+						"description": "User ID to unban",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Reason",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "kick",
+				"description": "Kick a member",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member to kick",
+						"required": true,
+						"type": 6
+					},
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Reason",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "timeout",
+				"description": "Timeout a member",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member to timeout",
+						"required": true,
+						"type": 6
+					},
+					{
+						"type": 3,
+						"name": "duration",
+						"description": "Duration e.g. 10m, 1h, 2d",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Reason",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "untimeout",
+				"description": "Remove a member's timeout",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member",
+						"required": true,
+						"type": 6
+					},
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Reason",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "warn",
+				"description": "Warn a member",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member to warn",
+						"required": true,
+						"type": 6
+					},
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Reason",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "warnings",
+				"description": "List a member's warnings",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member",
+						"required": true,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "removewarn",
+				"description": "Remove a warning by case number",
+				"options": [
+					{
+						"type": 4,
+						"name": "case",
+						"description": "Case number",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "cases",
+				"description": "List a member's moderation history",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member",
+						"required": true,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "case",
+				"description": "View a moderation case by number",
+				"options": [
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "number",
+						"description": "Case number",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "modstats",
+				"description": "Moderator activity stats (leaderboard, or one moderator)",
+				"options": [
+					{
+						"name": "moderator",
+						"description": "A moderator (leave empty for the leaderboard)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "note",
+				"description": "Add a private moderator note to a member",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member",
+						"required": true,
+						"type": 6
+					},
+					{
+						"type": 3,
+						"name": "note",
+						"description": "Note text",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "purge",
+				"description": "Bulk-delete recent messages",
+				"options": [
+					{
+						"max_value": 100,
+						"min_value": 1,
+						"type": 4,
+						"name": "count",
+						"description": "How many (1-100)",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "slowmode",
+				"description": "Set channel slowmode in seconds",
+				"options": [
+					{
+						"max_value": 21600,
+						"min_value": 0,
+						"type": 4,
+						"name": "seconds",
+						"description": "0-21600",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "lock",
+				"description": "Lock the current channel",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "unlock",
+				"description": "Unlock the current channel",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "nick",
+				"description": "Change a member's nickname",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member",
+						"required": true,
+						"type": 6
+					},
+					{
+						"type": 3,
+						"name": "nickname",
+						"description": "New nickname (empty to reset)",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "tempban",
+				"description": "Ban a user for a limited time (auto-unban)",
+				"options": [
+					{
+						"name": "user",
+						"description": "User to ban",
+						"required": true,
+						"type": 6
+					},
+					{
+						"type": 3,
+						"name": "duration",
+						"description": "e.g. 1h, 7d",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Reason",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "temprole",
+				"description": "Add a role to a member for a limited time",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member",
+						"required": true,
+						"type": 6
+					},
+					{
+						"name": "role",
+						"description": "Role to add",
+						"required": true,
+						"type": 8
+					},
+					{
+						"type": 3,
+						"name": "duration",
+						"description": "e.g. 1h, 2d",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Reason",
+						"required": false
+					}
+				]
+			}
+		],
+		"name": "mod",
+		"description": "Moderation tools",
+		"default_member_permissions": "1099511627776",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "setup",
+				"description": "Set the staff channel where modmail threads open",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Staff-only text channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "disable",
+				"description": "Turn modmail off",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show modmail settings",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "close",
+				"description": "Close the modmail thread you run this in",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "appealonly",
+				"description": "Only let members with a moderation case open modmail",
+				"options": [
+					{
+						"name": "enabled",
+						"description": "On or off",
+						"required": true,
+						"type": 5
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "block",
+				"description": "Block a member from opening modmail",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member to block",
+						"required": true,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "unblock",
+				"description": "Let a blocked member open modmail again",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member to unblock",
+						"required": true,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "blocklist",
+				"description": "List blocked members",
+				"options": []
+			}
+		],
+		"name": "modmail",
+		"description": "Let members DM the bot to reach staff",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "play",
+				"description": "Play a track or playlist",
+				"options": [
+					{
+						"type": 3,
+						"name": "query",
+						"description": "Search or URL",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "skip",
+				"description": "Skip the current track",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "stop",
+				"description": "Stop and leave the voice channel",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "pause",
+				"description": "Pause playback",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "resume",
+				"description": "Resume playback",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "queue",
+				"description": "Show the queue",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "nowplaying",
+				"description": "Show the current track",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "volume",
+				"description": "Set the volume",
+				"options": [
+					{
+						"max_value": 200,
+						"min_value": 0,
+						"type": 4,
+						"name": "percent",
+						"description": "0-200",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "loop",
+				"description": "Set repeat mode",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Off",
+								"value": "off"
+							},
+							{
+								"name": "Track",
+								"value": "track"
+							},
+							{
+								"name": "Queue",
+								"value": "queue"
+							}
+						],
+						"name": "mode",
+						"description": "Mode",
+						"required": true
+					}
+				]
+			}
+		],
+		"name": "music",
+		"description": "Music player",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 2,
+				"name": "feature",
+				"description": "Global feature flags (live, no restart)",
+				"options": [
+					{
+						"type": 1,
+						"name": "list",
+						"description": "List all feature flags",
+						"options": []
+					},
+					{
+						"type": 1,
+						"name": "set",
+						"description": "Flip a feature on or off fleet-wide",
+						"options": [
+							{
+								"autocomplete": true,
+								"type": 3,
+								"name": "name",
+								"description": "Feature name",
+								"required": true
+							},
+							{
+								"name": "enabled",
+								"description": "On or off",
+								"required": true,
+								"type": 5
+							}
+						]
+					}
+				]
+			}
+		],
+		"name": "owner",
+		"description": "Bot-owner controls",
+		"dm_permission": true,
+		"type": 1
+	},
+	{
+		"options": [],
+		"name": "ping",
+		"description": "Check the bot's latency",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "create",
+				"description": "Start a poll",
+				"options": [
+					{
+						"type": 3,
+						"name": "question",
+						"description": "The poll question",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "option1",
+						"description": "Option 1",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "option2",
+						"description": "Option 2",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "option3",
+						"description": "Option 3",
+						"required": false
+					},
+					{
+						"type": 3,
+						"name": "option4",
+						"description": "Option 4",
+						"required": false
+					},
+					{
+						"type": 3,
+						"name": "option5",
+						"description": "Option 5",
+						"required": false
+					}
+				]
+			}
+		],
+		"name": "poll",
+		"description": "Create a button poll",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "language",
+				"description": "Set your preferred language for bot messages",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Auto (follow server)",
+								"value": "auto"
+							},
+							{
+								"name": "English (English)",
+								"value": "en"
+							},
+							{
+								"name": "Français (French)",
+								"value": "fr"
+							},
+							{
+								"name": "Deutsch (German)",
+								"value": "de"
+							},
+							{
+								"name": "Español (Spanish)",
+								"value": "es"
+							},
+							{
+								"name": "Português do Brasil (Portuguese (Brazil))",
+								"value": "pt-BR"
+							},
+							{
+								"name": "Русский (Russian)",
+								"value": "ru"
+							},
+							{
+								"name": "简体中文 (Chinese (Simplified))",
+								"value": "zh-CN"
+							},
+							{
+								"name": "Italiano (Italian)",
+								"value": "it"
+							},
+							{
+								"name": "Nederlands (Dutch)",
+								"value": "nl"
+							},
+							{
+								"name": "Polski (Polish)",
+								"value": "pl"
+							},
+							{
+								"name": "Türkçe (Turkish)",
+								"value": "tr"
+							},
+							{
+								"name": "Українська (Ukrainian)",
+								"value": "uk"
+							},
+							{
+								"name": "日本語 (Japanese)",
+								"value": "ja"
+							},
+							{
+								"name": "한국어 (Korean)",
+								"value": "ko"
+							},
+							{
+								"name": "繁體中文 (Chinese (Traditional))",
+								"value": "zh-TW"
+							},
+							{
+								"name": "العربية (Arabic)",
+								"value": "ar"
+							}
+						],
+						"name": "language",
+						"description": "Language (Auto = follow the server)",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "feature",
+				"description": "Opt in or out of a personal feature",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Fun & social (ship, fight, roleplay)",
+								"value": "fun"
+							},
+							{
+								"name": "Bot DM notifications",
+								"value": "dmNotifications"
+							},
+							{
+								"name": "Public profile",
+								"value": "profilePublic"
+							},
+							{
+								"name": "Public reputation",
+								"value": "reputationPublic"
+							},
+							{
+								"name": "Matchmaking / social",
+								"value": "matchmaking"
+							},
+							{
+								"name": "Achievement notifications",
+								"value": "achievementNotifications"
+							}
+						],
+						"name": "feature",
+						"description": "Which feature",
+						"required": true
+					},
+					{
+						"name": "enabled",
+						"description": "On (opt in) or off (opt out)",
+						"required": true,
+						"type": 5
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "view",
+				"description": "Show your current preferences",
+				"options": []
+			}
+		],
+		"name": "preferences",
+		"description": "Your personal Rostra settings (language and features)",
+		"description_localizations": {
+			"fr": "Vos paramètres personnels Rostra (langue et fonctionnalités)",
+			"de": "Deine persönlichen Rostra-Einstellungen (Sprache und Funktionen)",
+			"es-ES": "Tus ajustes personales de Rostra (idioma y funciones)",
+			"pt-BR": "Suas configurações pessoais do Rostra (idioma e recursos)",
+			"ru": "Ваши личные настройки Rostra (язык и функции)",
+			"zh-CN": "你的 Rostra 个人设置（语言和功能）"
+		},
+		"dm_permission": true,
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "view",
+				"description": "View a profile card",
+				"options": [
+					{
+						"name": "user",
+						"description": "Whose profile (defaults to you)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "bio",
+				"description": "Set your bio",
+				"options": [
+					{
+						"type": 3,
+						"name": "text",
+						"description": "Your bio",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "background",
+				"description": "Set your background image",
+				"options": [
+					{
+						"type": 3,
+						"name": "url",
+						"description": "https image URL (png/jpg/webp/gif)",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "color",
+				"description": "Set your accent colour",
+				"options": [
+					{
+						"type": 3,
+						"name": "hex",
+						"description": "e.g. #5865f2",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "reset",
+				"description": "Reset your profile to defaults",
+				"options": []
+			}
+		],
+		"name": "profile",
+		"description": "Custom profile cards",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "create",
+				"description": "Create a panel",
+				"options": [
+					{
+						"type": 3,
+						"name": "title",
+						"description": "Panel title",
+						"required": true
+					},
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Multiple",
+								"value": "multiple"
+							},
+							{
+								"name": "Single",
+								"value": "single"
+							}
+						],
+						"name": "mode",
+						"description": "How many roles members can pick",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "addrole",
+				"description": "Add a role to a panel",
+				"options": [
+					{
+						"type": 3,
+						"name": "panel",
+						"description": "Panel ID",
+						"required": true
+					},
+					{
+						"name": "role",
+						"description": "Role",
+						"required": true,
+						"type": 8
+					},
+					{
+						"type": 3,
+						"name": "label",
+						"description": "Button label",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "emoji",
+						"description": "Optional emoji",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "removerole",
+				"description": "Remove a role from a panel",
+				"options": [
+					{
+						"type": 3,
+						"name": "panel",
+						"description": "Panel ID",
+						"required": true
+					},
+					{
+						"name": "role",
+						"description": "Role",
+						"required": true,
+						"type": 8
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "post",
+				"description": "Post a panel in this channel",
+				"options": [
+					{
+						"type": 3,
+						"name": "panel",
+						"description": "Panel ID",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "postmenu",
+				"description": "Post a panel as a dropdown menu in this channel",
+				"options": [
+					{
+						"type": 3,
+						"name": "panel",
+						"description": "Panel ID",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "list",
+				"description": "List panels",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "delete",
+				"description": "Delete a panel",
+				"options": [
+					{
+						"type": 3,
+						"name": "panel",
+						"description": "Panel ID",
+						"required": true
+					}
+				]
+			}
+		],
+		"name": "reactionrole",
+		"description": "Self-assignable role panels",
+		"default_member_permissions": "268435456",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "set",
+				"description": "Set a reminder",
+				"options": [
+					{
+						"type": 3,
+						"name": "when",
+						"description": "e.g. 10m, 1h30m, 2d",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "message",
+						"description": "What to remind you about",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "list",
+				"description": "List your reminders here",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "cancel",
+				"description": "Cancel a reminder",
+				"options": [
+					{
+						"type": 3,
+						"name": "id",
+						"description": "Reminder ID",
+						"required": true
+					}
+				]
+			}
+		],
+		"name": "reminder",
+		"description": "Set personal reminders",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "give",
+				"description": "Give a reputation point to a member",
+				"options": [
+					{
+						"name": "user",
+						"description": "Who to thank",
+						"required": true,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "view",
+				"description": "Show a member's reputation",
+				"options": [
+					{
+						"name": "user",
+						"description": "Member (defaults to you)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "leaderboard",
+				"description": "Top members by reputation",
+				"options": []
+			}
+		],
+		"name": "rep",
+		"description": "Give and track reputation points",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 2,
+				"name": "all",
+				"description": "Apply a role to everyone",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Give a role to every matching member",
+						"options": [
+							{
+								"name": "role",
+								"description": "Role to add",
+								"required": true,
+								"type": 8
+							},
+							{
+								"type": 3,
+								"choices": [
+									{
+										"name": "Everyone",
+										"value": "all"
+									},
+									{
+										"name": "Humans only",
+										"value": "humans"
+									},
+									{
+										"name": "Bots only",
+										"value": "bots"
+									}
+								],
+								"name": "who",
+								"description": "Who to affect (default everyone)",
+								"required": false
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Remove a role from every matching member",
+						"options": [
+							{
+								"name": "role",
+								"description": "Role to remove",
+								"required": true,
+								"type": 8
+							},
+							{
+								"type": 3,
+								"choices": [
+									{
+										"name": "Everyone",
+										"value": "all"
+									},
+									{
+										"name": "Humans only",
+										"value": "humans"
+									},
+									{
+										"name": "Bots only",
+										"value": "bots"
+									}
+								],
+								"name": "who",
+								"description": "Who to affect (default everyone)",
+								"required": false
+							}
+						]
+					}
+				]
+			}
+		],
+		"name": "role",
+		"description": "Bulk role tools",
+		"default_member_permissions": "268435456",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 3,
+				"choices": [
+					{
+						"name": "Hug",
+						"value": "hug"
+					},
+					{
+						"name": "Kiss",
+						"value": "kiss"
+					},
+					{
+						"name": "Cuddle",
+						"value": "cuddle"
+					},
+					{
+						"name": "Pat",
+						"value": "pat"
+					},
+					{
+						"name": "Poke",
+						"value": "poke"
+					},
+					{
+						"name": "Tickle",
+						"value": "tickle"
+					},
+					{
+						"name": "Feed",
+						"value": "feed"
+					},
+					{
+						"name": "High-five",
+						"value": "highfive"
+					},
+					{
+						"name": "Hold hands",
+						"value": "handhold"
+					},
+					{
+						"name": "Peck",
+						"value": "peck"
+					},
+					{
+						"name": "Slap",
+						"value": "slap"
+					},
+					{
+						"name": "Punch",
+						"value": "punch"
+					},
+					{
+						"name": "Bite",
+						"value": "bite"
+					},
+					{
+						"name": "Kick",
+						"value": "kick"
+					},
+					{
+						"name": "Yeet",
+						"value": "yeet"
+					},
+					{
+						"name": "Stare",
+						"value": "stare"
+					},
+					{
+						"name": "Nom",
+						"value": "nom"
+					},
+					{
+						"name": "Shoot",
+						"value": "shoot"
+					},
+					{
+						"name": "Dance",
+						"value": "dance"
+					},
+					{
+						"name": "Cry",
+						"value": "cry"
+					},
+					{
+						"name": "Blush",
+						"value": "blush"
+					},
+					{
+						"name": "Smile",
+						"value": "smile"
+					},
+					{
+						"name": "Wave",
+						"value": "wave"
+					},
+					{
+						"name": "Wink",
+						"value": "wink"
+					},
+					{
+						"name": "Ship",
+						"value": "ship"
+					}
+				],
+				"name": "action",
+				"description": "What to do",
+				"required": true
+			},
+			{
+				"name": "target",
+				"description": "Who to involve (required for most actions)",
+				"required": false,
+				"type": 6
+			}
+		],
+		"name": "roleplay",
+		"description": "React with anime gifs or ship two members",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "setup",
+				"description": "One-click recommended antinuke setup",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "enable",
+				"description": "Enable antinuke",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "disable",
+				"description": "Disable antinuke",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show antinuke settings",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "punishment",
+				"description": "Set the punishment for violators",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Ban",
+								"value": "ban"
+							},
+							{
+								"name": "Kick",
+								"value": "kick"
+							},
+							{
+								"name": "Strip roles",
+								"value": "strip"
+							}
+						],
+						"name": "type",
+						"description": "How to punish",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "antiraid",
+				"description": "Configure join-flood lockdown",
+				"options": [
+					{
+						"name": "enabled",
+						"description": "Turn anti-raid on or off",
+						"required": true,
+						"type": 5
+					},
+					{
+						"min_value": 3,
+						"type": 4,
+						"name": "threshold",
+						"description": "Joins to trigger (default 10)",
+						"required": false
+					},
+					{
+						"min_value": 3,
+						"type": 4,
+						"name": "window",
+						"description": "Within this many seconds (default 10)",
+						"required": false
+					},
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "minutes",
+						"description": "Auto-lift after this many minutes (default 10)",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "panic",
+				"description": "Manually lock down or release the server",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "on",
+								"value": "on"
+							},
+							{
+								"name": "off",
+								"value": "off"
+							}
+						],
+						"name": "state",
+						"description": "Lock down or lift",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "logchannel",
+				"description": "Set the antinuke log channel",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Log channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "notify",
+				"description": "Toggle DM alerts to the server owner",
+				"options": [
+					{
+						"name": "enabled",
+						"description": "On or off",
+						"required": true,
+						"type": 5
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "module",
+				"description": "Toggle a protection module",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "antiBan",
+								"value": "antiBan"
+							},
+							{
+								"name": "antiKick",
+								"value": "antiKick"
+							},
+							{
+								"name": "antiBotAdd",
+								"value": "antiBotAdd"
+							},
+							{
+								"name": "antiChannel",
+								"value": "antiChannel"
+							},
+							{
+								"name": "antiRole",
+								"value": "antiRole"
+							},
+							{
+								"name": "antiWebhook",
+								"value": "antiWebhook"
+							},
+							{
+								"name": "antiGuildUpdate",
+								"value": "antiGuildUpdate"
+							}
+						],
+						"name": "name",
+						"description": "Module",
+						"required": true
+					},
+					{
+						"name": "enabled",
+						"description": "On or off",
+						"required": true,
+						"type": 5
+					}
+				]
+			},
+			{
+				"type": 2,
+				"name": "whitelist",
+				"description": "Trusted users immune to antinuke",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Whitelist a user",
+						"options": [
+							{
+								"name": "user",
+								"description": "User",
+								"required": true,
+								"type": 6
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Remove a user from the whitelist",
+						"options": [
+							{
+								"name": "user",
+								"description": "User",
+								"required": true,
+								"type": 6
+							}
+						]
+					}
+				]
+			},
+			{
+				"type": 2,
+				"name": "extraowner",
+				"description": "Extra owners with full trust",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Add an extra owner",
+						"options": [
+							{
+								"name": "user",
+								"description": "User",
+								"required": true,
+								"type": 6
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Remove an extra owner",
+						"options": [
+							{
+								"name": "user",
+								"description": "User",
+								"required": true,
+								"type": 6
+							}
+						]
+					}
+				]
+			}
+		],
+		"name": "security",
+		"description": "Antinuke and server protection",
+		"default_member_permissions": "8",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "add",
+				"description": "Create a stats voice channel",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "members",
+								"value": "members"
+							},
+							{
+								"name": "online",
+								"value": "online"
+							},
+							{
+								"name": "boosts",
+								"value": "boosts"
+							},
+							{
+								"name": "channels",
+								"value": "channels"
+							},
+							{
+								"name": "roles",
+								"value": "roles"
+							}
+						],
+						"name": "type",
+						"description": "What to count",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "template",
+						"description": "Name template, use {count} (optional)",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "remove",
+				"description": "Stop updating a stats channel",
+				"options": [
+					{
+						"name": "channel",
+						"description": "The stats channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "list",
+				"description": "List stats channels",
+				"options": []
+			}
+		],
+		"name": "serverstats",
+		"description": "Live server-count voice channels",
+		"default_member_permissions": "16",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "wizard",
+				"description": "Open the setup panel",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "provision",
+				"description": "Create the channels and roles Rostra's systems need (idempotent)",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "check",
+				"description": "Health-check the provisioned channels and roles (read-only)",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "language",
+				"description": "Set this server's language",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "English (English)",
+								"value": "en"
+							},
+							{
+								"name": "Français (French)",
+								"value": "fr"
+							},
+							{
+								"name": "Deutsch (German)",
+								"value": "de"
+							},
+							{
+								"name": "Español (Spanish)",
+								"value": "es"
+							},
+							{
+								"name": "Português do Brasil (Portuguese (Brazil))",
+								"value": "pt-BR"
+							},
+							{
+								"name": "Русский (Russian)",
+								"value": "ru"
+							},
+							{
+								"name": "简体中文 (Chinese (Simplified))",
+								"value": "zh-CN"
+							},
+							{
+								"name": "Italiano (Italian)",
+								"value": "it"
+							},
+							{
+								"name": "Nederlands (Dutch)",
+								"value": "nl"
+							},
+							{
+								"name": "Polski (Polish)",
+								"value": "pl"
+							},
+							{
+								"name": "Türkçe (Turkish)",
+								"value": "tr"
+							},
+							{
+								"name": "Українська (Ukrainian)",
+								"value": "uk"
+							},
+							{
+								"name": "日本語 (Japanese)",
+								"value": "ja"
+							},
+							{
+								"name": "한국어 (Korean)",
+								"value": "ko"
+							},
+							{
+								"name": "繁體中文 (Chinese (Traditional))",
+								"value": "zh-TW"
+							},
+							{
+								"name": "العربية (Arabic)",
+								"value": "ar"
+							}
+						],
+						"name": "language",
+						"description": "Server language",
+						"required": true
+					}
+				]
+			}
+		],
+		"name": "setup",
+		"description": "Set up Rostra for this server",
+		"default_member_permissions": "8",
+		"type": 1
+	},
+	{
+		"options": [],
+		"name": "shards",
+		"description": "Per-shard statistics",
+		"type": 1
+	},
+	{
+		"options": [],
+		"name": "snipe",
+		"description": "Show the last deleted message in this channel",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "create",
+				"description": "Create a starboard",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Board name",
+						"required": true
+					},
+					{
+						"name": "channel",
+						"description": "Where to post",
+						"required": true,
+						"type": 7
+					},
+					{
+						"type": 3,
+						"name": "emojis",
+						"description": "Star emojis (space separated, default ⭐)",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "delete",
+				"description": "Delete a starboard",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Board name",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "list",
+				"description": "List this server's starboards",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "edit",
+				"description": "Change a starboard's settings",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Board name",
+						"required": true
+					},
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "required_stars",
+						"description": "Stars to post",
+						"required": false
+					},
+					{
+						"min_value": 0,
+						"type": 4,
+						"name": "remove_stars",
+						"description": "Stars to drop below before removing",
+						"required": false
+					},
+					{
+						"type": 3,
+						"name": "emojis",
+						"description": "Star emojis (space separated)",
+						"required": false
+					},
+					{
+						"name": "self_star",
+						"description": "Allow self-stars",
+						"required": false,
+						"type": 5
+					},
+					{
+						"name": "filter_bots",
+						"description": "Ignore bots",
+						"required": false,
+						"type": 5
+					},
+					{
+						"name": "sync_deletes",
+						"description": "Remove post if original deleted",
+						"required": false,
+						"type": 5
+					},
+					{
+						"name": "reward_role",
+						"description": "Reward role at a star milestone",
+						"required": false,
+						"type": 8
+					},
+					{
+						"min_value": 0,
+						"type": 4,
+						"name": "reward_stars",
+						"description": "Stars to earn the reward role (0 = off)",
+						"required": false
+					},
+					{
+						"name": "author_role",
+						"description": "Only accept messages by authors with this role",
+						"required": false,
+						"type": 8
+					},
+					{
+						"name": "enabled",
+						"description": "Enable or disable the board",
+						"required": false,
+						"type": 5
+					},
+					{
+						"type": 3,
+						"name": "downvote_emojis",
+						"description": "Emojis that subtract stars (space separated)",
+						"required": false
+					},
+					{
+						"name": "remove_invalid",
+						"description": "Strip reactions that are not valid stars",
+						"required": false,
+						"type": 5
+					},
+					{
+						"min_value": 0,
+						"type": 4,
+						"name": "min_chars",
+						"description": "Minimum message length",
+						"required": false
+					},
+					{
+						"min_value": 0,
+						"type": 4,
+						"name": "min_attachments",
+						"description": "Minimum attachments",
+						"required": false
+					},
+					{
+						"name": "require_image",
+						"description": "Require an image/attachment",
+						"required": false,
+						"type": 5
+					},
+					{
+						"min_value": 0,
+						"type": 4,
+						"name": "max_age_hours",
+						"description": "Only star messages newer than N hours (0 = off)",
+						"required": false
+					},
+					{
+						"name": "require_nsfw",
+						"description": "Only star messages from age-restricted channels",
+						"required": false,
+						"type": 5
+					},
+					{
+						"type": 3,
+						"name": "display_tiers",
+						"description": "Tiers e.g. \"5:⭐ 10:🌟 25:💫\" (empty to clear)",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "block",
+				"description": "Toggle a role/channel/user on a board's blacklist",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Board name",
+						"required": true
+					},
+					{
+						"name": "role",
+						"description": "Role",
+						"required": false,
+						"type": 8
+					},
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": false,
+						"type": 7
+					},
+					{
+						"name": "user",
+						"description": "User",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "allow",
+				"description": "Toggle a role/channel/user on a board's whitelist (beats blacklist)",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Board name",
+						"required": true
+					},
+					{
+						"name": "role",
+						"description": "Role",
+						"required": false,
+						"type": 8
+					},
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": false,
+						"type": 7
+					},
+					{
+						"name": "user",
+						"description": "User",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "ignore",
+				"description": "Toggle a channel in a board's ignore list",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Board name",
+						"required": true
+					},
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "leaderboard",
+				"description": "Top star earners",
+				"options": []
+			},
+			{
+				"type": 2,
+				"name": "autostar",
+				"description": "Channels the bot auto-reacts to with star emojis",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Add an auto-star channel",
+						"options": [
+							{
+								"name": "channel",
+								"description": "Channel",
+								"required": true,
+								"type": 7
+							},
+							{
+								"type": 3,
+								"name": "emojis",
+								"description": "Emojis to auto-react with (default ⭐)",
+								"required": false
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Remove an auto-star channel",
+						"options": [
+							{
+								"name": "channel",
+								"description": "Channel",
+								"required": true,
+								"type": 7
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "list",
+						"description": "List auto-star channels",
+						"options": []
+					}
+				]
+			},
+			{
+				"type": 2,
+				"name": "override",
+				"description": "Per-channel or per-role setting overrides for a board",
+				"options": [
+					{
+						"type": 1,
+						"name": "create",
+						"description": "Create an override scoped to a channel or role",
+						"options": [
+							{
+								"type": 3,
+								"name": "board",
+								"description": "Board name",
+								"required": true
+							},
+							{
+								"type": 3,
+								"name": "name",
+								"description": "Override name",
+								"required": true
+							},
+							{
+								"name": "channel",
+								"description": "Scope: channel",
+								"required": false,
+								"type": 7
+							},
+							{
+								"name": "role",
+								"description": "Scope: role",
+								"required": false,
+								"type": 8
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "set",
+						"description": "Set an override's settings (blank = inherit)",
+						"options": [
+							{
+								"type": 3,
+								"name": "board",
+								"description": "Board name",
+								"required": true
+							},
+							{
+								"type": 3,
+								"name": "name",
+								"description": "Override name",
+								"required": true
+							},
+							{
+								"min_value": 1,
+								"type": 4,
+								"name": "required_stars",
+								"description": "Required stars",
+								"required": false
+							},
+							{
+								"min_value": 0,
+								"type": 4,
+								"name": "remove_stars",
+								"description": "Removal floor",
+								"required": false
+							},
+							{
+								"name": "self_star",
+								"description": "Allow self-stars",
+								"required": false,
+								"type": 5
+							},
+							{
+								"name": "filter_bots",
+								"description": "Ignore bots",
+								"required": false,
+								"type": 5
+							},
+							{
+								"name": "enabled",
+								"description": "Enable the override",
+								"required": false,
+								"type": 5
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "delete",
+						"description": "Delete an override",
+						"options": [
+							{
+								"type": 3,
+								"name": "board",
+								"description": "Board name",
+								"required": true
+							},
+							{
+								"type": 3,
+								"name": "name",
+								"description": "Override name",
+								"required": true
+							}
+						]
+					}
+				]
+			}
+		],
+		"name": "starboard",
+		"description": "Highlight your server's best messages (multiple boards)",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [],
+		"name": "stats",
+		"description": "Bot statistics",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 3,
+				"name": "emoji",
+				"description": "Paste one or more custom emojis",
+				"required": true
+			},
+			{
+				"type": 3,
+				"name": "name",
+				"description": "Name for the emoji (only when stealing one)",
+				"required": false
+			}
+		],
+		"name": "steal",
+		"description": "Add custom emojis from a message to this server",
+		"default_member_permissions": "1073741824",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "set",
+				"description": "Set or replace this channel's sticky message",
+				"options": [
+					{
+						"type": 3,
+						"name": "text",
+						"description": "Message to keep at the bottom",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "remove",
+				"description": "Remove this channel's sticky message",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "list",
+				"description": "List sticky messages in this server",
+				"options": []
+			}
+		],
+		"name": "sticky",
+		"description": "Keep a message pinned to the bottom of a channel",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "add",
+				"description": "Submit a suggestion",
+				"options": [
+					{
+						"type": 3,
+						"name": "text",
+						"description": "Your suggestion",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "setup",
+				"description": "Set the suggestions channel (Manage Server)",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "approve",
+				"description": "Approve a suggestion (Manage Server)",
+				"options": [
+					{
+						"type": 4,
+						"name": "number",
+						"description": "Suggestion #",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Staff note",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "deny",
+				"description": "Deny a suggestion (Manage Server)",
+				"options": [
+					{
+						"type": 4,
+						"name": "number",
+						"description": "Suggestion #",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Staff note",
+						"required": false
+					}
+				]
+			}
+		],
+		"name": "suggest",
+		"description": "Submit and manage server suggestions",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "get",
+				"description": "Show a tag",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Tag name",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "add",
+				"description": "Create or update a tag (Manage Messages)",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Tag name",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "content",
+						"description": "Tag content",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "remove",
+				"description": "Delete a tag (Manage Messages)",
+				"options": [
+					{
+						"type": 3,
+						"name": "name",
+						"description": "Tag name",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "list",
+				"description": "List all tags",
+				"options": []
+			}
+		],
+		"name": "tag",
+		"description": "Saved text snippets",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "enable",
+				"description": "Enable tickets",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "disable",
+				"description": "Disable tickets",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show ticket settings",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "panel",
+				"description": "Post the ticket panel in this channel",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "category",
+				"description": "Category new tickets are created under",
+				"options": [
+					{
+						"name": "category",
+						"description": "Category",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "logchannel",
+				"description": "Where closed-ticket logs go",
+				"options": [
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "close",
+				"description": "Close the current ticket",
+				"options": [
+					{
+						"type": 3,
+						"name": "reason",
+						"description": "Why it's being closed",
+						"required": false
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "reopen",
+				"description": "Reopen a recently closed ticket (within 7 days)",
+				"options": [
+					{
+						"min_value": 1,
+						"type": 4,
+						"name": "number",
+						"description": "Ticket number",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "claim",
+				"description": "Claim the current ticket",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "priority",
+				"description": "Set the current ticket's priority",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Low",
+								"value": "LOW"
+							},
+							{
+								"name": "Normal",
+								"value": "NORMAL"
+							},
+							{
+								"name": "High",
+								"value": "HIGH"
+							},
+							{
+								"name": "Urgent",
+								"value": "URGENT"
+							}
+						],
+						"name": "level",
+						"description": "Priority",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "escalate",
+				"description": "Bump the current ticket up one priority level",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "transfer",
+				"description": "Move the current ticket to another queue",
+				"options": [
+					{
+						"type": 3,
+						"name": "queue",
+						"description": "Target queue key (see /ticket queue list)",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "watch",
+				"description": "Get DM'd when this ticket escalates or closes",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "unwatch",
+				"description": "Stop watching this ticket",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "info",
+				"description": "Show the current ticket's details",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "dashboard",
+				"description": "Live overview of all open tickets",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "staffstats",
+				"description": "Ticket throughput per staff member",
+				"options": [
+					{
+						"name": "user",
+						"description": "Staff member (empty for a leaderboard)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "add",
+				"description": "Add a user to the current ticket",
+				"options": [
+					{
+						"name": "user",
+						"description": "User",
+						"required": true,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 2,
+				"name": "queue",
+				"description": "Manage custom ticket queues",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Add or update a queue",
+						"options": [
+							{
+								"type": 3,
+								"name": "key",
+								"description": "Short key (a-z, 0-9)",
+								"required": true
+							},
+							{
+								"type": 3,
+								"name": "label",
+								"description": "Display label",
+								"required": true
+							},
+							{
+								"type": 3,
+								"name": "emoji",
+								"description": "Button emoji",
+								"required": false
+							},
+							{
+								"max_value": 10080,
+								"min_value": 5,
+								"type": 4,
+								"name": "sla",
+								"description": "SLA in minutes",
+								"required": false
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Remove a queue",
+						"options": [
+							{
+								"type": 3,
+								"name": "key",
+								"description": "Queue key",
+								"required": true
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "list",
+						"description": "List the queues",
+						"options": []
+					}
+				]
+			},
+			{
+				"type": 2,
+				"name": "tag",
+				"description": "Tag the current ticket",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Add a tag",
+						"options": [
+							{
+								"type": 3,
+								"name": "tag",
+								"description": "Tag",
+								"required": true
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Remove a tag",
+						"options": [
+							{
+								"type": 3,
+								"name": "tag",
+								"description": "Tag",
+								"required": true
+							}
+						]
+					}
+				]
+			},
+			{
+				"type": 2,
+				"name": "supportrole",
+				"description": "Roles that can manage tickets",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Add a support role",
+						"options": [
+							{
+								"name": "role",
+								"description": "Role",
+								"required": true,
+								"type": 8
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Remove a support role",
+						"options": [
+							{
+								"name": "role",
+								"description": "Role",
+								"required": true,
+								"type": 8
+							}
+						]
+					}
+				]
+			}
+		],
+		"name": "ticket",
+		"description": "Support ticket system",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "play",
+				"description": "Start a trivia question",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "score",
+				"description": "Show a player's trivia score",
+				"options": [
+					{
+						"name": "user",
+						"description": "User (defaults to you)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "leaderboard",
+				"description": "Top trivia players",
+				"options": []
+			}
+		],
+		"name": "trivia",
+		"description": "Trivia quiz game",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "avatar",
+				"description": "Show a user's avatar",
+				"options": [
+					{
+						"name": "user",
+						"description": "User (defaults to you)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "banner",
+				"description": "Show a user's banner",
+				"options": [
+					{
+						"name": "user",
+						"description": "User (defaults to you)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "userinfo",
+				"description": "Show information about a user",
+				"options": [
+					{
+						"name": "user",
+						"description": "User (defaults to you)",
+						"required": false,
+						"type": 6
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "serverinfo",
+				"description": "Show information about this server",
+				"options": []
+			}
+		],
+		"name": "util",
+		"description": "Utility and info tools",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "set",
+				"description": "Set the keyword and reward role (enables it)",
+				"options": [
+					{
+						"type": 3,
+						"name": "keyword",
+						"description": "Text to look for in statuses",
+						"required": true
+					},
+					{
+						"name": "role",
+						"description": "Role to grant",
+						"required": true,
+						"type": 8
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "disable",
+				"description": "Disable vanity roles",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show settings",
+				"options": []
+			}
+		],
+		"name": "vanityrole",
+		"description": "Grant a role to members whose status contains a keyword",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "setup",
+				"description": "Set the role members get when they verify",
+				"options": [
+					{
+						"name": "role",
+						"description": "Verified role",
+						"required": true,
+						"type": 8
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "panel",
+				"description": "Post the verification panel in this channel",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "captcha",
+				"description": "Require a simple math captcha before verifying",
+				"options": [
+					{
+						"name": "enabled",
+						"description": "On or off",
+						"required": true,
+						"type": 5
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "autokick",
+				"description": "Kick members who do not verify within N minutes (0 to disable)",
+				"options": [
+					{
+						"max_value": 1440,
+						"min_value": 0,
+						"type": 4,
+						"name": "minutes",
+						"description": "Minutes before kicking unverified members (0 = off)",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "minage",
+				"description": "Kick accounts younger than N days on join (0 to disable)",
+				"options": [
+					{
+						"max_value": 365,
+						"min_value": 0,
+						"type": 4,
+						"name": "days",
+						"description": "Minimum account age in days (0 = off)",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "disable",
+				"description": "Turn verification off",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show verification settings",
+				"options": []
+			}
+		],
+		"name": "verification",
+		"description": "Gate your server behind a verify button",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "set",
+				"description": "Set the hub channel users join to spawn a temp channel",
+				"options": [
+					{
+						"name": "hub",
+						"description": "Hub voice channel",
+						"required": true,
+						"type": 7
+					},
+					{
+						"name": "category",
+						"description": "Category for temp channels",
+						"required": false,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "nametemplate",
+				"description": "Name template ({user} = the owner)",
+				"options": [
+					{
+						"type": 3,
+						"name": "text",
+						"description": "e.g. {user}'s room",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "limit",
+				"description": "Default user limit for temp channels (0 = unlimited)",
+				"options": [
+					{
+						"max_value": 99,
+						"min_value": 0,
+						"type": 4,
+						"name": "count",
+						"description": "0-99",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "disable",
+				"description": "Disable join-to-create",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show settings",
+				"options": []
+			}
+		],
+		"name": "voicehub",
+		"description": "Join-to-create temporary voice channels",
+		"default_member_permissions": "32",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "set",
+				"description": "Set the role to grant while in voice",
+				"options": [
+					{
+						"name": "role",
+						"description": "Role to grant",
+						"required": true,
+						"type": 8
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "disable",
+				"description": "Stop granting a voice role",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show the current voice role",
+				"options": []
+			}
+		],
+		"name": "voicerole",
+		"description": "Give a role to members while they are in voice",
+		"default_member_permissions": "268435456",
+		"type": 1
+	},
+	{
+		"options": [
+			{
+				"type": 1,
+				"name": "channel",
+				"description": "Set the welcome or goodbye channel",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Welcome",
+								"value": "welcome"
+							},
+							{
+								"name": "Goodbye",
+								"value": "goodbye"
+							}
+						],
+						"name": "type",
+						"description": "Which",
+						"required": true
+					},
+					{
+						"name": "channel",
+						"description": "Channel",
+						"required": true,
+						"type": 7
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "message",
+				"description": "Set a message template ({user} {username} {server} {membercount})",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Welcome",
+								"value": "welcome"
+							},
+							{
+								"name": "Goodbye",
+								"value": "goodbye"
+							},
+							{
+								"name": "Welcome DM",
+								"value": "dm"
+							}
+						],
+						"name": "type",
+						"description": "Which",
+						"required": true
+					},
+					{
+						"type": 3,
+						"name": "text",
+						"description": "Template",
+						"required": true
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "toggle",
+				"description": "Turn a feature on or off",
+				"options": [
+					{
+						"type": 3,
+						"choices": [
+							{
+								"name": "Welcome",
+								"value": "welcome"
+							},
+							{
+								"name": "Goodbye",
+								"value": "goodbye"
+							},
+							{
+								"name": "Welcome DM",
+								"value": "dm"
+							}
+						],
+						"name": "type",
+						"description": "Which",
+						"required": true
+					},
+					{
+						"name": "enabled",
+						"description": "On or off",
+						"required": true,
+						"type": 5
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "card",
+				"description": "Attach a rendered welcome image to the greeting",
+				"options": [
+					{
+						"name": "enabled",
+						"description": "On or off",
+						"required": true,
+						"type": 5
+					}
+				]
+			},
+			{
+				"type": 1,
+				"name": "setup",
+				"description": "One-click welcome setup (uses this channel)",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "test",
+				"description": "Preview the welcome message",
+				"options": []
+			},
+			{
+				"type": 1,
+				"name": "status",
+				"description": "Show settings",
+				"options": []
+			},
+			{
+				"type": 2,
+				"name": "autorole",
+				"description": "Roles auto-assigned on join",
+				"options": [
+					{
+						"type": 1,
+						"name": "add",
+						"description": "Add an autorole",
+						"options": [
+							{
+								"name": "role",
+								"description": "Role",
+								"required": true,
+								"type": 8
+							}
+						]
+					},
+					{
+						"type": 1,
+						"name": "remove",
+						"description": "Remove an autorole",
+						"options": [
+							{
+								"name": "role",
+								"description": "Role",
+								"required": true,
+								"type": 8
+							}
+						]
+					}
+				]
+			}
+		],
+		"name": "welcome",
+		"description": "Welcome, goodbye, and auto-role settings",
+		"default_member_permissions": "32",
+		"type": 1
+	}
+]

@@ -12,9 +12,9 @@ and tracks each player's correct answers with a leaderboard.
 ## technical map
 
 **file paths**
-- command + answer buttons: `src/modules/trivia/index.ts`
-- question fetch, shuffle, sessions, scores: `src/modules/trivia/service.ts` (+ `service.test.ts`)
-- model: `prisma/schema.prisma` → `TriviaScore`
+- command + answer buttons: `modules/trivia/index.ts`
+- question fetch, shuffle, sessions, scores: `modules/trivia/service.ts` (+ `service.test.ts`)
+- model: `packages/database/prisma/schema.prisma` → `TriviaScore`
 
 **command** - `/trivia play | score [user] | leaderboard`.
 

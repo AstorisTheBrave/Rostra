@@ -1,0 +1,70 @@
+---
+title: Performance and local gate
+last-updated: 2026-10-19
+owner: AstorisTheBrave
+status: pass
+---
+
+# Performance and local gate
+
+No production capacity claim or load-test result is made. This record is for reproducible local verification cost and bounded smoke resource use only.
+
+## Final local gate
+
+The required Task 8 gate runs once from the unchanged implementation commit, reusing existing results only where the source commit and inputs match. Commands use disposable values and services; no production credentials, Discord login or command publication are involved.
+
+| Command | Result | Elapsed time |
+| --- | --- | --- |
+| `pnpm install --frozen-lockfile` | Pass | 1.43 s |
+| `pnpm prisma:generate` | Pass | 4.96 s |
+| `pnpm check:boundaries` | Pass | 1.05 s |
+| `pnpm typecheck` | Pass, cached workspace tasks | 4.24 s |
+| `pnpm lint` | Pass with six existing warnings | 1.66 s |
+| `pnpm test` with CI placeholders | Pass | 83.70 s |
+| `pnpm test:integration` on Windows host | Fail at claim-fencing service test during Prisma row creation | 8.23 s |
+| Linux `@rostra/operations` claim-fence and `@rostra/workers` restart service tests | Pass, 1/1 each | 4.13 s and 4.55 s |
+| `pnpm build` | Pass, cached workspace tasks | 3.57 s |
+| `pnpm test:browser --project=chromium` | Pass | 35.04 s |
+| Production-server Chromium regression after the reduced-motion fix | Pass, 4/4 | 37.5 s |
+| Linux `prisma migrate status` | Pass, schema up to date with 11 migrations | 5.5 s |
+| Compose dev, VPS, smoke and rollback configuration | Pass with placeholder image tags and credentials | 1.2 s each or less |
+| Command/module registry parity | Pass, 47 commands, 42 modules, 48 events | 8.4 s |
+| Linux Compose correlated smoke | Pass, one effect after duplicate delivery | 6.72 s |
+| `git diff --check` | Pass | 0.47 s |
+
+The Windows aggregate integration failure is recorded, not hidden. The claim-fencing test failed during Prisma row creation and emitted no detailed Prisma error body. This run passed the same claim-fencing test and the worker restart test separately in Linux containers; Task 5 also records the complete integration graph passing against Linux services. The Compose smoke is reported separately below.
+
+## Environment and resource limits
+
+Local tool host: Windows, Node.js 24.19.0, Docker Engine 29.7.2. Compose applied per-container limits of 1 CPU/768 MiB for app services, 1 CPU/1 GiB for PostgreSQL and 0.5 CPU/384 MiB for Redis; Redis itself was capped at 256 MiB with `noeviction`. Peak host or container utilization was not sampled, so no throughput or memory-use estimate is made.
+
+## Correlated Linux smoke
+
+The Linux API image applied the 11 preserved migrations, then `tooling/smoke/cross-service.service.ts` passed 1/1 using the internal Compose network. Correlation ID `91b89fc2-8862-45d6-8c0d-f598afec888d` appeared in the API acceptance and typed-client response. The worker wrote one PostgreSQL effect despite duplicate delivery, and a swapped guild was denied. The smoke recorded `liveDiscordConnected: false` and `commandPublication: false`. The Compose project and its volumes were removed after the smoke.
+
+## Exact-source GitHub gate
+
+Source snapshot `fa2b3472432869e0402e941de190fdd45eccff42` passed all remote jobs:
+
+- CI run [39288879824](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879824): root check,
+  PostgreSQL/Redis service integration and Chromium, Firefox and WebKit browser smoke.
+- Service and image integration run
+  [39288879890](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879890): Compose migration, correlated
+  smoke, prior-image rollback and the gateway, API, workers, web, realtime and Activity image targets.
+- Security and software inventory run
+  [39288879807](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879807): dependency review, secret scan and SBOM.
+- CodeQL run [39288879859](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879859): JavaScript and
+  TypeScript analysis.
+
+## Resource bounds
+
+No peak resource counter was captured. The Compose limits above are configured bounds, not observed utilization.
+
+## Interpretation
+
+The measured commands establish how long the checks took in this environment. Local install, generation, boundaries,
+typecheck, lint, unit tests, build, Chromium browser smoke, migration status, Compose configuration, registry parity
+and the Linux worker and correlation proofs passed. The Windows root integration command did not pass; the same
+claim-fencing contract passed in local Linux containers and the exact-source GitHub service-integration job. These
+results do not predict production throughput, latency, shard capacity or cloud cost. GitHub's Node 22 Linux,
+browser-engine, rollback, image and security/inventory matrices all passed for the recorded source snapshot.

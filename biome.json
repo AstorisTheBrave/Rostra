@@ -1,16 +1,26 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
-	"assist": { "actions": { "source": { "organizeImports": "on" } } },
-	"formatter": { "enabled": true, "indentStyle": "tab", "lineWidth": 100 },
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"recommended": true,
-			"suspicious": { "noExplicitAny": "error" },
-			"style": { "useNodejsImportProtocol": "error" }
-		}
-	},
+	"$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
+	"extends": ["./tooling/biome/biome.json"],
 	"files": {
-		"includes": ["**", "!**/dist", "!**/node_modules", "!**/Archive", "!**/prisma/migrations"]
+		"includes": [
+			"**",
+			"!**/dist",
+			"!**/build",
+			"!**/node_modules",
+			"!**/archive",
+			"!**/Archive",
+			"!**/.superpowers",
+			"!**/coverage",
+			"!**/playwright-report",
+			"!**/test-results",
+			"!**/secrets",
+			"!**/.env*",
+			"!**/*.pem",
+			"!**/*.key",
+			"!**/.cache",
+			"!**/.turbo",
+			"!**/prisma/migrations",
+			"!apps/web/src/routeTree.gen.ts"
+		]
 	}
 }

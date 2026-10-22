@@ -1,39 +1,67 @@
 ---
-last-updated: 2026-06-05
+title: Workspace overview
+last-updated: 2026-10-22
 owner: AstorisTheBrave
 status: in-flux
 ---
 
-## what this is
+# Workspace overview
 
-Rostra is a single, large Discord bot that replaces 15 separate bots. It does moderation, server
-security, auto-moderation, tickets, applications, economy, leveling, giveaways, music, trivia, games,
-utilities and more - all in one program that can run across many shards to serve very large numbers of
-servers and users. This folder is the map of how that program is built, so anyone (or any new session)
-can find their way around without reading the whole codebase.
+Rostra is a Discord bot with a growing set of web and service boundaries. This page is a quick map for contributors. Start with the [architecture map](architecture/index.mdx), then open the relevant module guide.
 
-## technical map
+## What works today
 
-**read first each session:** this file, then `docs/architecture/index.mdx`, then only the
-`docs/modules/*.mdx` relevant to the task.
+The Discord runtime lives in `apps/gateway/`; 42 feature modules live in `modules/`. The checked-in registry declares their IDs and imports, and `@rostra/module-sdk` validates and orders them. Recorded fixtures preserve 47 command definitions and 48 events without logging into Discord or publishing commands.
 
-**current state:** the *foundation layer* is built and tested (config, logging, database, cache,
-UI kit, i18n, sharding IPC). The *runtime layer* (the actual bot client, command handling, web server,
-integrations) and *feature modules* are not built yet. See `docs/sessions/log.mdx` for progress.
+The API and workers are separate applications. PostgreSQL stores durable operation intent before Redis delivers work. The web application supports fixture-tested login and persisted, read-only guild summaries through a typed API client. Realtime and Activity are authenticated scaffolds, disabled by default. These boundaries and their limits are described in [capability status](product/capability-status.mdx).
 
-**where things live**
-- `src/config.ts` - environment configuration (the only place env is read)
-- `src/services/` - shared singletons: `logger.ts`, `database.ts`, `cache.ts`
-- `src/utils/` - shared helpers: `components.ts` (Components V2 UI kit)
-- `src/i18n/` - translation helper + `locales/en/`
-- `src/cluster/` - sharding/IPC abstraction (`ipc.ts`); will hold `cluster.ts` manager entry
-- `prisma/schema.prisma` - database models
-- `docs/superpowers/specs/` and `docs/superpowers/plans/` - the design spec and implementation plans
+## Where things live
 
-## gotchas
+- `apps/gateway/` - Discord sharding, interactions, events and checked-in module loading
+- `apps/api/` - authenticated domain routes, health checks and external webhook boundaries
+- `apps/web/` - public routes, member shell, OAuth flow and typed API reads
+- `apps/workers/` - durable queue consumers, reconciliation and shutdown drain
+- `apps/realtime/` and `apps/activity/` - optional authenticated application seams
+- `modules/<name>/` - current feature logic, commands, events, jobs and tests
+- `packages/` - shared authorities and public contracts; each package has an explicit export map
+- `integrations/` - authorized adapters to external services
+- `games/core/` - pure game contracts and fixtures
+- `infra/` - Compose profiles, container startup and operational tooling
+- `tooling/` - repository checks, fixtures, migration proofs and smoke tools
+- `docs/modules/` - feature-specific behavior and ownership notes
+- `docs/runbooks/` - deployment and recovery procedures
 
-- **Undercover rule:** nothing anywhere may reference any AI provider/model. The AI feature (built later)
-  speaks only as "Rostra". This is a hard invariant - see `CLAUDE.md`.
-- **UI is Components V2 only** - no legacy Discord embeds anywhere. Build all output via `src/utils/components.ts`.
-- **Config is read once** at import and frozen; never read `process.env` outside `src/config.ts`.
-- **One Prisma client** - only `src/services/database.ts` constructs it (`getPrisma()`).
+## Shared authorities
+
+- `@rostra/config` is the only runtime environment reader.
+- `@rostra/database` owns the Prisma client and schema at `packages/database/prisma/`.
+- `@rostra/cache` owns Redis access and the shared bus.
+- `@rostra/logger` owns structured logging and redaction.
+- `@rostra/i18n` owns translation contracts and bundles.
+- `@rostra/discord-ui` owns Discord Components V2 construction and acknowledgement helpers.
+- `@rostra/contracts` owns cross-package job and event contracts.
+- `@rostra/module-sdk` owns manifests, lifecycle contracts and the temporary compatibility adapter.
+- `@rostra/auth` owns host and tenant-scoped authorization contracts.
+- `@rostra/operations` owns durable operation intent, idempotency and claim fencing.
+- `@rostra/web-client` and `@rostra/web-ui` provide typed web reads and shared accessible UI.
+- `@rostra/testing` provides isolated test fixtures.
+
+Packages export source through explicit public maps and use strict ESM. Do not import another package's private files. The `@/` alias remains only in the gateway and legacy modules until the compatibility loader is replaced.
+
+## Data and recovery
+
+PostgreSQL stores application data and durable operation intent. Redis is an at-least-once delivery mechanism; workers must tolerate duplicate delivery and the reconciler republishes recoverable intent. Migrations are forward-only and preserved in `packages/database/prisma/migrations/`. Migration failure stops application startup.
+
+The Compose default profile runs PostgreSQL, Redis, gateway, API, workers and web. Realtime and Activity are opt-in. Database migrations use a direct connection. See [deployment](runbooks/deployment.mdx) and [recovery](runbooks/recovery.mdx) for operational details. Web sessions are currently process-local, which limits the web app to one instance.
+
+## Important boundaries
+
+- Guild actions and private reads require explicit authorization scoped to the requested guild. Host operator access does not bypass guild permissions.
+- Migration and registry checks use fake credentials and do not login to Discord or publish commands.
+- Discord UI uses the shared Components V2 package; user-facing text follows the shared localization contract.
+- No ingress-provider control plane is implemented. Reverse proxies and tunnels remain passive hosting choices.
+- Realtime and Activity scaffolds do not establish multiplayer or device verification.
+
+For completed workspace evidence, see the [Phase 00 evidence index](phase-reports/phase-00/index.mdx).
+Phase 01 implementation evidence and its passing decision are recorded in the
+[platform core report](phase-reports/01-platform-core/index.mdx).

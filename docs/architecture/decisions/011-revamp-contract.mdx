@@ -1,0 +1,138 @@
+---
+last-updated: 2026-10-18
+owner: AstorisTheBrave
+status: accepted
+---
+
+# 011: Revamp repository and runtime contract
+
+## Context
+
+Rostra is moving its working Discord bot into a production monorepo. The move must preserve behavior,
+database history and rollback while introducing independently testable service boundaries. This
+decision supersedes older root-layout, slash-only and structure-first guidance where they conflict.
+It defines ownership before extraction; it does not claim that all target applications already exist.
+
+## Decision
+
+Use `apps/{gateway,api,web,workers,realtime,activity}` for runtime entrypoints, `modules/<name>` for
+isolated feature ownership, `packages/` for exported shared contracts, `integrations/` for external
+adapters, `games/` for game implementations, `infra/` for operations and `tooling/` for repository tools.
+The gateway owns acknowledgement, sharding and fanout. The API owns authenticated domain boundaries.
+The web uses the typed API for privileged actions, never browser-to-database access. Workers own
+durable and expensive work. Realtime owns authorized rooms; Activity has its own origin/auth boundary.
+
+Preserve strict ESM, localization, Components V2, shared Discord UI, stable dependencies, structured
+errors, documentation and conventional commits. Config and database construction each retain exactly
+one shared owner. Packages expose explicit public exports; modules never import each other's internals.
+The existing accessors and UI alias remain authoritative until their owning extraction is complete.
+
+Priority is correctness/tenant isolation, security/least privilege, recovery, measured performance,
+then clean structure/modular ownership and simple setup. A host operator or configured owner ID does
+not grant guild moderation or private member-data access. Guild actions require explicit authorization
+and tenant-scoped object lookup. Older owner-bypass behavior is a security debt to remove with negative
+tests in the owning security slice; this documentation change does not alter runtime permissions.
+
+The canonical module ID is `automation`. Automation Studio may label its web interface. Existing slash
+commands remain supported; context menus are allowed for specified workflows. There is no prefix
+engine. Command budgets are scoped by type and registration scope: 100 global chat-input commands
+and 100 per guild are separate budgets. Per-guild reconciliation is explicit; context menus and
+Activity entrypoints have their own platform budgets and authorization boundaries.
+
+Optional realtime and Activity applications must build and test in Phase 00. They need not run in
+the default profile. Scaffold tests do not establish working multiplayer or device compatibility.
+
+Move every existing Prisma migration with its directory and checksum unchanged. Do not regenerate
+history. A failed migration prevents startup. Prove rollback to the prior image with unchanged history
+before cutover. Migration tests use fake tokens and isolated adapters, never a real-token gateway boot
+or command publication. Preserve normalized command definitions and the complete module inventory.
+PostgreSQL records durable intent before at-least-once Redis delivery; consumers are idempotent and
+shutdown drains tracked work.
+
+## Repository boundaries
+
+The lowercase private `archive/` and `.superpowers/` scratch directory are excluded from Git, Biome,
+Docker, and every later workspace/build/test/scan/artifact input. Production code, tests, docs and
+plans remain in the normal tree. Never force-add the archive. Secrets, local env files, dependencies,
+build output and coverage are not source or image inputs; Docker also excludes `.git/` and all env
+examples. Git may retain sanitized `.env.example` templates.
+
+`pnpm check:boundaries` checks the repository inputs and workspace control plane. It checks required Git/Biome/Docker
+exclusions, tracked or visible private paths and implementation-neutral repository source without
+network access. Source checks cover JS/TS, JSON metadata and `.sh` scripts, including container startup;
+private/generated paths and binary assets are excluded. The workspace test graph includes the
+adjacent tooling tests. Future tools use the same exclusions. Assistant implementation names stay
+private; public identity is Rostra.
+
+## Workspace control plane
+
+The Discord runtime now lives in `apps/gateway/`, with feature folders under `modules/`. pnpm selects
+`apps/*`, `packages/*`, `modules/*`, `integrations/*`, `games/*` and `tooling/*`, with explicit private/generated exclusions.
+Use the pinned package manager and `pnpm install --frozen-lockfile`. Existing dependency resolutions
+were imported from the previous lockfile and the security overrides moved into workspace settings.
+Dependency build scripts are explicitly allowed or denied, package-provided agent skills are disabled,
+and task invocation fails instead of silently reinstalling outdated dependencies.
+
+Turbo root aliases cover build, typecheck, lint, tests, integration tests and clean. The gateway is a
+normal workspace application; root tests run repository tooling after serialized workspace tests.
+Build outputs are `dist/` and `build/`; checks have no artifact outputs. Shared TypeScript/Biome files
+are global cache inputs, normal Git exclusions remain enabled, and tests and clean are never cached.
+Client generation is an uncached prerequisite for build/typecheck/test consumers because its output
+lives in platform-specific dependencies. Its separate Prisma config reads only the existing schema,
+without loading local deployment credentials. Migrations continue using `prisma.config.ts` unchanged.
+Task 4 moved runtime source without moving migration history. Integration is a graph entrypoint only,
+with no service integration tests yet. Existing build behavior remains strict no-emit compilation.
+
+On 2026-10-17, [pnpm's current stable release](https://github.com/pnpm/pnpm/releases/tag/v12.14.0)
+was 12.14.0 and [Turbo's stable release](https://github.com/vercel/turborepo/releases/tag/v2.11.9)
+was 2.11.9. Both are pinned. [pnpm's installation support](https://pnpm.io/installation) covers the
+Windows x64 development host and Linux musl container; [Turbo's support policy](https://turborepo.dev/docs/support-policy)
+lists pnpm 8+ as stable. Corepack 0.35.0 is used in CI/Docker and supports Node.js
+`^22.22.2 || ^24.15.0 || >=26.0.0`, which is also the root requirement.
+CI and Docker remain on the current Node 22 line; local checks passed on Node 24.19.0.
+The actual pnpm 12 lockfile resolved in the Turbo dry graph and frozen install.
+[GitHub's current Dependabot table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
+lists pnpm only through v10. The npm ecosystem configuration covers the workspace directories, but
+pnpm 12 automated updates remain an unverified support limitation until the service confirms them.
+
+No ingress management API is implemented. Reverse proxies and tunnels are passive hosting choices.
+
+## Consequences
+
+Task 3 extracted eight source-exporting shared packages and preserved all migration bytes under the
+database owner. Root migration configuration retains deployment semantics; generation resolves through
+the database package's existing Prisma CLI dependency. `pnpm check:boundaries` now also rejects private
+package imports, undeclared shared-package dependencies, manifest cycles and duplicate config/database
+authorities. Only gateway-specific types and runtime services keep root aliases. See the current
+architecture map for exact ownership and optional subpath exports. Earlier control-plane notes above
+describe the Task 2 baseline; they do not imply that shared runtime source still lives in `src/`.
+
+Task 4 added `@rostra/gateway` and `@rostra/module-sdk`, moved the 42 legacy feature directories to
+`modules/`, and removed the root legacy Turbo tasks. The adapter validates module IDs and lifecycle
+cancellation without rewriting feature behavior. Command and module fixtures run with fake credentials,
+block network access and preserve the pre-move registry. The local gateway alias remains a temporary
+compatibility seam until Phase 01 replaces discovery.
+
+Task 5 added independently bootable API and worker applications plus `@rostra/auth` and
+`@rostra/operations`. PostgreSQL operation rows precede Redis delivery, duplicate effects are
+constrained by operation ID, and deterministic queue jobs are reconciled from pending, retryable or
+expired leased records. Claim versions fence stale settlement. Reused idempotency keys must match both
+operation kind and guild ownership. A claim must read back its incremented version inside the same
+PostgreSQL transaction that updates the lease, before releasing the row lock. Gateway shards no longer
+construct BullMQ workers. Scheduled
+Discord tasks delete only after a successful handler; failed and unknown tasks retain a failure code.
+Public health responses contain status only. Internal operation reads enforce their stored host or guild
+scope. CI owns the real PostgreSQL/Redis worker-restart proof.
+
+Later slices have one ownership and security contract, with temporary compatibility imports only where
+needed for parity. Public documentation must distinguish target ownership from verified implementation.
+Each slice updates the session log and relevant module/architecture docs, and records tests, recovery
+evidence and unresolved limitations. Phase 00 passes only after all applications and cross-service
+checks have executable proof.
+
+Task 6 adds the web login and member shell, API-backed tenant-scoped read-only guild summaries, and buildable
+realtime and Activity authorization seams. OAuth uses state, PKCE and an HttpOnly session cookie. Principal tokens
+bind to one exact service audience, and the API repeats audience and tenant checks before reads. Browser smoke uses
+fixture OAuth with the typed API client against disposable PostgreSQL rows. The current in-memory session store is
+single-process scaffolding and must become shared/durable before running multiple web instances. Realtime and
+Activity remain disabled by default; their health/auth tests do not prove multiplayer or device compatibility.

@@ -1,0 +1,38 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import { registerLocale, translate, type Vars } from "./core.ts";
+import { DEFAULT_LOCALE, normalizeLocale } from "./locales.ts";
+
+export { registerLocale };
+
+// ── Ambient locale (per-interaction, set by the pipeline) ────────────────────
+
+const localeStore = new AsyncLocalStorage<string>();
+
+/** Run `fn` with `locale` as the ambient locale for any `t()` calls inside it. */
+export function runWithLocale<T>(locale: string, fn: () => T): T {
+	return localeStore.run(normalizeLocale(locale) ?? DEFAULT_LOCALE, fn);
+}
+
+/** The ambient locale, or the default when none is set. */
+export function getAmbientLocale(): string {
+	return localeStore.getStore() ?? DEFAULT_LOCALE;
+}
+
+/**
+ * Translate `namespace:key`. Locale precedence: explicit arg, else the ambient
+ * locale (set per interaction by the pipeline), else English. Missing keys fall
+ * back to English and finally to the raw key. Values are ICU MessageFormat, so
+ * `{count, plural, ...}`, `{x, select, ...}`, and `{n, number}` all work.
+ */
+export function t(key: string, vars?: Vars, locale?: string): string {
+	const loc = normalizeLocale(locale) ?? getAmbientLocale();
+	return translate(key, vars, loc);
+}
+
+/** A translator bound to one locale - hand to per-recipient renderers. */
+export type Translator = (key: string, vars?: Vars) => string;
+
+export function getTranslator(locale: string): Translator {
+	const loc = normalizeLocale(locale) ?? DEFAULT_LOCALE;
+	return (key, vars) => t(key, vars, loc);
+}

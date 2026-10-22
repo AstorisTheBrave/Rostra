@@ -12,9 +12,9 @@ Voice roles: grant a role while a member is connected to any voice channel and r
 ## technical map
 
 **file paths**
-- command: `src/modules/voicerole/index.ts`
-- listener: `src/modules/voicerole/events.ts` (voiceStateUpdate)
-- config + decision: `src/modules/voicerole/service.ts` (+ `service.test.ts`)
+- command: `modules/voicerole/index.ts`
+- listener: `modules/voicerole/events.ts` (voiceStateUpdate)
+- config + decision: `modules/voicerole/service.ts` (+ `service.test.ts`)
 - model: `VoiceRoleConfig` (one row per guild: `roleId`)
 
 **how it works** - `voiceRoleAction(wasConnected, isConnected)` collapses the voice state diff into
@@ -26,6 +26,9 @@ guild and invalidated on set/disable (the cache stores `null` for known-empty gu
 **exports** - `getConfig`, `setConfig`, `disableConfig`, pure `voiceRoleAction` (tested).
 
 ## gotchas
+
+- Cached per-guild configuration receives versioned invalidation after set or disable;
+  missed delivery expires within five minutes.
 
 - Needs the **Manage Roles** permission and the target role below the bot's highest role; both the command
   and the listener guard the hierarchy.

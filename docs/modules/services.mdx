@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-10-17
 owner: AstorisTheBrave
 status: stable
 ---
@@ -13,10 +13,10 @@ shared instance so the whole bot reuses one connection instead of making new one
 ## technical map
 
 **file paths**
-- `src/services/logger.ts` - Pino logging
-- `src/services/database.ts` - Prisma/Postgres access
-- `src/services/cache.ts` - Redis/Keyv cache
-- tests: `src/services/logger.test.ts`, `database.test.ts`, `cache.test.ts`
+- `packages/logger/src/index.ts` - Pino logging
+- `packages/database/src/index.ts` - Prisma/Postgres access
+- `packages/cache/src/index.ts` - Redis/Keyv cache
+- tests live beside each package owner
 
 **exports**
 - `getLogger(scope): Logger` - cached child logger tagged with `scope`; `logger` is the root.
@@ -24,46 +24,67 @@ shared instance so the whole bot reuses one connection instead of making new one
 - `getCache(): Keyv` - cache (Redis-backed if `REDIS_URL`, else in-memory).
 - `getRedis(): Redis | undefined` - raw ioredis client for sorted-set ops (leaderboards); undefined w/o Redis.
 - `cacheGet/cacheSet/cacheDel/withCache` - typed convenience helpers; `disconnectCache()` for shutdown.
-- `cachedConfig(key, loader)` + `invalidateConfig(key)` + `CONFIG_TTL_MS` (300_000) - the standard
-  cache-aside convention for per-guild config and other hot, rarely-changing reads (5-minute TTL). Pair
-  every write with `invalidateConfig`. This is the caching foundation the GuildTenant builds on (see
-  `docs/superpowers/specs/2026-06-06-centralized-platform-systems.md`).
+- `createCoherentCache(owner, scope)` + `commitCoherentWrite(identity, writer, onCommit)` -
+  bounded local caches for persisted configuration and preferences. Misses read PostgreSQL
+  directly. A write advances its revision with the data in one transaction and publishes
+  the exact identity after commit. `CONFIG_TTL_MS` is 300,000 (five minutes).
+- `coherentCacheMetrics()` returns process-local aggregate hit and miss counts for internal
+  diagnostics. It has no guild, user or cache-key labels.
 
-**`src/services/tenant.ts`** - the centralized per-guild config ("tenant", model `GuildTenant`).
-- `getTenant(guildId)` - two-layer cache: L1 in-process map of hot guilds, then L2 Redis (`tenant:<guildId>`
-  at the 5-min config TTL), then DB (lazily upserts the row). Guilds live on one shard, so L1 needs no
-  cross-shard invalidation.
-- `updateTenant(guildId, patch)` - writes the row and invalidates both layers. The setup wizard writes
-  channel/role ids and feature flags here, so features resolve them from cache (no raw lookups).
+**`apps/gateway/src/services/tenant.ts`** - the centralized per-guild config ("tenant", model `GuildTenant`).
+- `getTenant(guildId)` - bounded local cache of hot guilds, then PostgreSQL (lazily upserts
+  the row). Versioned invalidations evict other processes after a committed write.
+- `updateTenant(guildId, patch)` - writes the row and publishes a versioned invalidation.
+  The setup wizard writes channel/role ids and feature flags here.
+- `updateTenantWithOutcome(guildId, patch)` returns the durable value and cache publication
+  outcome for provisioning and setup responses that must distinguish delayed fleet delivery.
 - `isFeatureEnabled(tenant, name)`, `getSetting(tenant, key)`, `setFeatures(guildId, flags)`,
   `evictTenantL1(guildId)`.
+- `isFeatureBlocked` blocks on tenant read failure. `setFeatures` returns the saved tenant,
+  cache publication outcome and failed provisioner names so setup can warn after a partial save.
+  Its publication outcome includes provisioner writes even when the tenant write published.
+- Global feature declarations and database overrides are independent of guild state. Initial
+  database failure prevents default-on flags from becoming live; reload failure keeps known
+  overrides. Flag writes distinguish database failure from delayed Redis publication.
 
-**`src/services/scheduler.ts`** - durable, crash-safe scheduler (model `ScheduledTask`). Future actions are
-rows, so they survive restart; each shard re-arms what it owns on boot (core's `ready` event calls
-`recoverScheduled`).
-- `registerTaskHandler(type, handler)` - a module registers the handler for its task `type`.
-- `schedule({ type, runAt, guildId?, payload? }, client?)` - create a durable task and arm it locally.
-- `cancelTask(id)` - clear the timer and delete the row.
-- `recoverScheduled(client)` - boot recovery; `shouldArm(task, shardId, ownsGuild)` decides ownership
-  (guild tasks on the owning shard, global `guildId:null` tasks only on shard 0). `clampDelay` caps the
-  setTimeout and re-arms for long waits. On fire the payload is dispatched to the handler and the row
-  deleted. Consumers (reminders, giveaways, tempban/mute/role lifts) register a handler and call
-  `schedule(...)`.
+**Scheduled work** - `packages/operations/src/scheduler.ts` owns durable `ScheduledTask` claims,
+retry and settlement. The tracked worker poller publishes only task ID and claim version through
+`@rostra/cache/bus`. The gateway adapter accepts an exact claim on the guild-owning process, or on
+shard 0 for global work, then invokes the registered Discord handler. The gateway `schedule` facade
+creates a row without a timer or Client argument. `cancelTask(id)` returns `cancelled`, `processing`,
+`terminal` or `missing`; cancellation cannot reverse an effect already processing. Failed and cancelled
+rows remain for inspection. `runAt` remains the original due time while `nextAttemptAt` tracks retries.
+
+**durable operations** - `packages/operations/` owns operation records, attempts, scoped idempotency
+validation, claim fencing and failure classification. Claim acquisition increments and reads its fence
+inside one PostgreSQL transaction so a lease takeover cannot replace an earlier claimant's returned
+version. `apps/api/` records intent before queue publication. `apps/workers/` owns all BullMQ consumers,
+recoverable-intent reconciliation and tracked drain. Redis delivery is at least once;
+`OperationEffect.operationId` ensures duplicate delivery cannot create a second durable effect.
 
 **depends on**
-- `src/config.ts` for log level, `DATABASE_URL`, `REDIS_URL`, env mode
-- `@prisma/client` (generated from `prisma/schema.prisma`) + `@prisma/adapter-pg` (Prisma 7 driver
-  adapter), `pino`, `ioredis`, `keyv`, `@keyv/redis`
+- `@rostra/config` for log level, `DATABASE_URL`, `REDIS_URL`, env mode
+- `@rostra/database` types generated from `packages/database/prisma/schema.prisma`
+- `pino`, `ioredis`, `keyv` and `@keyv/redis` stay behind their owning packages
 
 **imported by**
-- (later) the BotClient, command pipeline, jobs, and every feature module
+- the gateway client, command pipeline, jobs and feature modules
 
 ## gotchas
+
+- Phase 00 target ownership and security priorities are binding in
+  `docs/architecture/decisions/011-revamp-contract.mdx`. Logger, database and cache are public workspace
+  packages; tenant, scheduler and other gateway-only services remain under `apps/gateway/src/services/`.
+  Owner IDs must never grant implicit guild access. Existing bypass behavior requires a tested
+  security change in its owning slice. Run `pnpm check:boundaries` before committing shared changes;
+  the source guard includes container shell scripts alongside JS/TS and JSON. Private archives and
+  scratch are excluded from repository tools and Docker contexts.
 
 - Construct the Prisma client **only** here (`getPrisma()`); this is an invariant.
 - Prisma 7: the client needs the `@prisma/adapter-pg` adapter (`new PrismaPg({ connectionString })`),
   fed from `config.database.url`. Never read `process.env` here. The CLI side (migrations) reads the URL
   from `prisma.config.ts`, which loads `.env` via `dotenv` locally and uses real env vars in CI/Docker.
-- Logger redacts token/password/auth fields and must never log provider names.
+- Logger redacts token/password/auth fields, including authorization headers, and must never log
+  implementation provider names.
 - Without `REDIS_URL` the cache is per-process memory (not shared across shards) - fine for dev, not prod.
 - `getPrisma()` does not connect on construction; first query connects.

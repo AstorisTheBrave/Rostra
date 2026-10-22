@@ -1,0 +1,60 @@
+---
+title: Phase 00 evidence
+last-updated: 2026-10-19
+owner: AstorisTheBrave
+status: pass
+---
+
+# Phase 00 evidence
+
+## Decision: PASS
+
+Phase 00 passed on source snapshot `fa2b3472432869e0402e941de190fdd45eccff42` on `sd/revamp`.
+The local and remote branch hashes matched before this evidence-only update. Local implementation evidence covers
+migration integrity, command/module parity, database-backed browser smoke and Linux Compose correlation smoke.
+Pull-request review produced eight findings; each was fixed or documented as a false positive, replied to and
+resolved before the decision. The exact source snapshot passed all required GitHub jobs.
+
+The evidence commit that records this decision changes documentation only. It still requires the same GitHub and
+review gate before Phase 01 begins.
+
+## Evidence pages
+
+- [Baseline and preservation](baseline.mdx)
+- [Security review](security-review.mdx)
+- [Performance and local gate](performance.mdx)
+- [Failure and rollback](rollback.mdx)
+
+## Phase scope
+
+Phase 00 moves the current Discord gateway into `apps/gateway/`, preserves the module and command registry, introduces public shared packages and adds API, web, worker, realtime and Activity application boundaries. It adds bounded Compose deployment, migration startup checks and correlated service smoke. It does not complete the future module redesign, multiplayer, device verification, multi-instance web sessions or ingress management.
+
+## Current evidence status
+
+| Evidence | State |
+| --- | --- |
+| Historical migration path and checksum preservation | Passed locally and in Linux migration/rollback jobs |
+| Command/module/event parity | Passed with network blocked: 47 commands, 42 modules and 48 events |
+| PostgreSQL/Redis worker restart and duplicate delivery | Passed locally and in GitHub service integration |
+| Fixture OAuth with persisted database rows | Passed in Chromium, Firefox and WebKit on GitHub |
+| Linux Compose migration and correlated service smoke | Passed locally and in GitHub Compose smoke |
+| Frozen install, generation, boundaries, typecheck, lint, unit tests and build | Passed locally; exact-source GitHub `check` job passed |
+| Prior-image rollback rehearsal | Passed in GitHub Compose smoke without a down migration |
+| Six image targets | Passed for gateway, API, workers, web, realtime and Activity |
+| Dependency review, secret scan, SBOM and CodeQL | Passed on the exact source snapshot |
+| Independent review and local/remote SHA equality | Eight threads resolved; source snapshot hashes matched |
+
+## GitHub evidence
+
+- [CI run 39288879824](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879824): main check,
+  PostgreSQL/Redis service integration and Chromium, Firefox and WebKit browser smoke passed.
+- [Service and image integration run 39288879890](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879890):
+  Compose migration, correlated smoke, prior-image rollback and all six image targets passed.
+- [Security and software inventory run 39288879807](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879807):
+  dependency review, secret scan and SBOM passed.
+- [CodeQL run 39288879859](https://github.com/AstorisTheBrave/Rostra/actions/runs/39288879859):
+  JavaScript and TypeScript analysis passed.
+
+## References
+
+The [deployment runbook](../../runbooks/deployment.mdx) and [recovery runbook](../../runbooks/recovery.mdx) describe operator steps. This report records evidence and limitations; it does not replace those procedures.

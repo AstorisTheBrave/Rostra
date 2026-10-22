@@ -13,9 +13,9 @@ and never reveals what runs underneath.
 ## technical map
 
 **file paths**
-- command: `src/modules/ai/index.ts` (`/ask <question>`)
-- backend call + persona + sanitizer: `src/modules/ai/service.ts` (+ `service.test.ts`)
-- config: `src/config.ts` → `config.ai` (`AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` - neutral env names)
+- command: `modules/ai/index.ts` (`/ask <question>`)
+- backend call + persona + sanitizer: `modules/ai/service.ts` (+ `service.test.ts`)
+- config: `packages/config/src/index.ts` → `config.ai` (`AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` - neutral env names)
 
 **exports (service.ts)** - `ask(prompt)` (single-turn chat call), `sanitizeReply(text)`,
 `AssistantNotConfiguredError`.

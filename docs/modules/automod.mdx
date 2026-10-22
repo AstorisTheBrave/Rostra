@@ -1,4 +1,5 @@
 ---
+title: Auto-moderation module
 last-updated: 2026-06-07
 owner: AstorisTheBrave
 status: stable
@@ -14,11 +15,11 @@ their own **custom rules** (keyword / wildcard / regex with a per-rule action).
 ## technical map
 
 **file paths**
-- command + messageCreate guard: `src/modules/automod/index.ts`
-- detection logic + config + enforcement + rule CRUD: `src/modules/automod/service.ts`
-- pure detectors: `src/modules/automod/checks.ts` (+ `checks.test.ts`)
-- pure custom-rule engine: `src/modules/automod/rules.ts` (+ `rules.test.ts`)
-- models: `prisma/schema.prisma` → `AutomodConfig`, `AutomodRule`
+- command + messageCreate guard: `modules/automod/index.ts`
+- detection logic + config + enforcement + rule CRUD: `modules/automod/service.ts`
+- pure detectors: `modules/automod/checks.ts` (+ `checks.test.ts`)
+- pure custom-rule engine: `modules/automod/rules.ts` (+ `rules.test.ts`)
+- models: `packages/database/prisma/schema.prisma` → `AutomodConfig`, `AutomodRule`
 
 **command** - `/automod` (Manage Server): `enable`, `disable`, `status`, `action <delete|warn|timeout>`,
 `module <name> <bool>`, `limits [spam_count] [mention_limit] [caps_percent] [timeout_minutes]`,
@@ -46,6 +47,11 @@ guard, respecting the same exempt list, and `enforce(..., rule.action)` applies 
   `@/utils/components`
 
 ## gotchas
+
+- Persisted config and custom-rule lists use versioned tenant invalidation after a committed
+  write, with a five-minute local TTL if Redis delivery fails. Spam buckets remain local.
+- The setup provisioner returns its config write's publication outcome. A saved feature flag
+  and a delayed automod config invalidation produce a partial-setup warning in the wizard.
 
 - Requires the **Message Content** intent (enabled on the bot) to read message text.
 - The `bad-words` `Filter` is cached per guild and rebuilt when config changes (custom words added).

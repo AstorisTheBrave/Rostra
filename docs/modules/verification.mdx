@@ -1,10 +1,14 @@
 ---
-last-updated: 2026-06-07
+last-updated: 2026-10-21
 owner: AstorisTheBrave
 status: stable
 ---
 
 ## what this is
+
+The `verify_kick` task is claimed by workers and handled on the owning gateway. Its stored guild and
+member IDs are validated before use; a confirmed absent member or a member who verified is a safe
+success, while Discord and storage failures retry.
 
 A verification gate: post a panel with a Verify button, and members who click it get a "verified" role
 that unlocks the server. Adapted from YAGPDB's verification feature, button-based (no web captcha).
@@ -13,10 +17,10 @@ Optionally adds a quick math captcha before granting and auto-kicks members who 
 ## technical map
 
 **file paths**
-- command + verify button handler: `src/modules/verification/index.ts`
-- auto-kick scheduling + handler: `src/modules/verification/events.ts`
-- captcha generator (pure): `src/modules/verification/captcha.ts` (+ `captcha.test.ts`)
-- cached config: `src/modules/verification/service.ts`
+- command + verify button handler: `modules/verification/index.ts`
+- auto-kick scheduling + handler: `modules/verification/events.ts`
+- captcha generator (pure): `modules/verification/captcha.ts` (+ `captcha.test.ts`)
+- cached config: `modules/verification/service.ts`
 - model: `VerificationConfig` (adds `captcha`, `kickAfterMin`)
 
 **command** - `/verification setup <role>` · `panel` · `captcha <enabled>` · `autokick <minutes>` (0 = off)
@@ -31,6 +35,9 @@ task (`registerTaskHandler` in index). On fire it kicks the member only if they 
 so verifying in time (or a config change) is self-cancelling - no task id bookkeeping needed.
 
 ## gotchas
+
+- Config misses read PostgreSQL directly. Committed writes publish a versioned tenant
+  invalidation; the bounded local cache expires within five minutes if delivery fails.
 
 - The bot needs Manage Roles and the verified role must sit below the bot's highest role. Auto-kick also
   needs Kick Members; non-kickable members are skipped.

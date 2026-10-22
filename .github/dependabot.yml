@@ -1,8 +1,15 @@
 version: 2
 updates:
-  # npm dependencies
+  # pnpm workspaces use Dependabot's npm ecosystem and one root lockfile.
   - package-ecosystem: npm
-    directory: "/"
+    directories:
+      - "/"
+      - "/apps/*"
+      - "/packages/*"
+      - "/modules/*"
+      - "/integrations/*"
+      - "/games/*"
+      - "/tooling/*"
     schedule:
       interval: weekly
       day: monday

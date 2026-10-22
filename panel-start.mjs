@@ -1,7 +1,7 @@
 // Launcher for game-panel hosts (Pterodactyl, Ori Host, and similar) whose egg runs
 // `node <MAIN_FILE>` against a freshly cloned repo. Set the panel's MAIN_FILE to
 // `panel-start.mjs`. This is NOT needed for Docker or a normal VPS; those use
-// `npm start` (`tsx src/cluster.ts`) directly.
+// `pnpm start` (`tsx apps/gateway/src/cluster.ts`) directly.
 //
 // It solves the three things those panels get wrong for a TypeScript, tsx-run project:
 //   1. Secrets: panels often expose no way to add custom env vars, so we load a `.env`
@@ -50,7 +50,7 @@ try {
 //    shuts down cleanly when the panel stops the server.
 process.env.TSX_TSCONFIG_PATH = fileURLToPath(new URL("./tsconfig.json", import.meta.url));
 
-const child = spawn("npx", ["tsx", "src/cluster.ts"], {
+const child = spawn("npx", ["tsx", "apps/gateway/src/cluster.ts"], {
 	stdio: "inherit",
 	env: process.env,
 });

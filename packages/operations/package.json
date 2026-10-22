@@ -1,0 +1,25 @@
+{
+	"name": "@rostra/operations",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"build": "tsc --noEmit",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check src package.json tsconfig.json",
+		"test": "node --import tsx --test --test-concurrency=2 \"src/**/*.test.ts\"",
+		"test:integration": "node --import tsx --test --test-concurrency=1 \"src/**/*.service.ts\""
+	},
+	"dependencies": {
+		"@rostra/database": "workspace:*",
+		"bullmq": "^5.79.2"
+	},
+	"devDependencies": {
+		"@types/node": "^26.1.0",
+		"tsx": "^4.23.0",
+		"typescript": "^7.0.2"
+	}
+}

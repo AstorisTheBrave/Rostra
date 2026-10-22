@@ -4,6 +4,14 @@ All notable changes to Rostra are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Documentation
+
+- Rewrote the README and workspace maps around the current product, ownership boundaries and tested limitations.
+- Added capability and roadmap pages plus a Phase 00 evidence report with local and remote verification states.
+- Updated contributor, environment, stack and stale module/wiki path references for the pnpm workspace.
+
 ## [0.1.2](https://github.com/AstorisTheBrave/Rostra/compare/v0.1.1...v0.1.2) (2026-06-13)
 
 

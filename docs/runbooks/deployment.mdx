@@ -1,0 +1,113 @@
+---
+title: Container deployment
+last-updated: 2026-10-18
+owner: AstorisTheBrave
+status: in-flux
+---
+
+# Container deployment
+
+The supported Compose control plane is under `infra/compose/`. The default profile runs PostgreSQL,
+Redis, gateway, API, workers and web. Realtime and Activity start only with their explicit profiles.
+Lavalink is not part of the default deployment. PostgreSQL and Redis keep named volumes; Redis uses
+append-only persistence, `everysec` fsync and `noeviction`. Each service has a CPU and memory limit.
+
+## Development on one host
+
+Create a local environment file and set at least `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`,
+`DISCORD_CLIENT_SECRET`, `INTERNAL_API_TOKEN` and a random `WEB_SESSION_SECRET` of 32 or more
+characters. Use a direct PostgreSQL URL. Do not reuse production credentials in development.
+
+```sh
+cp .env.example .env
+docker compose --env-file .env \
+  -f infra/compose/compose.yml \
+  -f infra/compose/compose.dev.yml \
+  config --quiet
+docker compose --env-file .env \
+  -f infra/compose/compose.yml \
+  -f infra/compose/compose.dev.yml \
+  up -d --build
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.dev.yml ps
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.dev.yml logs -f api workers gateway
+```
+
+The dev overlay publishes PostgreSQL and Redis on loopback for local tools. Web is also bound to
+loopback by the base profile so a local reverse proxy can serve it. The API is bound to
+`127.0.0.1:3001` so a passive reverse proxy can route the external `POST /votes/topgg` webhook to
+`http://127.0.0.1:3001/votes/topgg`; keep all other API paths off public ingress. No database or Redis
+port is published by the VPS profile.
+
+Worker port `3005` is exposed only inside the Compose network. Its `/health/live` and
+`/health/ready` routes return status only. Readiness requires working PostgreSQL and Redis
+probes and recent successful outbox and scheduled-task polls. The gateway's `/health` and API
+`/health/live` and `/health/ready` routes are also detail-free. Send the configured
+`INTERNAL_API_TOKEN` as a bearer token only over the private host network to read gateway
+`/internal/health/shards` and `/internal/metrics`, API `/internal/v1/diagnostics`, or worker
+`/internal/diagnostics`. Worker diagnostics include the process event-loop delay p95 in
+milliseconds, sampled from Node's event-loop histogram since worker start, plus the last
+observed operation queue lag. Do not route these paths through public ingress.
+
+## VPS deployment
+
+Use the reviewed commit's full SHA tag from the image workflow, and set the image prefix to the
+lowercase GHCR owner/repository. Store `.env` with restricted file permissions. Set strong values for
+`POSTGRES_PASSWORD`, `INTERNAL_API_TOKEN` and `WEB_SESSION_SECRET`, and supply the Discord credentials
+only to gateway/web as listed in Compose.
+
+Compose forwards owner, development-guild, sharding, assistant, Lavalink, statistics-posting and
+Twitch settings only to the gateway. `TOPGG_WEBHOOK_AUTH` is sent only to the API, which owns
+`POST /votes/topgg`; the gateway never receives that webhook secret. Configure the external reverse
+proxy or tunnel to send that exact path to the loopback API endpoint above, and send normal web traffic
+to `127.0.0.1:3002`. Compose does not configure or manage the ingress provider.
+
+```sh
+docker compose --env-file .env \
+  -f infra/compose/compose.yml \
+  -f infra/compose/compose.vps.yml \
+  config --quiet
+docker compose --env-file .env \
+  -f infra/compose/compose.yml \
+  -f infra/compose/compose.vps.yml \
+  pull
+docker compose --env-file .env \
+  -f infra/compose/compose.yml \
+  -f infra/compose/compose.vps.yml \
+  up -d --no-build
+```
+
+The image workflow publishes separate gateway, API, worker, web, realtime and Activity images. The web
+image builds its Vite bundle during image construction, so no host-generated output is needed. Set
+`ROSTRA_IMAGE_TAG=sha-<full-40-character-commit>` to pin one reviewed build. Do not deploy a floating
+`latest`, `main` or `dev` tag. The Compose migration command uses the direct PostgreSQL URL. This
+control plane does not configure PgBouncer or another pooler for migrations. Keep the reverse proxy or
+tunnel passive: point it at the loopback web port, terminate TLS there, and do not grant Rostra
+ingress-provider control-plane credentials.
+
+To enable an optional runtime, add only its profile and provide the shared session secret:
+
+```sh
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.vps.yml --profile realtime up -d realtime
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.vps.yml --profile activity up -d activity
+```
+
+These profiles expose authenticated scaffolds. They do not claim multiplayer or device verification.
+
+## Startup and shutdown
+
+Every app container runs `infra/start-app.sh`, which calls `infra/migrate.sh` before `exec` of the app.
+Migration retries are bounded by `MIGRATION_ATTEMPTS` (default 12) and
+`MIGRATION_RETRY_SECONDS` (default 5). If all attempts fail, the script returns the last Prisma exit
+code and does not start the app. Compose waits for PostgreSQL health; Prisma migration advisory locks
+serialize app starts. The shell uses `exec`, so SIGTERM and the application exit code reach the real
+process. Do not use a pooled connection for migration deployment.
+
+Inspect startup failures with `docker compose logs --tail=200 <service>`. Stop app services to drain
+them while leaving storage running:
+
+```sh
+docker compose --env-file .env -f infra/compose/compose.yml -f infra/compose/compose.vps.yml stop web gateway workers realtime activity api
+```
+
+Do not use `down --volumes` during deployment or routine shutdown. It removes the Postgres and Redis
+data volumes.

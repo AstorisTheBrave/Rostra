@@ -1,33 +1,38 @@
-# Rostra - all-in-one Discord bot
-FROM node:22-alpine
-
+FROM node:22-alpine AS runtime
 WORKDIR /app
-
-# Fonts for @napi-rs/canvas text rendering (profile cards). Alpine ships no fonts
-# by default, so canvas would draw blank text without these.
-RUN apk add --no-cache fontconfig font-dejavu
-
-# Install dependencies (tsx is a runtime dependency - the bot runs TypeScript directly)
-COPY package.json package-lock.json ./
-RUN npm ci
-
-# Generate the Prisma client (Prisma 7 reads the datasource via prisma.config.ts).
-# generate is offline, so a placeholder URL satisfies the strict env() check at build
-# time; the real DATABASE_URL is supplied at runtime for migrate deploy and the app.
-COPY prisma ./prisma
-COPY prisma.config.ts ./
-RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" npx prisma generate
-
-# App source
-COPY . .
-
-# Startup script: run migrations, then start. Makes `docker compose up` turnkey.
-RUN chmod +x docker-entrypoint.sh
-
+RUN apk add --no-cache fontconfig font-dejavu \
+	&& npm install --global corepack@0.35.0 \
+	&& corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tooling/biome/package.json ./tooling/biome/package.json
+COPY packages ./packages
+COPY apps ./apps
+COPY modules ./modules
+COPY games ./games
+COPY tooling ./tooling
+COPY infra ./infra
+COPY prisma.config.ts turbo.json tsconfig.json tsconfig.base.json biome.json ./
+RUN chmod +x /app/infra/*.sh
+RUN pnpm install --frozen-lockfile
+RUN pnpm prisma:generate
 ENV NODE_ENV=production
+ENTRYPOINT ["/app/infra/start-app.sh"]
 
-# Health endpoint port
-EXPOSE 3000
+FROM runtime AS gateway
+CMD ["pnpm", "start"]
 
-# Apply migrations, then the manager process spawns shards.
-ENTRYPOINT ["./docker-entrypoint.sh"]
+FROM runtime AS api
+CMD ["pnpm", "start:api"]
+
+FROM runtime AS workers
+CMD ["pnpm", "start:workers"]
+
+FROM runtime AS web
+RUN pnpm --filter @rostra/web build
+CMD ["pnpm", "start:web"]
+
+FROM runtime AS realtime
+CMD ["pnpm", "start:realtime"]
+
+FROM runtime AS activity
+CMD ["pnpm", "start:activity"]

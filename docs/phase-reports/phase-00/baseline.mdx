@@ -1,0 +1,52 @@
+---
+title: Baseline and preservation
+last-updated: 2026-10-19
+owner: AstorisTheBrave
+status: pass
+---
+
+# Phase 00 baseline and preservation
+
+## Starting point
+
+- Phase branch: `sd/revamp`
+- Task 8 starting commit: `d8d1076d3155c4b19a47018dc095470e2c0ce8cb`
+- Preserved pre-revamp rollback baseline: `6a7e5ecf03be068c3f3cb3cc4b14a45dae543925`
+- Historical migration directories at the Task 7 boundary: 11
+- Current compatibility inventory: 42 modules, 47 command definitions and 48 events
+
+The inventory numbers come from checked fixtures and snapshot tooling. They establish parity with the recorded pre-move registry; they do not assert that each capability has a live production deployment.
+
+## Ownership move map
+
+| Previous responsibility | Current owner | Evidence or limitation |
+| --- | --- | --- |
+| Discord runtime | `apps/gateway/` | Compatibility adapter keeps existing modules loadable. |
+| Feature folders | `modules/<name>/` | 42 module IDs match the recorded fixture. |
+| Shared config, database, cache, logger, i18n and Discord UI | `packages/` | Public exports and package boundary checks. |
+| API and webhook boundary | `apps/api/` | Authenticated and scope-checked routes. |
+| Durable queue consumers | `apps/workers/` | PostgreSQL intent, Redis delivery, claim fencing and tracked drain. |
+| Web shell and typed domain reads | `apps/web/`, `packages/web-client/`, `packages/web-ui/` | Fixture OAuth and a real typed API against persisted rows. |
+| Optional realtime and Activity seams | `apps/realtime/`, `apps/activity/` | Auth scaffolds only; disabled by default. |
+| Database schema and migration history | `packages/database/prisma/` | Historical paths and bytes remain checked; new migrations are additive. |
+| Deployment, CI inputs and smoke tooling | `infra/`, `.github/workflows/`, `tooling/` | Exact-source CI, service, browser, rollback, image and security jobs passed. |
+
+## Preservation proof
+
+The Task 5 report records byte-level checks for historical migration files. Two forward-only migrations add durable operation records and claim fencing; the preserved baseline files are unchanged. Task 7's Linux API image applied all 11 current migrations from the internal PostgreSQL service, and migration status reported the schema up to date.
+
+Task 5 registry parity reported 47 commands, 42 modules and 48 events, with zero network attempts. The fixture tests compare normalized command data and the full module inventory. No real Discord login or command publication is part of these checks.
+
+Task 8 reran the local migration status, registry parity and service smoke from the unchanged implementation commit;
+exact results and durations are in [performance](performance.mdx). Source snapshot
+`fa2b3472432869e0402e941de190fdd45eccff42` then passed the complete GitHub matrix. This documentation-only
+decision record does not change the tested source inputs.
+
+## Service evidence carried forward
+
+- Task 5 exercised PostgreSQL 16 and Redis 7, forced one worker interruption, restarted the worker, and verified recovery with exactly one durable effect and two attempts. The report records claim-fencing and tenant-denial tests.
+- Task 6 ran the Chromium login and guild-selector smoke against the real web/API path, disposable PostgreSQL rows and fixture OAuth. It verified that an OAuth-visible but unconfigured guild was absent. GitHub repeated the browser smoke in Chromium, Firefox and WebKit.
+- Task 7 ran the Linux API image with all 11 migrations and a correlated API, Redis worker, PostgreSQL effect and typed web-client smoke. The network was internal and Discord credentials were fake. GitHub repeated the Compose smoke and started the prior image against the forward-migrated schema successfully.
+
+These reports describe earlier implementation commits and are supplemented by the exact-source GitHub runs listed
+in the [index](index.mdx). See that page for the overall PASS decision.

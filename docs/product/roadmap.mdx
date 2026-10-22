@@ -1,0 +1,51 @@
+---
+title: Roadmap
+last-updated: 2026-10-22
+owner: AstorisTheBrave
+status: in-flux
+---
+
+# Roadmap
+
+Rostra is developed in reviewed slices. This roadmap describes direction, not a release promise. Work begins only after the current phase has the evidence and review it requires.
+
+## Phase 00: workspace and service boundaries
+
+This completed slice moved the existing Discord runtime into a workspace, added API, web, worker, realtime and
+Activity boundaries, and documented deployment and recovery. Local and GitHub evidence is recorded in the
+[Phase 00 report](../phase-reports/phase-00/index.mdx). The source snapshot passed review, matching local/remote hash
+verification and every required CI, browser, service, rollback, image and security job.
+
+## Phase 01: platform core
+
+Phase 01 replaces temporary module discovery and closes the adjacent platform contracts that make the module runtime
+safe: current tenant capabilities, deterministic manifests and lifecycle ownership, versioned events and cache
+invalidation, transactional outbox delivery, fenced durable scheduling and truthful operational diagnostics. Existing
+command and behavior fixtures remain compatibility gates. Phase 01 passed its exact-candidate workflows and final
+review/security sweep on 2026-10-22. Follow the
+[Phase 01 evidence index](../phase-reports/01-platform-core/index.mdx) and the executable
+[platform core plan](../superpowers/plans/2026-10-19-phase-01-platform-core.md).
+
+## Phase R: Rostra-wide rate limits, retries and backpressure
+
+After the platform core is proved, a dedicated cross-cutting phase will classify every interaction,
+internal client, external adapter, scheduled task, bulk action and durable job. Rostra will own distributed
+admission, tenant fairness, bounded concurrency and retry policy around that work. Fastify remains responsible for
+inbound HTTP throttling, and upstream SDKs such as Discord's REST manager retain their protocol-specific bucket
+handling.
+
+The phase uses PostgreSQL for durable retry intent and Redis for short-lived budgets and leases. It honors upstream
+reset hints, uses capped full-jitter backoff, never retries permanent failures, and requires idempotency or outcome
+reconciliation before retrying a mutation. CI will reject new unclassified server-side network callers and prove
+`429`, timeout, Redis-restart, duplicate-delivery, tenant-fairness and shutdown behavior against disposable services.
+The executable plan is [Rostra-wide resilience phase](../superpowers/plans/2026-10-19-rostra-resilience-phase.md).
+
+## Deeper product work
+
+Future slices can improve individual modules, authorization coverage, operations and the web experience. Each capability needs its own scope, security review and test evidence before it is described as shipped. Realtime rooms, multiplayer games, verified devices, multi-instance web sessions and automated ingress management are not current capabilities.
+
+## How priorities change
+
+Correctness and tenant isolation come first, followed by least privilege and recovery. Performance claims need measurements on a defined workload. Structure and feature depth follow those constraints. Community feedback and evidence from real usage can change priorities; no schedule or completion date is promised here.
+
+For present-tense capability labels, see [capability status](capability-status.mdx).

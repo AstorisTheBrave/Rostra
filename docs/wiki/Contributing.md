@@ -1,22 +1,25 @@
 # Contributing
 
+This wiki page is a short overview. The repository [CONTRIBUTING.md](../../CONTRIBUTING.md) is the canonical setup and workflow guide for the current workspace.
+
 Thanks for wanting to help. This page is a quick map of the project for code contributors.
 
 ## Tech stack
 
-Node.js 20+, TypeScript (strict, no `any`), discord.js v14, Prisma with PostgreSQL, Redis, Pino, Zod,
+Node.js matching `engines.node` in `package.json`, TypeScript (strict, no `any`), discord.js v14, Prisma with PostgreSQL, Redis, Pino, Zod,
 Fastify, and Biome for lint and format. ESM only.
 
 ## Project shape
 
-- `src/modules/<name>/` is one self contained feature, exporting commands, events, interactions, jobs, and
+- `modules/<name>/` is one self contained feature, exporting commands, events, interactions, jobs, and
   i18n. Modules do not import each other's internals, only shared services, utils, and types.
-- `src/services/` holds the platform: database, cache, the localization service, the control bus, feature
+- `apps/gateway/src/services/` holds gateway-only runtime services; shared config, database, cache,
+  logging, localization and Discord UI live in public `packages/`.
   flags, leader election, and the scheduler.
-- `src/ui/` is the single source of truth for the interface. All UI is built from here using Components V2;
+- `@rostra/discord-ui` is the single source of truth for the interface. All UI uses Components V2;
   modules never build raw discord.js components.
-- `src/i18n/` is the localization engine. Every user facing string goes through the `t()` helper.
-- `prisma/schema.prisma` is the data model.
+- `@rostra/i18n` is the localization engine. Every user facing string goes through the `t()` helper.
+- `packages/database/prisma/schema.prisma` is the data model.
 
 ## Conventions
 
@@ -29,21 +32,28 @@ Fastify, and Biome for lint and format. ESM only.
 ## Local development
 
 ```bash
-npm install
+corepack enable
+pnpm install --frozen-lockfile
 cp .env.example .env
-npx prisma migrate deploy
-npm run dev
+pnpm prisma:generate
+pnpm prisma:migrate
+pnpm dev
 ```
+
+Use Corepack 0.35.0 and the repository's pinned pnpm version. Keep the single frozen lockfile and
+workspace overrides. The root [CONTRIBUTING.md](https://github.com/AstorisTheBrave/Rostra/blob/main/CONTRIBUTING.md)
+is the canonical setup guide.
 
 Before opening a pull request:
 
 ```bash
-npm run typecheck
-npm run lint:fix
-npm run test:env
+pnpm check:boundaries
+pnpm typecheck
+pnpm lint
+pnpm test:env
 ```
 
-All three must pass. Add a `*.test.ts` next to any pure logic you write.
+All four must pass. Add a `*.test.ts` next to any pure logic you write.
 
 ## How to add a feature behind a flag
 

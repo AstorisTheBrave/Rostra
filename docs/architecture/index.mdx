@@ -1,53 +1,113 @@
 ---
-last-updated: 2026-06-05
+title: Architecture map
+last-updated: 2026-10-22
 owner: AstorisTheBrave
 status: in-flux
 ---
 
-## what this is
+# Architecture map
 
-How Rostra's pieces fit together: how it scales across shards, how a slash command flows from a user to
-a database and back, and how the optional services (Redis, top.gg, Lavalink) plug in. The full design
-lives in `docs/superpowers/specs/2026-06-05-unified-bot-core-platform-design.md`.
+Rostra keeps the established Discord bot working while separating shared code and service responsibilities into a workspace. The current map describes what exists in this checkout, not a claim that every planned boundary is complete. Decision [011](decisions/011-revamp-contract.mdx) defines the ownership and security rules.
 
-## technical map
+## Runtime layout
 
-**process topology (target - runtime layer, not yet built)**
+```text
+Discord
+  -> apps/gateway/ -> modules/* -> @rostra/{database,cache,logger,i18n,discord-ui}
+                           |
+                           +-> API fanout for domain operations
+
+Web browser -> apps/web/ -> @rostra/web-client -> apps/api/
+                                         |             |
+                                         |             +-> PostgreSQL durable intent
+                                         |                       |
+                                         +-----------------------+-> Redis delivery
+                                                                   -> apps/workers/
+
+Optional: apps/realtime/ and apps/activity/ (authenticated, disabled by default)
 ```
-cluster.ts (manager)
-  ├─ ShardingManager (auto shards, respawn)
-  ├─ Fastify: /health, /health/shards, /metrics, /votes/topgg
-  ├─ top.gg autoposter (aggregates guild count across shards via IPC, then posts)
-  └─ N × bot.ts (one BotClient per shard)
-        ├─ loaders: commands, events, interactions, jobs (auto-discover src/modules/*)
-        ├─ services: getPrisma(), getCache(), getLogger(), createIpc(client)
-        └─ BullMQ workers (in-process; splittable later)
-```
 
-**sharding / IPC** - `src/cluster/ipc.ts` defines an `Ipc` interface (`broadcast`, `fetchValues`).
-Today it's `NativeIpc` (discord.js `broadcastEval`). Switching to `discord-hybrid-sharding` later is a
-`SHARDING_MODE=hybrid` config change + a `HybridIpc` class - modules never touch the sharding lib.
+The web server does not connect to PostgreSQL. It issues a short-lived read request for an exact service audience and guild scope. The API checks private operation capabilities against current persisted membership and tenant role grants for that subject and guild. The read-only configured-status summary keeps the signed exact-guild read check. PostgreSQL is the durable source of operation intent. Redis delivery is at least once, so operation handlers are idempotent and claims fence stale workers.
 
-**command flow (target)**
-1. User runs `/mod ban …` → `interactionCreate` on a shard.
-2. Pipeline: resolve command → permission guard → cooldown (Redis bucket) → Zod-validate options →
-   `execute(ctx)` inside an error boundary.
-3. Handler uses `getPrisma()` for data, `getCache()`/`getRedis()` for hot data, and replies via
-   `src/utils/components.ts` (Components V2).
-4. Errors → ephemeral V2 error message + structured Pino log with a trace id.
+## Workspace ownership
 
-**command namespacing** - ~16–18 top-level commands (`/mod`, `/economy`, `/ticket`, …) each holding
-subcommand groups/subcommands, to stay under Discord's 100-global-command cap. Map is in the spec §8.
+| Path | Responsibility |
+| --- | --- |
+| `apps/gateway/` | Discord sharding, interaction acknowledgement, routing and event fanout |
+| `apps/api/` | Authenticated, validated domain routes, health and webhook boundaries |
+| `apps/web/` | OAuth flow and public/member/admin/operator route groups using the typed API |
+| `apps/workers/` | Durable queue consumers, reconciliation and graceful drain |
+| `apps/realtime/` | Optional authorized realtime connection seam |
+| `apps/activity/` | Optional embedded Discord client with its own origin and auth boundary |
+| `modules/` | Existing feature behavior and tests, loaded through a compatibility adapter |
+| `packages/` | Shared services, public contracts and explicit package exports |
+| `integrations/` | Authorized external-service adapters |
+| `games/` | Pure game contracts and implementations |
+| `infra/` | Compose profiles, containers and recovery/deployment tooling |
+| `tooling/` | Workspace, boundary, parity and smoke checks |
 
-**data** - one Postgres schema (`prisma/schema.prisma`) merges all 15 bots' storage. Redis holds
-leaderboards (sorted sets), hot config cache, rate limits, and job queues.
+The checked-in registry validates and orders 42 modules. Fixtures preserve 47 command definitions and 48 events from the recorded baseline. The registry currently declares no module-owned durable queue handlers; workers own the active queue runtime. See [module registry](module-registry.mdx) for its manifest, lifecycle and compatibility contracts.
 
-**depends on**
-- `src/config.ts` - every subsystem reads typed config from here
-- `src/services/*` - shared singletons used everywhere
+Persisted guild configuration and user preferences use [versioned cache invalidation](cache-coherence.mdx).
+The owning write advances a PostgreSQL revision in its transaction, then publishes a
+validated tenant-scoped invalidation. Persisted config and preference misses read PostgreSQL
+directly; local caches use a five-minute TTL when Redis delivery is unavailable.
 
-## gotchas
+## Shared authorities and imports
 
-- top.gg stats must be posted from the **manager** process (aggregate across shards), not per shard -
-  per-shard counts are partial.
-- Build order matters: foundation → runtime → feature modules (see `docs/sessions/log.mdx` and the spec).
+- `@rostra/config` reads runtime environment variables and exposes validated configuration.
+- `@rostra/database` constructs the single Prisma client and owns `packages/database/prisma/schema.prisma` plus migration history.
+- `@rostra/cache` owns cache, Redis access and pub/sub.
+- `@rostra/logger` provides structured logs and credential redaction.
+- `@rostra/i18n` owns translation contracts and locale entrypoints.
+- `@rostra/discord-ui` owns Components V2 and safe acknowledgement helpers.
+- `@rostra/contracts` owns shared job contracts.
+- `@rostra/module-sdk` owns module manifests, lifecycle types and the current legacy adapter.
+- `@rostra/auth` and `@rostra/operations` own authorization and durable operation contracts.
+- `@rostra/web-client` and `@rostra/web-ui` own the typed web API and accessible shared UI.
+- `@rostra/testing` provides isolated fixtures.
+
+Package exports point to ESM TypeScript source and use explicit export maps. New packages must not use the `@/` alias. The alias remains a temporary compatibility seam in `apps/gateway/src/` and `modules/` while legacy discovery is in use. Never reach into another package's private source.
+
+## Gateway and module flow
+
+The manager in `apps/gateway/src/cluster.ts` starts Discord shards and owns manager-level health and aggregate work. Each shard loads the explicit `modules/registry.ts` entries in dependency order, then registers commands, events and interactions. `@rostra/module-sdk` validates manifests and supervises lifecycle cancellation; the temporary adapter preserves current feature behavior.
+
+A slash interaction is acknowledged and routed through shared helpers. The handler checks permissions and validated options, performs feature work through public package owners, and returns Components V2 output with localized user-facing strings. Durable domain operations cross the gateway/API boundary; expensive work belongs in workers.
+
+Discord registration budgets are scoped by interaction type and registration scope. Global and per-guild chat-input limits are separate; context menus and Activity entrypoints have their own platform budgets. Reconciliation must account for each type and scope explicitly.
+
+## API, operations and workers
+
+The API exposes detail-free health routes, the authenticated vote webhook and internal operation routes. Public live/ready responses contain status only. Gateway and worker public health also contain status only; shard detail and process counters require the host bearer token. Worker readiness needs bounded PostgreSQL and Redis probes plus recent successful outbox and scheduler polls, and becomes unavailable during shutdown. Concurrent or timed-out readiness requests share at most one unresolved probe per dependency until its underlying work settles. Health Redis uses a dedicated connection with finite command and socket timeouts, no offline command queue and no unfinished-command replay; the worker closes it on shutdown and health-listener boot failure. Internal records are authorized against their stored scope: host principals can access host-scoped records, while guild principals need permission for the exact guild. Guessed or swapped tenant identifiers are denied without revealing another tenant's record.
+
+The API commits an operation record and outbox row in one PostgreSQL transaction. An optional domain mutation runs in that same transaction. Idempotency keys must match the stored kind, guild and payload. After commit, the API attempts delivery through the outbox claim; a Redis failure leaves retryable intent and still returns durable acceptance. API and worker producers use separate finite-failure Redis connections so unavailable delivery cannot indefinitely hold a request or shutdown; the BullMQ Worker connection retains its required retry policy. Before each claim poll, the tracked worker relay idempotently repairs a bounded batch of nonterminal operation records missing an outbox row, including records written by a rollback image after the migration ran. It then claims pending, retryable and expired outbox rows in bounded batches, publishes the existing deterministic BullMQ job ID, and fences settlement by the version returned from the claim transaction. The outbox retains published and failed-attempt evidence, and the relay exposes claimed, published and deferred counters for shutdown diagnostics. Workers separately claim operation execution and fence completion or failure. Their reconciler republishes retryable or expired operation execution only after the outbox records publication, and shutdown drains both tracked paths before disconnecting Redis.
+
+The current module inventory has no active BullMQ `JobDefinition` handlers. Five scheduled Discord task
+names are declared in the moderation, verification, security and tickets manifests. PostgreSQL owns
+their due time, attempt count, lease and claim version. A tracked worker poller claims at most 20 rows
+and publishes a strict version-1 task ID and claim version on the control bus. Owning gateway processes
+atomically accept a current claim before calling a module handler and fence completion or coded failure.
+Expired `claimed` or `processing` leases are reclaimed; terminal rows remain for inspection.
+
+## Web and optional apps
+
+The web login uses OAuth authorization code flow with signed state, PKCE, an opaque server-side session identifier and an HttpOnly SameSite=Lax cookie. The browser uses a typed API client for persisted, read-only guild summaries. Route guards provide navigation, while the API remains the authorization boundary.
+
+Browser smoke uses fixture OAuth with the real web/API path and disposable PostgreSQL guild rows. It verifies that an OAuth-visible guild with no persisted configuration is not fabricated in the result. OAuth guild permissions are navigation hints only; they do not mint admin capabilities. Sessions are currently stored in memory and expired entries are pruned when a new session is stored, so multiple web instances are not supported.
+
+## Guild authorization
+
+`@rostra/auth` defines the closed guild capability set: `guilds:read`, `guilds:admin`, `operations:read`, `operations:write`, `realtime:connect` and `activity:launch`. Signed principals reject other strings. The current-state resolver grants `guilds:read` for a persisted `GuildMember` row; stronger capabilities require a current `GuildMemberRole` assignment to a `GuildRole` with a matching `GuildCapabilityGrant`. The database ties assignments and grants to the same guild through composite foreign keys. Missing membership or grants deny private operation and admin capabilities. The existing configured-status summary is limited to a signed exact-guild `guilds:read` claim and a persisted guild row so existing web reads remain available without a membership synchronizer. API guild failures return the same 404 as missing records, including for host principals and swapped guild IDs. Realtime and Activity retain their separate audience and exact-guild checks.
+
+Realtime and Activity verify signed principals scoped to their own audience and exact guild permission. They are disabled in the default profile. Their health and auth tests do not establish multiplayer or device compatibility.
+
+## Database, migrations and deployment
+
+The schema and all migration directories live under `packages/database/prisma/`. Historical migration paths and bytes are checked. New schema work is additive and forward-only; a failed migration prevents startup. Every app container runs the migration entrypoint over a direct PostgreSQL connection before executing the app.
+
+The default Compose profile runs PostgreSQL, Redis, gateway, API, workers and web with bounded resources. The development overlay binds database and Redis ports to loopback. The VPS overlay pins immutable image tags and does not expose database ports. Realtime and Activity are opt-in. Redis uses append-only persistence and `noeviction`.
+
+The Linux Compose smoke applies all 15 migrations inside the API image, then verifies the gateway-owned API adapter, API intent, Redis delivery, one worker effect and typed web-client scope under one correlation ID. The test network is internal and fake Discord credentials cannot login or publish commands. The Phase 00 prior-image rollback rehearsal passed on the exact recorded remote commit. The Phase 01 gate also rehearses a real failed PostgreSQL migration and a stopped and replaced Redis server before the phase can pass.
+
+See [deployment](../runbooks/deployment.mdx), [recovery](../runbooks/recovery.mdx), [capability status](../product/capability-status.mdx), the [Phase 00 evidence index](../phase-reports/phase-00/index.mdx) and the [Phase 01 evidence index](../phase-reports/01-platform-core/index.mdx) for operational instructions and verification limits.

@@ -17,10 +17,10 @@ Starboard bot docs (cloned into `Archive/starboard-docs`).
 ## technical map
 
 **file paths**
-- command (board CRUD + edit + block/allow + autostar + override + leaderboard): `src/modules/starboard/index.ts`
-- reaction/autostar/delete engine + post builder: `src/modules/starboard/events.ts`
-- pure eligibility/appearance engine: `src/modules/starboard/eligibility.ts` (+ `eligibility.test.ts`)
-- board/override/autostar/entry data + pure helpers: `src/modules/starboard/service.ts`
+- command (board CRUD + edit + block/allow + autostar + override + leaderboard): `modules/starboard/index.ts`
+- reaction/autostar/delete engine + post builder: `modules/starboard/events.ts`
+- pure eligibility/appearance engine: `modules/starboard/eligibility.ts` (+ `eligibility.test.ts`)
+- board/override/autostar/entry data + pure helpers: `modules/starboard/service.ts`
   (+ `service.test.ts`, `decide.test.ts`)
 - models: `Starboard`, `StarboardEntry` (one per board+message), `StarboardOverride`, `AutostarChannel`
 
@@ -49,6 +49,9 @@ tested): `isAllowed` (blacklist/whitelist with user>role>channel specificity), `
 `tierEmoji`/`parseDisplayTiers`, `resolveSettings` (override inheritance).
 
 ## gotchas
+
+- Board, override and autostar lists use versioned tenant invalidation after committed
+  writes and a five-minute local TTL if Redis delivery fails.
 
 - A message can appear on multiple boards at once (one `StarboardEntry` per board+message). Routing is by
   emoji (per-board `emojis`/`downvoteEmojis`); role/channel routing is `authorRoleId`/`ignoredChannels`.

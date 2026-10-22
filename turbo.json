@@ -1,0 +1,89 @@
+{
+	"$schema": "https://turborepo.dev/schema.json",
+	"concurrency": "2",
+	"globalDependencies": [
+		"tsconfig*.json",
+		"tooling/typescript/*.json",
+		"biome.json",
+		"tooling/biome/biome.json"
+	],
+	"tasks": {
+		"@rostra/config#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/contracts#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/database#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/cache#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/logger#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/i18n#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/discord-ui#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/testing#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/module-sdk#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/auth#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/operations#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/web-client#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/web-ui#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/game-core#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/gateway#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/api#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/workers#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/realtime#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"@rostra/activity#build": { "dependsOn": ["^build", "//#prisma:generate"], "outputs": [] },
+		"build": {
+			"dependsOn": ["^build", "//#prisma:generate"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"!**/archive/**",
+				"!**/Archive/**",
+				"!**/.superpowers/**",
+				"!**/node_modules/**",
+				"!**/dist/**",
+				"!**/build/**",
+				"!**/coverage/**",
+				"!**/playwright-report/**",
+				"!**/test-results/**",
+				"!**/secrets/**",
+				"!**/.env*",
+				"!**/*.pem",
+				"!**/*.key"
+			],
+			"outputs": ["dist/**", "build/**"]
+		},
+		"typecheck": { "dependsOn": ["^typecheck", "//#prisma:generate"], "outputs": [] },
+		"lint": { "dependsOn": ["^lint"], "outputs": [] },
+		"test": {
+			"dependsOn": ["^build", "//#prisma:generate"],
+			"cache": false,
+			"passThroughEnv": [
+				"DISCORD_TOKEN",
+				"DISCORD_CLIENT_ID",
+				"DATABASE_URL",
+				"NODE_ENV",
+				"LOG_LEVEL"
+			],
+			"outputs": []
+		},
+		"test:integration": {
+			"dependsOn": ["^build", "//#prisma:generate"],
+			"cache": false,
+			"passThroughEnv": ["DATABASE_URL", "REDIS_URL", "NODE_ENV", "LOG_LEVEL"],
+			"outputs": []
+		},
+		"clean": { "cache": false, "outputs": [] },
+		"//#prisma:generate": {
+			"cache": false,
+			"inputs": ["packages/database/prisma/schema.prisma", "tooling/prisma-generate.config.ts"],
+			"outputs": []
+		},
+		"@rostra/gateway#test": {
+			"dependsOn": ["^build", "//#prisma:generate"],
+			"cache": false,
+			"passThroughEnv": [
+				"DISCORD_TOKEN",
+				"DISCORD_CLIENT_ID",
+				"DATABASE_URL",
+				"NODE_ENV",
+				"LOG_LEVEL"
+			],
+			"outputs": []
+		}
+	}
+}

@@ -13,9 +13,9 @@ minimum leveling level, and/or minimum account age.
 ## technical map
 
 **file paths**
-- command + enter button + scheduler: `src/modules/giveaways/index.ts`
-- persistence + winner draw: `src/modules/giveaways/service.ts` (+ `service.test.ts`)
-- model: `prisma/schema.prisma` → `Giveaway`
+- command + enter button + scheduler: `modules/giveaways/index.ts`
+- persistence + winner draw: `modules/giveaways/service.ts` (+ `service.test.ts`)
+- model: `packages/database/prisma/schema.prisma` → `Giveaway`
 
 **command** - `/giveaway` (Manage Server for start/end/reroll; list open): `start <duration> <prize>
 [winners] [required_role] [required_level] [min_account_days]`, `end <id>`, `reroll <id>`, `list`.

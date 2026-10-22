@@ -1,0 +1,1058 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Guild {
+  id        String   @id
+  prefix    String?
+  locale    String   @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  modules   GuildModuleConfig[]
+  members   GuildMember[]
+  roles     GuildRole[]
+}
+
+model GuildRole {
+  id           String                @id @default(cuid())
+  guildId      String
+  name         String
+  guild        Guild                 @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  grants       GuildCapabilityGrant[]
+  assignments  GuildMemberRole[]
+
+  @@unique([guildId, id])
+  @@unique([guildId, name])
+  @@index([guildId])
+}
+
+model GuildCapabilityGrant {
+  guildId    String
+  roleId     String
+  capability String
+  role       GuildRole @relation(fields: [guildId, roleId], references: [guildId, id], onDelete: Cascade)
+
+  @@id([guildId, roleId, capability])
+}
+
+model GuildMemberRole {
+  guildId  String
+  memberId String
+  roleId   String
+  member   GuildMember @relation(fields: [guildId, memberId], references: [guildId, id], onDelete: Cascade)
+  role     GuildRole   @relation(fields: [guildId, roleId], references: [guildId, id], onDelete: Cascade)
+
+  @@id([guildId, memberId, roleId])
+  @@index([guildId, roleId])
+}
+
+model GuildModuleConfig {
+  id       String  @id @default(cuid())
+  guildId  String
+  module   String
+  enabled  Boolean @default(true)
+  settings Json    @default("{}")
+  guild    Guild   @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, module])
+  @@index([guildId])
+}
+
+model User {
+  id        String        @id
+  createdAt DateTime      @default(now())
+  members   GuildMember[]
+  votes     UserVote[]
+}
+
+model GuildMember {
+  id      String @id @default(cuid())
+  guildId String
+  userId  String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roles   GuildMemberRole[]
+
+  @@unique([guildId, id])
+  @@unique([guildId, userId])
+  @@index([guildId])
+  @@index([userId])
+}
+
+model Blacklist {
+  id        String   @id @default(cuid())
+  targetId  String   @unique
+  scope     String // "user" | "guild"
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model UserVote {
+  id        String   @id @default(cuid())
+  userId    String
+  votedAt   DateTime @default(now())
+  isWeekend Boolean  @default(false)
+  source    String   @default("topgg")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model OwnerAudit {
+  id        String   @id @default(cuid())
+  ownerId   String
+  action    String
+  detail    Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+}
+
+// ── Moderation ──────────────────────────────────────────────────────────────
+
+/// A single moderation action. Warnings (type="warn") and notes (type="note")
+/// share this table with infractions (ban/kick/timeout/untimeout/unban).
+model ModerationCase {
+  id          String   @id @default(cuid())
+  guildId     String
+  caseNumber  Int
+  type        String // ban | kick | timeout | untimeout | unban | warn | note
+  targetId    String
+  moderatorId String
+  reason      String?
+  durationMs  Int?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([guildId, caseNumber])
+  @@index([guildId, targetId])
+  @@index([guildId, type])
+}
+
+/// Per-guild monotonically increasing case counter.
+model GuildCaseCounter {
+  guildId String @id
+  count   Int    @default(0)
+}
+
+// ── Security / Antinuke ──────────────────────────────────────────────────────
+
+/// Per-guild antinuke configuration. Absent row = antinuke not set up (disabled).
+model AntinukeConfig {
+  guildId         String   @id
+  enabled         Boolean  @default(false)
+  punishment      String   @default("ban") // ban | kick | strip
+  logChannelId    String?
+  notifyOwner     Boolean  @default(true)
+  antiBan         Boolean  @default(true)
+  antiKick        Boolean  @default(true)
+  antiBotAdd      Boolean  @default(true)
+  antiChannel     Boolean  @default(true)
+  antiRole        Boolean  @default(true)
+  antiWebhook     Boolean  @default(true)
+  antiGuildUpdate Boolean  @default(true)
+  antiRaid        Boolean  @default(false) // join-flood lockdown
+  raidThreshold   Int      @default(10) // joins...
+  raidWindowSec   Int      @default(10) // ...within this many seconds triggers lockdown
+  raidLockMinutes Int      @default(10) // auto-lift after this long
+  extraOwners     String[] @default([])
+  whitelist       String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ── Automod ──────────────────────────────────────────────────────────────────
+
+/// Per-guild auto-moderation configuration.
+model AutomodConfig {
+  guildId         String   @id
+  enabled         Boolean  @default(false)
+  logChannelId    String?
+  antiInvite      Boolean  @default(false)
+  antiLink        Boolean  @default(false)
+  antiSpam        Boolean  @default(false)
+  antiMassMention Boolean  @default(false)
+  antiProfanity   Boolean  @default(false)
+  antiCaps        Boolean  @default(false)
+  antiHate        Boolean  @default(true) // built-in slur/hate filter (HIGH severity)
+  escalate        Boolean  @default(true) // use the severity-weighted warn->timeout->kick->ban ladder
+  action          String   @default("delete") // legacy fixed action when escalate=false: delete | warn | timeout
+  timeoutMs       Int      @default(300000)
+  spamCount       Int      @default(5)
+  spamWindowMs    Int      @default(5000)
+  mentionLimit    Int      @default(5)
+  capsPercent     Int      @default(70)
+  capsMinLength   Int      @default(10)
+  exemptRoles     String[] @default([])
+  exemptChannels  String[] @default([])
+  customWords     String[] @default([])
+  allowedLinks    String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// A custom automod rule: a content trigger (keyword/wildcard/regex) with its own action.
+model AutomodRule {
+  id        String   @id @default(cuid())
+  guildId   String
+  name      String
+  enabled   Boolean  @default(true)
+  trigger   String   @default("keyword") // keyword | wildcard | regex
+  pattern   String
+  action    String   @default("delete") // delete | warn | timeout
+  severity  String   @default("LOW") // LOW | MEDIUM | HIGH - weights the escalation ladder
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, name])
+  @@index([guildId])
+}
+
+/// Per-offense automod ledger. Drives the severity-weighted escalation ladder
+/// (see src/modules/automod/escalation.ts). Separate from ModerationCase: this is
+/// the running tally, the Case is the audit record.
+model AutomodWarning {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  severity  String   @default("LOW") // LOW | MEDIUM | HIGH
+  reason    String?
+  ruleId    String? // built-in id (e.g. "hate") or AutomodRule id
+  action    String   @default("WARN") // resulting action: WARN | TIMEOUT | KICK | BAN
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([guildId, userId])
+}
+
+// ── Logging ──────────────────────────────────────────────────────────────────
+
+/// Per-guild audit logging configuration.
+model LoggingConfig {
+  guildId         String   @id
+  logChannelId    String?
+  messageDelete   Boolean  @default(true)
+  messageEdit     Boolean  @default(true)
+  memberJoin      Boolean  @default(true)
+  memberLeave     Boolean  @default(true)
+  memberBan       Boolean  @default(true)
+  memberUnban     Boolean  @default(true)
+  roleChanges     Boolean  @default(true)
+  channelChanges  Boolean  @default(true)
+  bulkDelete      Boolean  @default(true)
+  voiceMoves      Boolean  @default(true)
+  nicknameChanges Boolean  @default(true)
+  ignoredChannels String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ── Welcome / Autorole ───────────────────────────────────────────────────────
+
+/// Per-guild welcome, goodbye, and auto-role configuration.
+model WelcomeConfig {
+  guildId          String   @id
+  welcomeEnabled   Boolean  @default(false)
+  welcomeChannelId String?
+  welcomeMessage   String   @default("Welcome {user} to **{server}**! You're member #{membercount}.")
+  welcomeCard      Boolean  @default(false) // attach a rendered welcome image
+  goodbyeEnabled   Boolean  @default(false)
+  goodbyeChannelId String?
+  goodbyeMessage   String   @default("**{username}** has left the server.")
+  dmEnabled        Boolean  @default(false)
+  dmMessage        String   @default("Welcome to {server}! We're glad to have you.")
+  autoroleIds      String[] @default([])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// ── Tickets ──────────────────────────────────────────────────────────────────
+
+/// Per-guild ticket system configuration.
+model TicketConfig {
+  guildId        String   @id
+  enabled        Boolean  @default(false)
+  categoryId     String?
+  logChannelId   String?
+  supportRoleIds String[] @default([])
+  // Custom queues: [{ key, label, emoji, slaMinutes }]. Empty = the built-in defaults.
+  categories     Json     @default("[]")
+  panelTitle     String   @default("Need help?")
+  panelMessage   String   @default("Click the button below to open a ticket.")
+  openMessage    String   @default("Thanks for opening a ticket. Support will be with you shortly.")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+/// An open or closed support ticket.
+model Ticket {
+  id        String   @id @default(cuid())
+  guildId   String
+  channelId String   @unique
+  userId    String
+  number    Int
+  claimedBy String?
+  open      Boolean  @default(true)
+  // State machine + queue fields (see src/modules/tickets/queue.ts).
+  status          String    @default("OPEN") // OPEN | CLAIMED | ESCALATED | RESOLVED | CLOSED
+  priority        String    @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+  category        String    @default("general")
+  subject         String?
+  slaMinutes      Int       @default(60)
+  slaBreached     Boolean   @default(false)
+  lastActivityAt  DateTime?
+  firstResponseAt DateTime?
+  escalatedAt     DateTime?
+  closedAt        DateTime?
+  closedBy        String?
+  closeReason     String?
+  summary         String?
+  tags            String[]  @default([])
+  watchers        String[]  @default([]) // staff who get DM'd on escalate/close
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, number])
+  @@index([guildId, userId])
+  @@index([guildId, open])
+}
+
+/// One relayed message in a ticket, captured for the transcript built on close.
+model TicketMessage {
+  id        String   @id @default(cuid())
+  channelId String
+  guildId   String
+  authorId  String
+  authorTag String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([channelId])
+}
+
+/// Per-guild ticket number counter.
+model GuildTicketCounter {
+  guildId String @id
+  count   Int    @default(0)
+}
+
+// ── Economy ──────────────────────────────────────────────────────────────────
+
+/// A member's per-guild economy account.
+model EconomyUser {
+  guildId   String
+  userId    String
+  wallet    Int       @default(0)
+  bank      Int       @default(0)
+  streak    Int       @default(0)
+  lastDaily DateTime?
+  lastWork  DateTime?
+  lastCrime DateTime?
+  lastRob   DateTime?
+  updatedAt DateTime  @updatedAt
+
+  @@id([guildId, userId])
+  @@index([guildId])
+}
+
+/// A purchasable shop item. If roleId is set it is a buyable role (granted on purchase).
+model ShopItem {
+  id          String   @id @default(cuid())
+  guildId     String
+  name        String
+  description String?
+  price       Int
+  roleId      String? // buyable role: granted on purchase, not stored in inventory
+  stock       Int? // null = unlimited
+  createdAt   DateTime @default(now())
+
+  @@unique([guildId, name])
+  @@index([guildId])
+}
+
+/// A non-role item a member owns and can /use.
+model InventoryItem {
+  id       String @id @default(cuid())
+  guildId  String
+  userId   String
+  itemName String
+  quantity Int    @default(1)
+
+  @@unique([guildId, userId, itemName])
+  @@index([guildId, userId])
+}
+
+// ── Leveling ─────────────────────────────────────────────────────────────────
+
+model LevelConfig {
+  guildId           String   @id
+  enabled           Boolean  @default(false)
+  announceChannelId String?
+  xpMin             Int      @default(10)
+  xpMax             Int      @default(20)
+  cooldownMs        Int      @default(60000)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model LevelUser {
+  guildId   String
+  userId    String
+  xp        Int      @default(0)
+  level     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([guildId, userId])
+  @@index([guildId])
+}
+
+model LevelReward {
+  guildId String
+  level   Int
+  roleId  String
+
+  @@id([guildId, level])
+  @@index([guildId])
+}
+
+// ── Giveaways ────────────────────────────────────────────────────────────────
+
+model Giveaway {
+  id        String   @id @default(cuid())
+  guildId   String
+  channelId String
+  messageId String?
+  prize     String
+  winners   Int      @default(1)
+  hostId    String
+  endsAt    DateTime
+  ended     Boolean  @default(false)
+  entries   String[] @default([])
+  reqRoleId String? // must have this role to enter
+  reqLevel  Int      @default(0) // must be at least this leveling level (0 = no requirement)
+  reqAccountDays Int @default(0) // account must be at least this many days old (0 = no requirement)
+  createdAt DateTime @default(now())
+
+  @@index([guildId, ended])
+  @@index([ended])
+}
+
+// ── Join to Create (temp voice) ──────────────────────────────────────────────
+
+model JoinToCreateConfig {
+  guildId      String   @id
+  hubChannelId String?
+  categoryId   String?
+  nameTemplate String   @default("{user}'s channel")
+  userLimit    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model J2CChannel {
+  channelId String   @id
+  guildId   String
+  ownerId   String
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+}
+
+// ── Reaction Roles (button self-roles) ───────────────────────────────────────
+
+model ReactionRolePanel {
+  id        String   @id @default(cuid())
+  guildId   String
+  channelId String?
+  messageId String?
+  title     String
+  mode      String   @default("multiple") // multiple | single
+  roles     Json     @default("[]") // [{ roleId, label, emoji? }]
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+}
+
+// ── Birthdays ────────────────────────────────────────────────────────────────
+
+model BirthdayConfig {
+  guildId   String   @id
+  channelId String?
+  roleId    String?
+  message   String   @default("🎂 Happy birthday {user}!")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Birthday {
+  guildId String
+  userId  String
+  day     Int
+  month   Int
+  year    Int?
+
+  @@id([guildId, userId])
+  @@index([month, day])
+}
+
+// ── Extras (afk / autoresponder) ─────────────────────────────────────────────
+
+model AfkStatus {
+  guildId String
+  userId  String
+  reason  String
+  since   DateTime @default(now())
+
+  @@id([guildId, userId])
+}
+
+model AutoResponder {
+  id       String @id @default(cuid())
+  guildId  String
+  trigger  String
+  response String
+
+  @@unique([guildId, trigger])
+  @@index([guildId])
+}
+
+// ── Server stats channels ────────────────────────────────────────────────────
+
+model StatsChannel {
+  channelId String @id
+  guildId   String
+  type      String // members | online | boosts | channels | roles
+  template  String // name template containing {count}
+
+  @@index([guildId])
+}
+
+// ── Voice roles ──────────────────────────────────────────────────────────────
+
+model VoiceRoleConfig {
+  guildId String @id
+  roleId  String
+}
+
+// ── Reputation ───────────────────────────────────────────────────────────────
+
+model RepUser {
+  guildId   String
+  userId    String
+  points    Int       @default(0) // reputation received
+  lastGiven DateTime? // when this user last gave rep (24h cooldown)
+
+  @@id([guildId, userId])
+  @@index([guildId])
+}
+
+// ── Sticky messages ──────────────────────────────────────────────────────────
+
+model StickyMessage {
+  channelId     String  @id
+  guildId       String
+  content       String
+  lastMessageId String? // id of the most recent repost, deleted before the next
+
+  @@index([guildId])
+}
+
+// ── Highlights ───────────────────────────────────────────────────────────────
+
+model Highlight {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  word      String // stored lowercased
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, userId, word])
+  @@index([guildId])
+}
+
+// ── Trivia ───────────────────────────────────────────────────────────────────
+
+model TriviaScore {
+  guildId   String
+  userId    String
+  correct   Int      @default(0)
+  total     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([guildId, userId])
+  @@index([guildId])
+}
+
+// ── Tags (custom text snippets) ──────────────────────────────────────────────
+
+model Tag {
+  guildId   String
+  name      String
+  content   String
+  createdBy String
+  uses      Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@id([guildId, name])
+  @@index([guildId])
+}
+
+// ── Vanity status roles ──────────────────────────────────────────────────────
+
+model VanityRoleConfig {
+  guildId String  @id
+  enabled Boolean @default(false)
+  keyword String?
+  roleId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Feedback ─────────────────────────────────────────────────────────────────
+
+model FeedbackConfig {
+  guildId   String  @id
+  channelId String?
+  anonymous Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Reminders ────────────────────────────────────────────────────────────────
+
+model Reminder {
+  id        String   @id @default(cuid())
+  userId    String
+  guildId   String
+  channelId String
+  message   String
+  dueAt     DateTime
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+  @@index([userId])
+}
+
+// ── User profiles (image cards) ──────────────────────────────────────────────
+
+model Profile {
+  userId     String   @id
+  bio        String?
+  background String?
+  accent     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ── Global bot state (singletons: command-registration hash, etc.) ───────────
+
+model BotState {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ── Centralized per-guild config (the "tenant") ──────────────────────────────
+// One cached row per guild for cross-cutting settings the setup wizard writes
+// and multiple features resolve from cache (no raw lookups on hot paths).
+
+model GuildTenant {
+  guildId          String   @id
+  locale           String   @default("en")
+  logChannelId     String?
+  modLogChannelId  String?
+  welcomeChannelId String?
+  muteRoleId       String?
+  // Registry of provisioned channels/roles by logical key, e.g.
+  // { "audit-log": "123", "verify": "456", "role:verified": "789" }. Lets setup
+  // resolve and self-heal what it created without hard-coding ids elsewhere.
+  channelMap       Json     @default("{}")
+  // Feature enable flags, e.g. { "automod": true, "logging": true }.
+  features         Json     @default("{}")
+  // Free-form per-guild settings stashed by the wizard/features.
+  settings         Json     @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// ── Global feature flags (dormant-by-default, hot-flippable) ─────────────────
+// Fleet-wide on/off for features shipped dormant in a release. A flip writes here
+// and publishes on the control bus, so every shard activates/kills it instantly
+// with no restart. Absent row = the code's registered default.
+
+model FeatureFlag {
+  name      String   @id
+  enabled   Boolean
+  updatedAt DateTime @updatedAt
+}
+
+// ── Live translations (hot-reloadable, no restart) ───────────────────────────
+// Build-time JSON files are the baseline; these rows overlay/extend them at
+// runtime. A write publishes on the Redis control bus so every shard refreshes
+// its in-memory registry instantly - adding or fixing a language needs no deploy.
+
+model LocaleString {
+  locale    String
+  namespace String
+  key       String
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@id([locale, namespace, key])
+  @@index([locale])
+}
+
+// ── Per-user preferences (language + feature opt-outs) ───────────────────────
+// Cross-cutting personal settings the localization service resolves from cache.
+// `features` holds opt-out booleans, e.g. { "fun": false, "dmNotifications": false }.
+
+model UserPreference {
+  userId    String   @id
+  locale    String? // preferred language code, null = follow guild/Discord
+  features  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Monotonic cache identity revision, advanced with the owning write in one transaction.
+model CacheRevision {
+  owner   String
+  tenant  String
+  key     String
+  version BigInt @default(0)
+
+  @@id([owner, tenant, key])
+}
+
+// ── Verification gate ────────────────────────────────────────────────────────
+
+model VerificationConfig {
+  guildId     String   @id
+  roleId      String?
+  enabled     Boolean  @default(false)
+  captcha     Boolean  @default(false) // require a simple math captcha before granting
+  kickAfterMin Int? // auto-kick members who do not verify within N minutes (null = off)
+  minAccountAgeDays Int? // kick accounts younger than N days on join (null = off; cheap ban-evasion gate)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ── Polls ────────────────────────────────────────────────────────────────────
+
+model Poll {
+  id        String     @id @default(cuid())
+  guildId   String
+  channelId String
+  messageId String?
+  creatorId String
+  question  String
+  options   String[] // 2-5 option labels
+  closed    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  votes     PollVote[]
+
+  @@index([guildId])
+}
+
+model PollVote {
+  id     String @id @default(cuid())
+  pollId String
+  userId String
+  choice Int // index into Poll.options
+  poll   Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+}
+
+// ── Suggestions ──────────────────────────────────────────────────────────────
+
+model SuggestionConfig {
+  guildId   String   @id
+  channelId String?
+  enabled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Suggestion {
+  id        String           @id @default(cuid())
+  guildId   String
+  number    Int
+  channelId String
+  messageId String?
+  userId    String
+  text      String
+  status    String           @default("open") // open | approved | denied
+  reason    String?
+  createdAt DateTime         @default(now())
+  votes     SuggestionVote[]
+
+  @@unique([guildId, number])
+  @@index([guildId])
+}
+
+model SuggestionVote {
+  id           String     @id @default(cuid())
+  suggestionId String
+  userId       String
+  value        Int // 1 (up) or -1 (down)
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+
+  @@unique([suggestionId, userId])
+  @@index([suggestionId])
+}
+
+model GuildSuggestionCounter {
+  guildId String @id
+  count   Int    @default(0)
+}
+
+// ── Counting game ────────────────────────────────────────────────────────────
+
+model CountingConfig {
+  channelId  String  @id
+  guildId    String
+  current    Int     @default(0) // last correct number
+  best       Int     @default(0) // highest streak reached
+  lastUserId String? // who posted the last number (no consecutive doubles)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([guildId])
+}
+
+// ── Modmail (DM-to-staff threads) ────────────────────────────────────────────
+
+model ModmailConfig {
+  guildId      String   @id
+  channelId    String? // staff parent channel where modmail threads are created
+  enabled      Boolean  @default(false)
+  appealOnly   Boolean  @default(false) // only members with a moderation case may open a thread
+  blockedUsers String[] @default([]) // user ids barred from opening modmail
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ModmailThread {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  channelId String   @unique // the staff thread id
+  open      Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+  @@index([userId])
+}
+
+// ── Notification feeds (YouTube / Twitch) ────────────────────────────────────
+
+model FeedSubscription {
+  id         String   @id @default(cuid())
+  guildId    String
+  channelId  String
+  type       String // "youtube" | "twitch"
+  sourceId   String // YouTube channel id (UC...) or Twitch login
+  sourceName String?
+  lastItemId String? // last video id / last live stream id seen
+  mention    String? // role id, "everyone", or null
+  createdAt  DateTime @default(now())
+
+  @@unique([guildId, type, sourceId])
+  @@index([guildId])
+}
+
+// ── Starboard (multi-board) ──────────────────────────────────────────────────
+
+/// One starboard channel and its settings. A guild may have many. A reaction is
+/// routed to every enabled board whose `emojis` include it and whose filters the
+/// message passes; a message can appear on several boards at once.
+model Starboard {
+  id           String   @id @default(cuid())
+  guildId      String
+  name         String // friendly handle for commands
+  channelId    String // where starred messages are posted
+  emojis       String[] @default(["⭐"]) // star emoji identifiers
+  requiredStars Int     @default(3) // stars to post
+  removeStars  Int? // hysteresis floor; null => requiredStars - 1
+  selfStar     Boolean  @default(false) // allow authors to star their own messages
+  filterBots   Boolean  @default(true) // ignore bot authors and bot reactions
+  syncDeletes  Boolean  @default(true) // remove the post if the original is deleted
+  rewardRoleId String? // role granted when a message hits rewardStars
+  rewardStars  Int      @default(0)
+  authorRoleId String? // role-based board: only accept messages by authors with this role
+  ignoredChannels String[] @default([]) // never star from these channels
+  enabled      Boolean  @default(true)
+
+  // Blacklist / whitelist (whitelist beats blacklist; user > role > channel specificity).
+  blacklistUsers    String[] @default([])
+  blacklistRoles    String[] @default([])
+  blacklistChannels String[] @default([])
+  whitelistUsers    String[] @default([])
+  whitelistRoles    String[] @default([])
+  whitelistChannels String[] @default([])
+
+  // Downvotes + invalid-reaction handling.
+  downvoteEmojis String[] @default([]) // reactions that subtract from the net star count
+  removeInvalid  Boolean  @default(false) // strip reactions that are not valid stars
+
+  // Message filters a message must pass to be starred.
+  minChars           Int     @default(0)
+  minAttachments     Int     @default(0)
+  requireImage       Boolean @default(false)
+  maxMessageAgeHours Int     @default(0) // 0 = no age limit
+  requireNsfwChannel Boolean @default(false)
+
+  // Display tiers: [{minStars, emoji}] - the header emoji changes as stars climb.
+  displayTiers Json @default("[]")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  entries   StarboardEntry[]
+  overrides StarboardOverride[]
+
+  @@unique([guildId, name])
+  @@unique([guildId, channelId])
+  @@index([guildId])
+}
+
+/// A per-context override of a starboard's settings (inherits non-null fields
+/// from the board base). Channel scope is more specific than role scope.
+model StarboardOverride {
+  id            String    @id @default(cuid())
+  starboardId   String
+  guildId       String
+  name          String
+  scopeType     String // "channel" | "role"
+  scopeIds      String[]  @default([])
+  enabled       Boolean   @default(true)
+  requiredStars Int? // null = inherit
+  removeStars   Int?
+  selfStar      Boolean?
+  filterBots    Boolean?
+  createdAt     DateTime  @default(now())
+  starboard     Starboard @relation(fields: [starboardId], references: [id], onDelete: Cascade)
+
+  @@unique([starboardId, name])
+  @@index([starboardId])
+}
+
+/// A message reposted to one starboard (a message may have one entry per board).
+model StarboardEntry {
+  id                 String    @id @default(cuid())
+  starboardId        String
+  guildId            String
+  channelId          String // original channel
+  messageId          String // original message
+  starboardMessageId String?
+  authorId           String
+  stars              Int       @default(0)
+  createdAt          DateTime  @default(now())
+  starboard          Starboard @relation(fields: [starboardId], references: [id], onDelete: Cascade)
+
+  @@unique([starboardId, messageId])
+  @@index([guildId])
+  @@index([guildId, authorId])
+  @@index([starboardId])
+}
+
+/// A channel where the bot auto-reacts with `emojis` on every new message
+/// (it does not auto-post; the message must still earn the required stars).
+model AutostarChannel {
+  id        String   @id @default(cuid())
+  guildId   String
+  channelId String
+  emojis    String[] @default(["⭐"])
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, channelId])
+  @@index([guildId])
+}
+
+// ── Durable scheduler ────────────────────────────────────────────────────────
+// One row per future action (reminder, giveaway end, tempban/mute/role lift,
+// ticket auto-close, ...). PostgreSQL owns claims and recovery.
+
+model ScheduledTask {
+  id        String   @id @default(cuid())
+  type      String
+  runAt     DateTime
+  guildId   String?
+  payload   Json     @default("{}")
+  status    String   @default("pending")
+  attempts  Int      @default(0)
+  lastError String?
+  nextAttemptAt DateTime?
+  leaseUntil DateTime?
+  claimVersion Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([status, leaseUntil])
+  @@index([runAt])
+  @@index([guildId])
+}
+
+// Durable operation intent. Redis delivers only the operation id; PostgreSQL
+// retains the request, attempts and idempotent effect across worker restarts.
+model OperationRecord {
+  id             String             @id @default(cuid())
+  guildId        String?
+  kind           String
+  idempotencyKey String             @unique
+  payload        Json               @default("{}")
+  status         String             @default("pending")
+  leaseUntil     DateTime?
+  claimVersion   Int                @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  attempts       OperationAttempt[]
+  effect         OperationEffect?
+  outbox         OperationOutbox?
+
+  @@index([guildId])
+  @@index([status, leaseUntil])
+}
+
+model OperationOutbox {
+  operationId    String          @id
+  status         String          @default("pending")
+  nextAttemptAt  DateTime        @default(now())
+  leaseUntil     DateTime?
+  claimVersion   Int             @default(0)
+  attempts       Int             @default(0)
+  lastErrorCode  String?
+  publishedAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  operation      OperationRecord @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([status, leaseUntil])
+}
+
+model OperationAttempt {
+  id             String          @id @default(cuid())
+  operationId    String
+  attempt        Int
+  outcome        String
+  classification String?
+  errorCode      String?
+  createdAt      DateTime        @default(now())
+  operation      OperationRecord @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@unique([operationId, attempt])
+  @@index([operationId])
+}
+
+model OperationEffect {
+  operationId String          @id
+  value       Json            @default("{}")
+  createdAt   DateTime        @default(now())
+  operation   OperationRecord @relation(fields: [operationId], references: [id], onDelete: Cascade)
+}

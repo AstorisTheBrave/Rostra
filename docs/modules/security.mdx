@@ -1,10 +1,13 @@
 ---
-last-updated: 2026-06-07
+last-updated: 2026-10-21
 owner: AstorisTheBrave
 status: stable
 ---
 
 ## what this is
+
+The `raid_unlock` task is claimed by workers and executed by the owning gateway. It validates the
+stored guild and restore level, and retries failed Discord verification-level updates.
 
 Antinuke: protects a server from a rogue admin or compromised account that tries to mass-delete channels,
 mass-ban members, add malicious bots, etc. When a destructive action happens, the bot figures out who
@@ -15,12 +18,12 @@ locks the server down (raises verification) and auto-lifts.
 ## technical map
 
 **file paths**
-- command + module wiring: `src/modules/security/index.ts`
-- detection events: `src/modules/security/events.ts`
-- audit-log attribution: `src/modules/security/audit.ts`
-- config + punishment: `src/modules/security/service.ts`
-- anti-raid lockdown: `src/modules/security/raid.ts` (+ `raid.test.ts`)
-- model: `prisma/schema.prisma` → `AntinukeConfig`
+- command + module wiring: `modules/security/index.ts`
+- detection events: `modules/security/events.ts`
+- audit-log attribution: `modules/security/audit.ts`
+- config + punishment: `modules/security/service.ts`
+- anti-raid lockdown: `modules/security/raid.ts` (+ `raid.test.ts`)
+- model: `packages/database/prisma/schema.prisma` → `AntinukeConfig`
 
 **command** - `/security` (Administrator-only): `enable`, `disable`, `status`, `punishment <ban|kick|
 strip>`, `antiraid <enabled> [threshold] [window] [minutes]`, `panic <on|off>`, `logchannel <channel>`,
@@ -47,6 +50,9 @@ payload carries `{guildId, restoreLevel}` so a restart can still restore correct
 - `@/client/defineEvent` (events), `@/services/database` (config + cache), `@/utils/components` (logs)
 
 ## gotchas
+
+- Cached per-guild configuration receives versioned invalidation after a committed write;
+  missed delivery expires within five minutes. Raid windows and temporary locks stay local.
 
 - Detection relies on Discord's **audit log**, which can lag the gateway event slightly - `resolveAudit
   Executor` retries once after 500ms and only matches entries within an 8s TTL.

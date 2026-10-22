@@ -1,0 +1,65 @@
+---
+title: Phase 01 platform baseline
+last-updated: 2026-10-22
+owner: AstorisTheBrave
+status: stable
+---
+
+# Phase 01 platform baseline
+
+## Preserved registry
+
+The Phase 00 checked fixture records 42 module IDs, 47 normalized command definitions and 48 Discord
+event registrations. The focused parity tests load the registry without a Discord login or command
+publication. This is a structural baseline, not a performance measurement.
+
+## Measurement host
+
+The collector records platform, OS release, architecture, Node version, CPU model, logical processor count
+and memory bytes in every JSON artifact. The local disposable-service run used Windows 10.0.26300, AMD
+Ryzen 5 5500H, 16,487,870,464 bytes RAM, eight logical processors and Node.js 24.19.0. Comparisons reject
+any host metadata difference. These host details are not representative deployment capacity.
+
+## Workload paths
+
+| Workload | Existing path and evidence | Iterations | Measurements |
+| --- | --- | ---: | --- |
+| Registry parity | `tooling/scripts/snapshot-commands.mjs`, `snapshot-modules.mjs` and checked fixtures | One parity run in the Phase 00 gate | 42 modules, 47 commands, 48 events; prior run took 8.4 s on its recorded host |
+| API authorization | Real Fastify route injection, exact-guild authorization and PostgreSQL guild lookup | 20 | Local authorization GET p95: 5.15 ms; measured authorization request database query count: 1 per iteration |
+| Tenant cache read | Historical Task 1 `getTenant` L1/Redis L2/database path, with L1 and Redis invalidated for cold reads and L1 evicted before warm Redis reads | 20 | Local cold mean: 13.31 ms; Redis warm mean: 1.43 ms |
+| Durable operation | API acceptance through PostgreSQL `OperationRecord`, Redis publication and a real worker claim/settlement | 20 | Local queue p95: 3 ms; operation returns to completed state for every sample |
+| Provider request frequency | One assistant prompt against an in-process fake endpoint | 20 | Task 1 detached replay and Task 8 local candidate: exactly one request per prompt; no credentials or external traffic |
+
+The local run used disposable PostgreSQL 16 and Redis 7 containers and produced 20 samples per metric.
+`databaseQueryCount` is the observed count of calls to the injected `guildDirectory.get` Prisma lookup
+during the authorization GET, which was one per iteration. It does not include tenant-cache reads,
+durable-operation acceptance, or worker settlement queries. The authorization GET p95 was 5.15 ms;
+event-loop delay p95 was 25.00 ms, tenant cold mean was 13.31 ms, warm mean was 1.43 ms, and queue lag
+p95 was 3 ms. The checked-in CI collector repeats these paths on its PostgreSQL/Redis GitHub service job
+and uploads raw JSON with this report. A runner artifact is required before treating its measurements as
+the Phase 01 comparison baseline. No production throughput, latency, capacity or memory claim is made.
+
+Task 4 removed the shared config L2 to prevent a read already in flight from refilling it after
+invalidation. The collector now measures a direct PostgreSQL cold miss followed by an L1 warm
+hit. The historical Redis warm result is not comparable to the new L1 warm result. The new
+cold path may increase database reads across processes; record an exact-head service artifact
+before assessing its impact. The workload identity stays stable for the other measurements,
+so cache latency comparisons require this path-change qualification.
+
+A disposable local Task 4 review run on Windows 10.0.26300 and Node 24.19.0
+completed 20 iterations of the corrected collector. PostgreSQL cold mean was
+8.393 ms and L1 warm mean was 0.006 ms. These are local observations, not a
+capacity claim or an exact-head runner result.
+
+## Comparison contract
+
+Each JSON workload has a stable identity, runtime string, positive iteration count and one finite,
+non-negative sample per iteration for request latency, database query count, event-loop delay, cold and
+warm cache latency, queue lag and, when present, a non-negative integer provider request count. The JSON also records the host environment. The comparison tool rejects
+missing samples or mismatched workload, runtime, iteration or host metadata. It reports request,
+event-loop and queue p95 values, mean query count, mean cold/warm cache latency and mean requests per
+prompt in stable key order. Historical artifacts without provider samples still validate, but cannot be
+compared against an artifact that has them.
+
+Service, browser and process-kill workloads remain on GitHub runners. Do not run process interruption or
+disposable-service workloads as part of the lightweight local gate.

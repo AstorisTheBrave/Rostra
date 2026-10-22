@@ -1,0 +1,147 @@
+name: rostra
+x-app-env: &app-env
+  DATABASE_URL: postgresql://${POSTGRES_USER:-rostra}:${POSTGRES_PASSWORD:-rostra-dev-only}@postgres:5432/${POSTGRES_DB:-rostra}
+  REDIS_URL: redis://redis:6379
+  NODE_ENV: production
+  HOST: 0.0.0.0
+x-app-resources: &app-resources
+  resources:
+    limits: { cpus: "1.00", memory: 768M }
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rostra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rostra-dev-only}
+      POSTGRES_DB: ${POSTGRES_DB:-rostra}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1G
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, "yes", --appendfsync, everysec, --maxmemory, 256mb, --maxmemory-policy, noeviction]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 384M
+  gateway:
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/astoristhebrave/rostra}-gateway:${ROSTRA_IMAGE_TAG:-dev}
+    build: { context: ../.., dockerfile: Dockerfile, target: gateway }
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      <<: *app-env
+      DISCORD_TOKEN: ${DISCORD_TOKEN:?set DISCORD_TOKEN}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?set DISCORD_CLIENT_ID}
+      OWNER_IDS: ${OWNER_IDS:-}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?set INTERNAL_API_TOKEN}
+      DEV_GUILD_ID: ${DEV_GUILD_ID:-}
+      TOTAL_SHARDS: ${TOTAL_SHARDS:-}
+      SHARDING_MODE: ${SHARDING_MODE:-}
+      SHARDS_PER_CLUSTER: ${SHARDS_PER_CLUSTER:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_MODEL: ${AI_MODEL:-}
+      LAVALINK_NODES: ${LAVALINK_NODES:-}
+      LAVALINK_RECONNECT_TRIES: ${LAVALINK_RECONNECT_TRIES:-}
+      LAVALINK_RESUME: ${LAVALINK_RESUME:-}
+      LAVALINK_REST_TIMEOUT: ${LAVALINK_REST_TIMEOUT:-}
+      TOPGG_TOKEN: ${TOPGG_TOKEN:-}
+      TOPGG_BOT_ID: ${TOPGG_BOT_ID:-}
+      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
+      TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
+    deploy: *app-resources
+  api:
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/astoristhebrave/rostra}-api:${ROSTRA_IMAGE_TAG:-dev}
+    build: { context: ../.., dockerfile: Dockerfile, target: api }
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      <<: *app-env
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?set INTERNAL_API_TOKEN}
+      WEB_SESSION_SECRET: ${WEB_SESSION_SECRET:?set WEB_SESSION_SECRET}
+      TOPGG_WEBHOOK_AUTH: ${TOPGG_WEBHOOK_AUTH:-}
+    ports: ["127.0.0.1:3001:3001"]
+    deploy: *app-resources
+  workers:
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/astoristhebrave/rostra}-workers:${ROSTRA_IMAGE_TAG:-dev}
+    build: { context: ../.., dockerfile: Dockerfile, target: workers }
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      <<: *app-env
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?set INTERNAL_API_TOKEN}
+      WORKER_PORT: 3005
+    expose: ["3005"]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3005/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+    deploy: *app-resources
+  web:
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/astoristhebrave/rostra}-web:${ROSTRA_IMAGE_TAG:-dev}
+    build: { context: ../.., dockerfile: Dockerfile, target: web }
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      <<: *app-env
+      API_BASE_URL: http://api:3001
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-http://localhost:3002}
+      WEB_SESSION_SECRET: ${WEB_SESSION_SECRET:?set WEB_SESSION_SECRET}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?set DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:?set DISCORD_CLIENT_SECRET}
+    ports: ["127.0.0.1:3002:3002"]
+    deploy: *app-resources
+  realtime:
+    profiles: [realtime]
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/astoristhebrave/rostra}-realtime:${ROSTRA_IMAGE_TAG:-dev}
+    build: { context: ../.., dockerfile: Dockerfile, target: realtime }
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      <<: *app-env
+      REALTIME_ENABLED: "true"
+      WEB_SESSION_SECRET: ${WEB_SESSION_SECRET:?set WEB_SESSION_SECRET}
+    deploy: *app-resources
+  activity:
+    profiles: [activity]
+    image: ${ROSTRA_IMAGE_PREFIX:-ghcr.io/astoristhebrave/rostra}-activity:${ROSTRA_IMAGE_TAG:-dev}
+    build: { context: ../.., dockerfile: Dockerfile, target: activity }
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      <<: *app-env
+      ACTIVITY_ENABLED: "true"
+      WEB_SESSION_SECRET: ${WEB_SESSION_SECRET:?set WEB_SESSION_SECRET}
+    deploy: *app-resources
+volumes:
+  pgdata:
+  redisdata:

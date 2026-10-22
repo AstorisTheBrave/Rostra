@@ -1,0 +1,46 @@
+---
+title: Phase 01 platform core evidence
+last-updated: 2026-10-22
+owner: AstorisTheBrave
+status: stable
+---
+
+# Phase 01 platform core evidence
+
+## Decision: PASS
+
+The seven implementation slices and final evidence gate are complete. Task 8 closed the remaining
+real-service gaps: atomic outbox and scheduled-task retention against PostgreSQL, retained intent
+across a stopped and replaced Redis server, and refusal to start against a database containing a real
+failed migration row.
+
+The compatibility baseline remains 42 modules, 47 normalized command definitions and 48 Discord
+event registrations. No migration check logs into Discord or publishes commands.
+
+## Evidence pages
+
+- [Baseline and workload definitions](baseline.mdx)
+- [Architecture and ownership](architecture.mdx)
+- [Migration rehearsal](migration.mdx)
+- [Test matrix](tests.mdx)
+- [Measurements](measurements.mdx)
+- [Security evidence](security.mdx)
+- [Recovery evidence](recovery.mdx)
+
+## Evidence snapshots
+
+Implementation snapshot `e337827e624e5bb544b57ca2da7bc27e2b8d8fb0` matched the remote branch.
+CI run `39824618196`, CodeQL run `39824617962`, security run `39824617932`, and service/image run
+`39824617943` passed all 17 exact-head checks. All nine review threads were resolved, no new review
+finding appeared, and the code-scanning, secret-scanning and Dependabot open-alert lists were empty.
+
+## Limits
+
+- Measurements describe one 20-iteration disposable-service workload, not production capacity.
+- Baseline and Task 7 runner CPU models differ. Their timing values are shown side by side, not as a
+  controlled performance delta.
+- The cache path changed from Redis-warm to process-local L1-warm in Task 4, so those warm values are
+  not like for like.
+- At-least-once delivery and one tested durable effect do not prove exactly-once Discord effects.
+- Realtime and Activity remain authenticated scaffolds, disabled by default. No multiplayer, device
+  verification, managed ingress, or live Discord deployment is claimed.

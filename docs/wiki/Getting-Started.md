@@ -1,58 +1,13 @@
-# Getting Started
+# Getting started
 
-This page is the run from source path, for developers comfortable with Node.js. If you just want to run the
-bot and are not a developer, use the beginner friendly [[Self-Hosting]] guide instead, which uses Docker and
-sets up the database for you.
+Rostra is a modular Discord app with a web client, API, gateway, workers and PostgreSQL/Redis-backed
+services. The repository root [README](../../README.md) is the current quick start. Contributors should
+follow [CONTRIBUTING](../../CONTRIBUTING.md) for the supported toolchain and checks.
 
-## Requirements
+For local development, copy `.env.example` to `.env`, configure local credentials and services, then
+follow the README commands. Do not use real Discord credentials for tests or migration verification.
+The current environment reference is [here](../infrastructure/env.mdx).
 
-- Node.js 20 or newer
-- PostgreSQL (required)
-- Redis (recommended; required for hybrid clustering and live reloads)
-- A Discord application with a bot token
-
-## Local setup
-
-```bash
-git clone https://github.com/AstorisTheBrave/Rostra
-cd Rostra
-npm install
-cp .env.example .env        # fill in DISCORD_TOKEN, DISCORD_CLIENT_ID, DATABASE_URL, REDIS_URL
-npx prisma migrate deploy   # set up the database
-npm run deploy:commands     # register slash commands with Discord
-npm run dev                 # start in watch mode
-```
-
-## Required intents
-
-Enable these for your bot in the Discord Developer Portal:
-
-- Server Members
-- Message Content
-- Presence (only needed for vanity status roles)
-
-## Docker
-
-```bash
-docker compose up --build
-# or pull the published image
-docker pull ghcr.io/astoristhebrave/rostra:latest
-```
-
-## Configuration
-
-All settings come from environment variables. See `.env.example` for the full list. The most important:
-
-| Variable | Purpose |
-| --- | --- |
-| `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | bot credentials (required) |
-| `DATABASE_URL` | PostgreSQL connection (required) |
-| `REDIS_URL` | shared cache, leaderboards, control bus |
-| `OWNER_IDS` | comma separated user ids for owner commands |
-| `SHARDING_MODE` | `native` (default) or `hybrid` |
-
-## Next steps
-
-- Run `/setup` in your server to enable systems and set a language.
-- See [[Commands]] for everything Rostra can do.
-- Planning to grow large? Read [[Hybrid Sharding]].
+For deployment, use the supported [Compose deployment guide](../runbooks/deployment.mdx) and
+[recovery guide](../runbooks/recovery.mdx). Older wiki pages may describe the pre-migration application
+and are not a supported deployment recipe.

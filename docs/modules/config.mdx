@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-06-05
+last-updated: 2026-10-17
 owner: AstorisTheBrave
 status: stable
 ---
@@ -13,8 +13,8 @@ refuses to start with a clear error if something's wrong - so misconfiguration f
 ## technical map
 
 **file paths**
-- primary: `src/config.ts`
-- test: `src/config.test.ts`
+- primary: `packages/config/src/index.ts` through `@rostra/config`
+- test: `packages/config/src/index.test.ts`
 
 **exports**
 - `config: Config` - frozen, validated config object, computed once at import. The only env reader.
@@ -26,7 +26,7 @@ refuses to start with a clear error if something's wrong - so misconfiguration f
 - environment variables (see `docs/infrastructure/env.mdx`)
 
 **imported by**
-- `src/services/logger.ts`, `src/services/database.ts`, `src/services/cache.ts`, `src/cluster/ipc.ts`
+- public logger, database and cache packages, plus `apps/gateway/src/cluster/ipc.ts`
 - (later) every runtime subsystem and module
 
 ## gotchas

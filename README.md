@@ -18,7 +18,7 @@ The command and module move has parity fixtures for 47 commands, 42 modules and 
 
 The gateway is the working Discord runtime. The API and workers have authenticated boundaries and durable queue contracts. The web app has a Discord login flow and persisted, read-only guild summaries. Realtime and Activity are authenticated scaffolds and are disabled in the default runtime.
 
-The browser and service flows have local automated evidence, and Linux Compose smoke is configured and has passed in the implementation environment. GitHub CI, the prior-image rollback rehearsal, multi-image builds, browser matrix, dependency review, secret scanning, SBOM and CodeQL are **pending remote verification** for the Phase 00 branch. The [Phase 00 evidence index](docs/phase-reports/phase-00/index.mdx) states what has and has not been proved.
+The workspace boundary has passed Linux CI, the browser matrix, service integration, prior-image rollback, six image builds, dependency review, secret scanning, SBOM generation and CodeQL. Phase 01 adds tenant-scoped authorization, deterministic module loading, coherent cache invalidation, transactional outbox delivery, durable scheduling and truthful health diagnostics. Its implementation is complete in the branch; the [Phase 01 evidence index](docs/phase-reports/01-platform-core/index.mdx) tracks the final exact-candidate gate without turning a test result into a production-capacity claim.
 
 There is no published product screenshot yet. I am leaving the README image-free until there is a suitable capture from the implemented app with deterministic fake data.
 
@@ -62,6 +62,7 @@ Compose deployment, upgrade, shutdown and passive reverse-proxy guidance is in t
 - [Capability status](docs/product/capability-status.mdx) and [roadmap](docs/product/roadmap.mdx)
 - [Architecture map](docs/architecture/index.mdx) and [workspace overview](docs/overview.mdx)
 - [Phase 00 evidence](docs/phase-reports/phase-00/index.mdx)
+- [Phase 01 platform evidence](docs/phase-reports/01-platform-core/index.mdx)
 - [Module guides](docs/modules/)
 - [Deployment](docs/runbooks/deployment.mdx), [recovery](docs/runbooks/recovery.mdx) and [environment variables](docs/infrastructure/env.mdx)
 - [Contributing](CONTRIBUTING.md), [security policy](SECURITY.md) and [changelog](CHANGELOG.md)
@@ -72,11 +73,11 @@ Please report vulnerabilities privately using the instructions in [SECURITY.md](
 
 ## Contributing
 
-Issues, documentation fixes and focused code contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. Changes go through a pull request and the required checks. The Phase 00 implementation is still awaiting its remote CI and review evidence; local success alone does not complete the phase.
+Issues, documentation fixes and focused code contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. Changes go through a pull request and the required checks. A local pass is useful evidence, but a phase is complete only after its exact remote snapshot, review and security gates pass.
 
 ## Roadmap
 
-Rostra's next work is tracked in the [roadmap](docs/product/roadmap.mdx). Later phases will replace the temporary module compatibility loader and deepen feature ownership, authorization coverage and web operations. They are planned work, not shipped capabilities.
+Rostra's next work is tracked in the [roadmap](docs/product/roadmap.mdx). The next dedicated cross-cutting slice covers Rostra-wide admission, retry and backpressure policy. Later product work will deepen feature ownership and web operations. Planned work is not described as shipped.
 
 ## License
 

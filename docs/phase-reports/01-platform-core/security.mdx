@@ -1,0 +1,36 @@
+---
+title: Phase 01 security evidence
+last-updated: 2026-10-22
+owner: AstorisTheBrave
+status: pending
+---
+
+# Phase 01 security evidence
+
+## Tenant isolation
+
+- Guessed or swapped operation IDs return the same not-found response as absent records.
+- Host principals cannot read guild-scoped private operations or perform guild actions.
+- Configured owner IDs no longer bypass moderation, ticket or shared member permission checks.
+- Composite same-guild foreign keys prevent cross-tenant role assignment and capability grants.
+- Unknown capability strings are rejected at the signed-principal boundary.
+
+Private operation reads re-resolve current persisted membership and grants. Focused tests prove an
+allowed read becomes 404 after either is revoked. This is not a universal stale-session claim: the
+read-only configured-status summary deliberately remains available to a still-valid signed exact-guild
+session until a production membership synchronizer exists.
+
+## Operational boundaries
+
+Public health endpoints expose only status. Gateway, API and worker diagnostics require the host bearer
+token. Worker readiness uses finite Redis behavior, bounded dependency timeouts and coalesced unresolved
+probes. Cache invalidations carry a version and exact tenant scope; stale or malformed messages are
+ignored.
+
+## Review state
+
+At Task 7 head `c98643f`, all nine pull-request review threads were resolved and no open code-scanning
+alert remained. Alert 16 was dismissed as a false positive because the fixed diagnostics route checks
+the host bearer before reading process metrics; focused tests prove an unauthenticated request receives
+401. The final Phase 01 decision requires the same review, conversation, inline-thread and Advanced
+Security sweep after the Task 8 push.

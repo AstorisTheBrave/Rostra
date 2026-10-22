@@ -17,6 +17,7 @@ export interface Phase01Workload {
 	cacheColdLatencyMs: number[];
 	cacheWarmLatencyMs: number[];
 	queueLagMs: number[];
+	providerRequestCount?: number[];
 }
 
 export interface Phase01Measurements {

@@ -1,6 +1,6 @@
 ---
 title: Phase 01 platform baseline
-last-updated: 2026-10-19
+last-updated: 2026-10-22
 owner: AstorisTheBrave
 status: pending
 ---
@@ -28,6 +28,7 @@ any host metadata difference. These host details are not representative deployme
 | API authorization | Real Fastify route injection, exact-guild authorization and PostgreSQL guild lookup | 20 | Local authorization GET p95: 5.15 ms; measured authorization request database query count: 1 per iteration |
 | Tenant cache read | Historical Task 1 `getTenant` L1/Redis L2/database path, with L1 and Redis invalidated for cold reads and L1 evicted before warm Redis reads | 20 | Local cold mean: 13.31 ms; Redis warm mean: 1.43 ms |
 | Durable operation | API acceptance through PostgreSQL `OperationRecord`, Redis publication and a real worker claim/settlement | 20 | Local queue p95: 3 ms; operation returns to completed state for every sample |
+| Provider request frequency | One assistant prompt against an in-process fake endpoint | 20 | Task 1 detached replay and Task 8 local candidate: exactly one request per prompt; no credentials or external traffic |
 
 The local run used disposable PostgreSQL 16 and Redis 7 containers and produced 20 samples per metric.
 `databaseQueryCount` is the observed count of calls to the injected `guildDirectory.get` Prisma lookup
@@ -54,9 +55,11 @@ capacity claim or an exact-head runner result.
 
 Each JSON workload has a stable identity, runtime string, positive iteration count and one finite,
 non-negative sample per iteration for request latency, database query count, event-loop delay, cold and
-warm cache latency, and queue lag. The JSON also records the host environment. The comparison tool rejects
+warm cache latency, queue lag and, when present, a non-negative integer provider request count. The JSON also records the host environment. The comparison tool rejects
 missing samples or mismatched workload, runtime, iteration or host metadata. It reports request,
-event-loop and queue p95 values, mean query count and mean cold/warm cache latency in stable key order.
+event-loop and queue p95 values, mean query count, mean cold/warm cache latency and mean requests per
+prompt in stable key order. Historical artifacts without provider samples still validate, but cannot be
+compared against an artifact that has them.
 
 Service, browser and process-kill workloads remain on GitHub runners. Do not run process interruption or
 disposable-service workloads as part of the lightweight local gate.

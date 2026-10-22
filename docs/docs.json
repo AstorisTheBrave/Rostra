@@ -68,6 +68,24 @@
 						]
 					}
 				]
+			},
+			{
+				"tab": "Phase 01 evidence",
+				"groups": [
+					{
+						"group": "Platform core",
+						"pages": [
+							"phase-reports/01-platform-core/index",
+							"phase-reports/01-platform-core/baseline",
+							"phase-reports/01-platform-core/architecture",
+							"phase-reports/01-platform-core/migration",
+							"phase-reports/01-platform-core/tests",
+							"phase-reports/01-platform-core/measurements",
+							"phase-reports/01-platform-core/security",
+							"phase-reports/01-platform-core/recovery"
+						]
+					}
+				]
 			}
 		]
 	}

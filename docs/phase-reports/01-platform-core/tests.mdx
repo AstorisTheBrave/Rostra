@@ -1,0 +1,35 @@
+---
+title: Phase 01 test evidence
+last-updated: 2026-10-22
+owner: AstorisTheBrave
+status: pending
+---
+
+# Phase 01 test evidence
+
+## Requirement matrix
+
+| Requirement | Primary proof | Scope |
+| --- | --- | --- |
+| Registry parity | `tooling/scripts/registry-snapshots.test.ts` | 42 modules, 47 commands, 48 events, no Discord network access |
+| Cross-guild and host denial | `apps/api/src/server.test.ts`, auth package tests and PostgreSQL auth service tests | Guessed and swapped IDs, host denial and same-guild foreign keys |
+| Configured-owner denial | Moderation, tickets and shared permission tests | No owner escape hatch for guild actions |
+| Current private-read authorization | `apps/api/src/server.test.ts` | Private operation read changes from 200 to 404 after membership or grant revocation |
+| Cache convergence | `packages/cache/src/coherent.service.ts` | Two processes, commit visibility, pre-write race, rollback and publication failure |
+| Atomic outbox | `packages/operations/src/outbox.service.ts` | Domain rollback, idempotency conflict, post-commit publish, retry and stale fencing |
+| Redis recovery | `tooling/scripts/phase01-redis-recovery.service.ts` | Durable PostgreSQL intent retained while Redis is stopped, then completed once after a fresh Redis server starts |
+| Worker interruption | `apps/workers/src/runtime.service.ts` and `scheduler.service.ts` | Replacement worker, duplicate delivery and three `SIGKILL` rounds |
+| Scheduled failure retention | `packages/operations/src/scheduler.service.ts` | Terminal failed row, coded failure, attempts and claim fencing |
+| Truthful flag and setup state | Flag, provisioning and setup command tests | Initial-load denial, buffered reload, durable failure and delayed-delivery messages |
+| Health boundaries | API, gateway and worker health tests | Status-only public routes, bearer diagnostics, bounded coalesced probes and shutdown |
+| Migration stop | CI failed-migration rehearsal plus `tooling/smoke/startup.test.ts` | Real PostgreSQL `P3009` in CI and retry-wrapper unit behavior |
+
+## Local Task 8 gate
+
+The candidate passed the frozen install, repository and package boundaries, 21 workspace typechecks,
+lint with six existing warnings, all 33 serialized root test tasks and all 21 workspace builds. The
+root test gate included 241 gateway tests, 47 tooling tests and the five focused measurement tests.
+
+The service gate also passed the six-operation PostgreSQL suite, the real local Redis
+outage/replacement proof and a real failed-migration startup refusal with Prisma `P3009`. Biome and
+`git diff --check` passed. Browser, image, prior-image and security matrices remain GitHub-owned.

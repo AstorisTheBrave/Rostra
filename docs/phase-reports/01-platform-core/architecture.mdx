@@ -1,0 +1,38 @@
+---
+title: Phase 01 architecture evidence
+last-updated: 2026-10-22
+owner: AstorisTheBrave
+status: pending
+---
+
+# Phase 01 architecture evidence
+
+Phase 01 makes the platform boundaries explicit without replacing established feature behavior.
+
+| Boundary | Implemented contract | Evidence |
+| --- | --- | --- |
+| Tenant authorization | Closed capabilities, current persisted membership and same-guild role grants. Host and configured-owner identities do not bypass guild permission. | API, auth, moderation, ticket and database service tests |
+| Module runtime | Checked-in 42-module registry, version-1 manifests, deterministic dependency ordering and supervised abort, drain, stop and dispose. | Registry, lifecycle and parity tests |
+| Cache and events | Transaction-bound PostgreSQL revisions, exact-tenant invalidation after commit, version-1 envelopes and bounded local fallback. | Unit tests plus a two-process PostgreSQL/Redis service proof |
+| Operations | Domain mutation, operation and outbox commit atomically. Publication and execution claims are version-fenced and idempotent. | Operations and worker service suites |
+| Scheduled work | PostgreSQL owns due time, lease, claim version, attempts and terminal evidence. Workers publish strict task claims to owning gateways. | Scheduler unit, service and repeated-process-kill tests |
+| Feature and setup state | Initial flag loads fail closed; durable writes report delayed fleet delivery; provisioning preserves each failure outcome. | Flag, provisioning and setup rendering tests |
+| Health | Public routes return status only. Host diagnostics require bearer authorization. Worker readiness uses bounded, coalesced probes and recent durable poll success. | API, gateway and worker health tests |
+
+The `@rostra/auth`, `@rostra/module-sdk` and `@rostra/operations` packages own the new public contracts.
+`@rostra/cache` owns coherent invalidation. The gateway compatibility adapter remains the single seam
+for legacy module behavior. No package reaches into another package's private source.
+
+## Compatibility result
+
+The registry parity harness loads the checked-in registry with external access blocked. It preserves
+42 module IDs, 47 command definitions and 48 events. The only intentional security difference is that
+a default-on global flag is unavailable until its persisted state has loaded successfully. Command
+JSON and module inventory remain unchanged.
+
+## Known boundary
+
+The configured-status web summary intentionally keeps its signed exact-guild read behavior until a
+production `GuildMember` synchronizer exists. Current membership and role grants are rechecked for
+private operation reads and stronger actions. The security report scopes stale-authorization claims
+to those current-state paths.

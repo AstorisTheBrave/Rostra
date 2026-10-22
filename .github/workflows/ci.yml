@@ -177,8 +177,57 @@ jobs:
       - run: pnpm prisma:generate
       - name: Apply forward migrations
         run: pnpm prisma:migrate
+      - name: Refuse startup after a real failed PostgreSQL migration
+        shell: bash
+        run: |
+          postgres_container="$(docker ps --filter ancestor=postgres:16-alpine --format '{{.ID}}' | head -n 1)"
+          test -n "$postgres_container"
+          docker exec "$postgres_container" createdb -U rostra rostra_failed_migration
+          failed_url="postgresql://rostra:rostra@localhost:5432/rostra_failed_migration"
+          DATABASE_URL="$failed_url" pnpm prisma:migrate
+          docker exec -i "$postgres_container" psql -U rostra -d rostra_failed_migration <<'SQL'
+          INSERT INTO "_prisma_migrations"
+            (id, checksum, started_at, migration_name, logs, applied_steps_count)
+          VALUES
+            ('phase01-failed-rehearsal', repeat('0', 64), now(),
+             '99999999999999_phase01_failed_rehearsal', 'injected rehearsal failure', 0);
+          SQL
+          marker="${RUNNER_TEMP}/rostra-started"
+          set +e
+          startup_output="$(DATABASE_URL="$failed_url" MIGRATION_ATTEMPTS=1 MIGRATION_RETRY_SECONDS=0 \
+            sh infra/start-app.sh sh -c "touch '$marker'" 2>&1)"
+          startup_status=$?
+          set -e
+          printf '%s\n' "$startup_output"
+          test "$startup_status" -ne 0
+          grep -q 'P3009' <<< "$startup_output"
+          test ! -e "$marker"
       - name: Cache revision and independent process proof
         run: pnpm --filter @rostra/cache test:integration
+      - name: Atomic outbox and scheduled-task retention proof
+        run: pnpm --filter @rostra/operations test:integration
+      - name: Retain durable intent during a real Redis outage
+        shell: bash
+        run: |
+          redis_container="$(docker ps --filter ancestor=redis:7-alpine --format '{{.ID}}' | head -n 1)"
+          test -n "$redis_container"
+          docker stop "$redis_container"
+          docker rm "$redis_container" 2>/dev/null || true
+          node --import tsx tooling/scripts/phase01-redis-recovery.service.ts seed
+      - name: Recover retained intent after Redis restarts
+        shell: bash
+        run: |
+          redis_container="phase01-redis-restarted"
+          docker run -d --name "$redis_container" -p 6379:6379 redis:7-alpine \
+            redis-server --appendonly yes --maxmemory-policy noeviction
+          for attempt in {1..20}; do
+            if docker exec "$redis_container" redis-cli ping | grep -q PONG; then
+              break
+            fi
+            sleep 1
+          done
+          test "$(docker exec "$redis_container" redis-cli ping)" = "PONG"
+          node --import tsx tooling/scripts/phase01-redis-recovery.service.ts recover
       - name: Durable operation restart and duplicate-delivery proof
         run: pnpm --filter @rostra/workers test:integration
       - name: Collect API, tenant cache and durable-operation measurements

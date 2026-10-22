@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-10-18
+last-updated: 2026-10-22
 owner: AstorisTheBrave
 status: stable
 ---
@@ -10,6 +10,23 @@ The running history of structural changes to Rostra, one entry per working sessi
 to see where things stand and what was decided.
 
 ## log
+
+### 2026-10-22 - Phase 01 final evidence candidate
+
+Closed the three gaps found by the independent Phase 01 acceptance audit. The measurement schema now
+records credential-free provider request counts and rejects one-sided comparisons; the collector uses
+an in-process fake endpoint and recorded one request for each of 20 local prompts. A detached replay of
+Task 1 revision `5814840` measured the same one request per prompt, closing the before/after frequency
+comparison without external traffic. The CI service job
+now runs the operations PostgreSQL suite, stops and replaces the real Redis service around retained
+PostgreSQL intent, and proves the recovered operation completes with one durable effect. A separate
+disposable database receives a real unfinished migration row; the production startup wrapper receives
+Prisma `P3009` and proves the application command never runs.
+
+Added the Phase 01 architecture, migration, test, measurement, security and recovery evidence pages,
+linked them in `docs/docs.json`, and refreshed stale Phase 00 language in the product documentation.
+The decision remains pending until the Task 8 candidate passes every exact-head workflow and the final
+pull-request conversation, inline-review and Advanced Security sweep.
 
 ### 2026-10-21 - Phase 01 truthful flags, provisioning and health
 

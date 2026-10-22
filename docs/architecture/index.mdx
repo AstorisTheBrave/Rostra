@@ -1,6 +1,6 @@
 ---
 title: Architecture map
-last-updated: 2026-10-19
+last-updated: 2026-10-22
 owner: AstorisTheBrave
 status: in-flux
 ---
@@ -108,6 +108,6 @@ The schema and all migration directories live under `packages/database/prisma/`.
 
 The default Compose profile runs PostgreSQL, Redis, gateway, API, workers and web with bounded resources. The development overlay binds database and Redis ports to loopback. The VPS overlay pins immutable image tags and does not expose database ports. Realtime and Activity are opt-in. Redis uses append-only persistence and `noeviction`.
 
-The Linux Compose smoke applies all 11 migrations inside the API image, then verifies the gateway-owned API adapter, API intent, Redis delivery, one worker effect and typed web-client scope under one correlation ID. The test network is internal and fake Discord credentials cannot login or publish commands. The Phase 00 prior-image rollback rehearsal passed on the exact recorded remote commit.
+The Linux Compose smoke applies all 15 migrations inside the API image, then verifies the gateway-owned API adapter, API intent, Redis delivery, one worker effect and typed web-client scope under one correlation ID. The test network is internal and fake Discord credentials cannot login or publish commands. The Phase 00 prior-image rollback rehearsal passed on the exact recorded remote commit. The Phase 01 gate also rehearses a real failed PostgreSQL migration and a stopped and replaced Redis server before the phase can pass.
 
-See [deployment](../runbooks/deployment.mdx), [recovery](../runbooks/recovery.mdx), [capability status](../product/capability-status.mdx) and the [Phase 00 evidence index](../phase-reports/phase-00/index.mdx) for operational instructions and verification limits.
+See [deployment](../runbooks/deployment.mdx), [recovery](../runbooks/recovery.mdx), [capability status](../product/capability-status.mdx), the [Phase 00 evidence index](../phase-reports/phase-00/index.mdx) and the [Phase 01 evidence index](../phase-reports/01-platform-core/index.mdx) for operational instructions and verification limits.

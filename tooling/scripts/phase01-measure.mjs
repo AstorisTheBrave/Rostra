@@ -73,6 +73,16 @@ export function validateMeasurements(value) {
 				`${name}: ${field} samples must be finite non-negative numbers`,
 			);
 		}
+		if (workload.providerRequestCount !== undefined) {
+			assert(
+				Array.isArray(workload.providerRequestCount) &&
+					workload.providerRequestCount.length === workload.iterations &&
+					workload.providerRequestCount.every(
+						(sample) => Number.isSafeInteger(sample) && sample >= 0,
+					),
+				`${name}: providerRequestCount must contain one non-negative integer per iteration`,
+			);
+		}
 	}
 	return value;
 }
@@ -95,6 +105,9 @@ function summarize(workload) {
 		cacheColdMeanMs: mean(workload.cacheColdLatencyMs),
 		cacheWarmMeanMs: mean(workload.cacheWarmLatencyMs),
 		queueLagP95Ms: percentile(workload.queueLagMs, 0.95),
+		...(workload.providerRequestCount === undefined
+			? {}
+			: { providerRequestsPerPrompt: mean(workload.providerRequestCount) }),
 	};
 }
 
@@ -119,6 +132,10 @@ export function compareMeasurements(beforeInput, afterInput) {
 		assert(
 			prior.runtime === next.runtime && prior.iterations === next.iterations,
 			`${name}: incompatible runtime or iteration metadata`,
+		);
+		assert(
+			(prior.providerRequestCount === undefined) === (next.providerRequestCount === undefined),
+			`${name}: incompatible provider request samples`,
 		);
 		workloads[name] = {
 			iterations: prior.iterations,

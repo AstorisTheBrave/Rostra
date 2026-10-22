@@ -23,6 +23,7 @@ const measurement = {
 			cacheColdLatencyMs: [2, 2, 2],
 			cacheWarmLatencyMs: [1, 1, 1],
 			queueLagMs: [4, 4, 4],
+			providerRequestCount: [1, 1, 1],
 		},
 	},
 };
@@ -41,12 +42,22 @@ test("measurement samples reject non-finite values", () => {
 	const invalid = structuredClone(measurement);
 	invalid.workloads.apiAuthorization.queueLagMs = [Number.POSITIVE_INFINITY, 1, 1];
 	assert.throws(() => validateMeasurements(invalid), /finite/);
+
+	const invalidProviderCount = structuredClone(measurement);
+	invalidProviderCount.workloads.apiAuthorization.providerRequestCount = [1, 0.5, 1];
+	assert.throws(() => validateMeasurements(invalidProviderCount), /providerRequestCount/);
 });
 
 test("comparison rejects different workload metadata and summarizes identical inputs", () => {
 	const incompatible = structuredClone(measurement);
 	incompatible.workloads.apiAuthorization.runtime = "node v22.0.0; linux x64";
 	assert.throws(() => compareMeasurements(measurement, incompatible), /incompatible/);
+	const missingProviderCount = structuredClone(measurement);
+	Reflect.deleteProperty(missingProviderCount.workloads.apiAuthorization, "providerRequestCount");
+	assert.throws(
+		() => compareMeasurements(measurement, missingProviderCount),
+		/provider request samples/,
+	);
 
 	const result = compareMeasurements(measurement, measurement);
 	assert.deepEqual(result.workloads.apiAuthorization, {
@@ -59,6 +70,7 @@ test("comparison rejects different workload metadata and summarizes identical in
 			cacheColdMeanMs: 2,
 			cacheWarmMeanMs: 1,
 			queueLagP95Ms: 4,
+			providerRequestsPerPrompt: 1,
 		},
 		after: {
 			requestP95Ms: 3,
@@ -67,6 +79,7 @@ test("comparison rejects different workload metadata and summarizes identical in
 			cacheColdMeanMs: 2,
 			cacheWarmMeanMs: 1,
 			queueLagP95Ms: 4,
+			providerRequestsPerPrompt: 1,
 		},
 	});
 });

@@ -15,6 +15,7 @@ import Redis from "ioredis";
 import { createApi } from "../../apps/api/src/server.ts";
 import { evictTenantL1, getTenant } from "../../apps/gateway/src/services/tenant.ts";
 import { WorkerRuntime } from "../../apps/workers/src/runtime.ts";
+import { ask } from "../../modules/ai/service.ts";
 import type { Phase01Measurements } from "./phase01-measure.mjs";
 import { validateMeasurements } from "./phase01-measure.mjs";
 import { recordAuthorizationSample } from "./phase01-samples.ts";
@@ -38,6 +39,7 @@ function percentileSamples() {
 		cacheColdLatencyMs: [] as number[],
 		cacheWarmLatencyMs: [] as number[],
 		queueLagMs: [] as number[],
+		providerRequestCount: [] as number[],
 	};
 }
 
@@ -57,6 +59,9 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 	let authorizationDatabaseCalls = 0;
 	let closeApp: (() => Promise<void>) | undefined;
 	const samples = percentileSamples();
+	const originalFetch = globalThis.fetch;
+	const originalAi = { ...config.ai };
+	let providerRequests = 0;
 	try {
 		await prisma.guild.create({ data: { id: guildId } });
 		const app = await createApi({
@@ -95,6 +100,19 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 		});
 		closeApp = () => app.close();
 		runtime.registerOperations(repository, new Map([["phase00.smoke", async () => {}]]));
+		config.ai.apiKey = "phase01-placeholder";
+		config.ai.baseUrl = "http://phase01.invalid";
+		globalThis.fetch = async (input, init) => {
+			assert.equal(input, "http://phase01.invalid/chat/completions");
+			assert.equal(init?.method, "POST");
+			providerRequests++;
+			return new Response(
+				JSON.stringify({ choices: [{ message: { content: "Measured reply." } }] }),
+				{
+					status: 200,
+				},
+			);
+		};
 
 		for (let index = 0; index < iterations; index++) {
 			const delay = monitorEventLoopDelay({ resolution: 10 });
@@ -145,6 +163,9 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 				const job = await queue.getJob(`operation-${operationId}`);
 				if (!job?.processedOn) throw new Error("worker must start the queued operation");
 				samples.queueLagMs.push(Math.max(0, job.processedOn - job.timestamp));
+				const requestsBeforePrompt = providerRequests;
+				assert.equal(await ask("Phase 01 measurement"), "Measured reply.");
+				samples.providerRequestCount.push(providerRequests - requestsBeforePrompt);
 				await new Promise((resolvePromise) => setTimeout(resolvePromise, 15));
 				samples.eventLoopDelayMs.push(delay.max / 1_000_000);
 			} finally {
@@ -174,6 +195,8 @@ export async function collectPhase01Measurements(outputFile: string): Promise<vo
 		mkdirSync(dirname(resolve(outputFile)), { recursive: true });
 		writeFileSync(resolve(outputFile), `${JSON.stringify(measurements, null, 2)}\n`);
 	} finally {
+		globalThis.fetch = originalFetch;
+		Object.assign(config.ai, originalAi);
 		await closeApp?.();
 		await runtime.drain();
 		await publisher.close();
